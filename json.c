@@ -554,7 +554,7 @@ static int json_parse_array(struct json_parse_state_s* state,
 
   count_offset = state->offset;
 
-  // need to count number of name/value pairs first
+  // need to count number of array elements first
   while(0 != array_depth) {
     if ('"' == state->src[count_offset]) {
       // skip string separately incase they have '{' or '}' in them
