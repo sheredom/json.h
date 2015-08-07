@@ -86,8 +86,8 @@ struct json_object_s {
 };
 
 struct json_array_s {
-  struct json_value_s** values;
-  size_t values_length;
+  struct json_value_s* values;
+  size_t length;
 };
 
 struct json_value_s {

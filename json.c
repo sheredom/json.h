@@ -153,6 +153,9 @@ static int json_get_object_size(struct json_parse_state_s* state) {
     }
 
     if ('}' == state->src[state->offset]) {
+      // skip trailing '}'
+      state->offset++;
+
       // finished the object!
       break;
     }
@@ -212,8 +215,60 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 }
 
 static int json_get_array_size(struct json_parse_state_s* state) {
-  (void)state;
-  return 1;
+  size_t elements = 0;
+
+  if ('[' != state->src[state->offset]) {
+    // expected array to begin with leading '['
+    return 1;
+  }
+
+  // skip leading '['
+  state->offset++;
+
+  state->dom_size += sizeof(struct json_array_s);
+
+  while (state->offset < state->size) {
+    if (json_skip_whitespace(state)) {
+      // reached end of buffer before array was complete!
+      return 1;
+    }
+
+    if (']' == state->src[state->offset]) {
+      // skip trailing ']'
+      state->offset++;
+
+      // finished the object!
+      break;
+    }
+
+    // if we parsed at least once element previously, grok for a comma
+    if (0 < elements) {
+      if (',' != state->src[state->offset]) {
+        // expected a comma where there was none!
+        return 1;
+      }
+
+      // skip comma
+      state->offset++;
+
+      if (json_skip_whitespace(state)) {
+        // reached end of buffer before array was complete!
+        return 1;
+      }
+    }
+
+    if (json_get_value_size(state)) {
+      // value parsing failed!
+      return 1;
+    }
+
+    // successfully parsed an array element!
+    elements++;
+  }
+
+  state->dom_size += sizeof(struct json_value_s) * elements;
+
+  return 0;
 }
 
 static int json_get_number_size(struct json_parse_state_s* state) {
@@ -355,13 +410,13 @@ static int json_parse_object(struct json_parse_state_s* state,
         ('\\' == state->src[count_offset - 1] &&
         '"' == state->src[count_offset]));
 
-      // skip last '"'
+      // skip trailing '"'
       count_offset++;
     } else if ('[' == state->src[count_offset]) {
-      // entering a child object
+      // entering a child array
       array_depth++;
     } else if (']' == state->src[count_offset]) {
-      // leaving an object
+      // leaving an array
       array_depth--;
     } else if ('{' == state->src[count_offset]) {
       // entering a child object
@@ -383,6 +438,19 @@ static int json_parse_object(struct json_parse_state_s* state,
   if (0 == elements) {
     object->names = 0;
     object->values = 0;
+
+    if (json_skip_whitespace(state)) {
+      // reached end of buffer before object was complete!
+      return 1;
+    }
+
+    if ('}' != state->src[state->offset]) {
+      // expected an empty object!
+      return 1;
+    }
+    
+    // skip trailing '}'
+    state->offset++;
   } else {
     object->names = (struct json_string_s* )state->dom;
     state->dom += sizeof(struct json_string_s) * elements;
@@ -460,8 +528,130 @@ static int json_parse_object(struct json_parse_state_s* state,
 
 static int json_parse_array(struct json_parse_state_s* state,
   struct json_array_s* array) {
-  (void)state; (void)array;
-  return 1;
+  size_t elements = 0;
+  size_t count_offset = 0;
+  size_t array_depth = 1;
+  size_t object_depth = 0;
+
+  if ('[' != state->src[state->offset]) {
+    // expected object to begin with leading '['
+    return 1;
+  }
+
+  // skip leading '['
+  state->offset++;
+
+  if (json_skip_whitespace(state)) {
+    // consumed the whole buffer when we expected a value!
+    return 1;
+  }
+
+  if (']' != state->src[state->offset]) {
+    // we have at least one element as we definitely don't have
+    // an empty array [   ]!
+    elements++;
+  }
+
+  count_offset = state->offset;
+
+  // need to count number of name/value pairs first
+  while(0 != array_depth) {
+    if ('"' == state->src[count_offset]) {
+      // skip string separately incase they have '{' or '}' in them
+      do {
+        count_offset++;
+      } while (('"' != state->src[count_offset]) ||
+        ('\\' == state->src[count_offset - 1] &&
+        '"' == state->src[count_offset]));
+
+      // skip trailing '"'
+      count_offset++;
+    } else if ('[' == state->src[count_offset]) {
+      // entering a child array
+      array_depth++;
+    } else if (']' == state->src[count_offset]) {
+      // leaving an array
+      array_depth--;
+    } else if ('{' == state->src[count_offset]) {
+      // entering a child object
+      object_depth++;
+    } else if ('}' == state->src[count_offset]) {
+      // leaving an object
+      object_depth--;
+    } else if (1 == array_depth && 0 == object_depth &&
+      ',' == state->src[count_offset]) {
+      // if we are on our parent array, and not within an object,
+      // if we find a comma we have found another element
+      elements++;
+    }
+
+    count_offset++;
+  }
+
+  array->length = elements;
+  if (0 == elements) {
+    array->values = 0;
+    
+    if (json_skip_whitespace(state)) {
+      // reached end of buffer before array was complete!
+      return 1;
+    }
+
+    if (']' != state->src[state->offset]) {
+      // expected empty array!
+      return 1;
+    }
+
+    // skip trailing ']'
+    state->offset++;
+  } else {
+    array->values = (struct json_value_s* )state->dom;
+    state->dom += sizeof(struct json_value_s) * elements;
+
+    // reset elements
+    elements = 0;
+
+    while (state->offset < state->size) {
+      if (json_skip_whitespace(state)) {
+        // reached end of buffer before array was complete!
+        return 1;
+      }
+
+      if (']' == state->src[state->offset]) {
+        // skip trailing ']'
+        state->offset++;
+        
+        // finished the array!
+        break;
+      }
+
+      // if we parsed at least once element previously, grok for a comma
+      if (0 < elements) {
+        if (',' != state->src[state->offset]) {
+          // expected a comma where there was none!
+          return 1;
+        }
+
+        // skip comma
+        state->offset++;
+
+        if (json_skip_whitespace(state)) {
+          // reached end of buffer before array was complete!
+          return 1;
+        }
+      }
+
+      if (json_parse_value(state, array->values + elements)) {
+        // value parsing failed!
+        return 1;
+      }
+
+      // successfully parsed an array element!
+      elements++;
+    }
+  }
+
+  return 0;
 }
 
 static int json_parse_number(struct json_parse_state_s* state,

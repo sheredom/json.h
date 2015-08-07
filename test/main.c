@@ -50,7 +50,7 @@ static int test_empty() {
   return 0;
 }
 
-static int test_simple() {
+static int test_simple_object() {
   const char payload[] = "{ \"first\" : null, \"second\" : false, \"third\" : true, \"fourth\" : {} }";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -135,6 +135,147 @@ static int test_simple() {
   return 0;
 }
 
+int test_objects() {
+  const char payload[] = "{ \"ahem\\\"\"\n : { \"a\" : false }  , \"inception0\" : { \"inception1\" : {\r \"inception2\" : true\t } } }";
+  struct json_value_s* value = json_parse(payload, strlen(payload));
+  struct json_object_s* object = 0;
+  
+  if (0 == value) {
+    return 1;
+  }
+
+  if (json_type_object != value->type) {
+    return 2;
+  }
+
+  object = (struct json_object_s* )value->payload;
+
+  if (2 != object->length) {
+    return 3;
+  }
+
+  if (0 != strcmp("ahem\\\"", object->names[0].string)) {
+    return 4;
+  }
+
+  if (json_type_object != object->values[0].type) {
+    return 5;
+  }
+
+  object = (struct json_object_s* )object->values[0].payload;
+
+  if (1 != object->length) {
+    return 6;
+  }
+
+  if (0 != strcmp("a", object->names[0].string)) {
+    return 7;
+  }
+
+  if (json_type_false != object->values[0].type) {
+    return 8;
+  }
+
+  // reset object to parent of json tree again
+  object = (struct json_object_s* )value->payload;
+
+  if (0 != strcmp("inception0", object->names[1].string)) {
+    return 9;
+  }
+
+  if (json_type_object != object->values[1].type) {
+    return 10;
+  }
+
+  object = (struct json_object_s* )object->values[1].payload;
+
+  if (1 != object->length) {
+    return 11;
+  }
+
+  if (0 != strcmp("inception1", object->names[0].string)) {
+    return 12;
+  }
+
+  if (json_type_object != object->values[0].type) {
+    return 13;
+  }
+
+  object = (struct json_object_s* )object->values[0].payload;
+
+  if (1 != object->length) {
+    return 14;
+  }
+
+  if (0 != strcmp("inception2", object->names[0].string)) {
+    return 15;
+  }
+
+  if (json_type_true != object->values[0].type) {
+    return 16;
+  }
+
+  free(value);
+  return 0;
+}
+
+static int test_simple_array() {
+  const char payload[] = "[ null, false, true, {}, [] ]";
+  struct json_value_s* value = json_parse(payload, strlen(payload));
+  struct json_array_s* array = 0;
+  
+  if (0 == value) {
+    return 1;
+  }
+
+  if (json_type_array != value->type) {
+    return 2;
+  }
+
+  array = (struct json_array_s* )value->payload;
+
+  if (5 != array->length) {
+    return 3;
+  }
+
+  if (json_type_null != array->values[0].type) {
+    return 4;
+  }
+
+  if (json_type_false != array->values[1].type) {
+    return 5;
+  }
+
+  if (json_type_true != array->values[2].type) {
+    return 6;
+  }
+
+  if (json_type_object != array->values[3].type) {
+    return 7;
+  }
+
+  if (json_type_array != array->values[4].type) {
+    return 8;
+  }
+
+  if (0 != ((struct json_object_s* )array->values[3].payload)->length) {
+    return 9;
+  }
+  
+  array = (struct json_array_s* )array->values[4].payload;
+
+  if (0 != array->length) {
+    return 10;
+  }
+
+  if (0 != array->values) {
+    return 11;
+  }
+
+  free(value);
+  return 0;
+}
+
 int main() {
   const int error_addition = 20;
   int result = test_empty();
@@ -143,10 +284,22 @@ int main() {
     return result;
   }
 
-  result = test_simple();
+  result = test_simple_object();
 
   if (0 != result) {
-    return error_addition + result;
+    return (1 * error_addition) + result;
+  }
+  
+  result = test_objects();
+
+  if (0 != result) {
+    return (2 * error_addition) + result;
+  }
+  
+  result = test_simple_array();
+
+  if (0 != result) {
+    return (3 * error_addition) + result;
   }
 
   return 0;
