@@ -25,6 +25,14 @@
 
 #include "json.h"
 
+// we do one big allocation via malloc, then cast aligned slices of this for
+// our structures - we don't have a way to tell the compiler we know what we
+// are doing, so disable the warning instead!
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wcast-align"
+#endif
+
 struct json_parse_state_s {
   const char* src;
   size_t size;
@@ -73,7 +81,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
     // expected string to begin with '"'!
     return 1;
   }
-   
+
   // skip leading '"'
   state->offset++;
 
@@ -448,7 +456,7 @@ static int json_parse_object(struct json_parse_state_s* state,
       // expected an empty object!
       return 1;
     }
-    
+
     // skip trailing '}'
     state->offset++;
   } else {
@@ -469,7 +477,7 @@ static int json_parse_object(struct json_parse_state_s* state,
       if ('}' == state->src[state->offset]) {
         // skip trailing '}'
         state->offset++;
-        
+
         // finished the object!
         break;
       }
@@ -591,7 +599,7 @@ static int json_parse_array(struct json_parse_state_s* state,
   array->length = elements;
   if (0 == elements) {
     array->values = 0;
-    
+
     if (json_skip_whitespace(state)) {
       // reached end of buffer before array was complete!
       return 1;
@@ -620,7 +628,7 @@ static int json_parse_array(struct json_parse_state_s* state,
       if (']' == state->src[state->offset]) {
         // skip trailing ']'
         state->offset++;
-        
+
         // finished the array!
         break;
       }
@@ -780,3 +788,7 @@ struct json_value_s* json_parse(const void* src, size_t src_size) {
 
   return allocation;
 }
+
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#endif

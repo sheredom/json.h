@@ -29,10 +29,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 
-#if defined(__cplusplus) && defined(__clang__)
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wold-style-cast"
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #pragma warning(push)
 #pragma warning(disable : 4820)
 #endif
@@ -92,16 +89,14 @@ struct json_array_s {
 
 struct json_value_s {
   void* payload;
-  enum json_type_e type;
+  size_t type;
 };
 
 #ifdef __cplusplus
 } // extern "C"
 #endif
 
-#if defined(__cplusplus) && defined(__clang__)
-#pragma clang diagnostic pop
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
