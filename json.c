@@ -73,6 +73,9 @@ static int json_get_string_size(struct json_parse_state_s* state) {
     // expected string to begin with '"'!
     return 1;
   }
+   
+  // skip leading '"'
+  state->offset++;
 
   while (state->offset < state->size && '"' != state->src[state->offset]) {
     if ('\\' == state->src[state->offset]) {
@@ -116,10 +119,16 @@ static int json_get_string_size(struct json_parse_state_s* state) {
         state->offset += 5;
         break;
       }
+    } else {
+      // skip character (valid part of sequence)
+      state->offset++;
     }
   }
 
-  state->data_size += sizeof(state->offset - initial_offset);
+  // skip trailing '"'
+  state->offset++;
+
+  state->data_size += state->offset - initial_offset;
 
   return 0;
 }
@@ -245,6 +254,7 @@ static int json_get_value_size(struct json_parse_state_s* state) {
       'r' == state->src[state->offset + 1] &&
       'u' == state->src[state->offset + 2] &&
       'e' == state->src[state->offset + 3]) {
+      state->offset += 4;
       return 0;
     } else if ((state->offset + 5) < state->size &&
       'f' == state->src[state->offset + 0] &&
@@ -252,12 +262,14 @@ static int json_get_value_size(struct json_parse_state_s* state) {
       'l' == state->src[state->offset + 2] &&
       's' == state->src[state->offset + 3] &&
       'e' == state->src[state->offset + 4]) {
+      state->offset += 5;
       return 0;
     } else if ((state->offset + 4) < state->size &&
       'n' == state->src[state->offset + 0] &&
       'u' == state->src[state->offset + 1] &&
       'l' == state->src[state->offset + 2] &&
       'l' == state->src[state->offset + 3]) {
+      state->offset += 4;
       return 0;
     }
 
@@ -280,6 +292,9 @@ static int json_parse_string(struct json_parse_state_s* state,
     return 1;
   }
 
+  // skip leading '"'
+  state->offset++;
+
   while (state->offset < state->size &&
     ('"' != state->src[state->offset] ||
     ('\\' == state->src[state->offset - 1] &&
@@ -287,14 +302,14 @@ static int json_parse_string(struct json_parse_state_s* state,
     state->data[size++] = state->src[state->offset++];
   }
 
-  // skip last '"'
+  // skip trailing '"'
   state->offset++;
-
-  // add null terminator to string
-  state->data[size++] = '\0';
 
   // record the size of the string
   string->string_size = size;
+
+  // add null terminator to string
+  state->data[size++] = '\0';
 
   // move data along
   state->data += size;
@@ -316,6 +331,17 @@ static int json_parse_object(struct json_parse_state_s* state,
 
   // skip leading '{'
   state->offset++;
+
+  if (json_skip_whitespace(state)) {
+    // consumed the whole buffer when we expected a value!
+    return 1;
+  }
+
+  if ('}' != state->src[state->offset]) {
+    // we have at least one element as we definitely don't have
+    // an empty object {   }!
+    elements++;
+  }
 
   count_offset = state->offset;
 
@@ -373,6 +399,9 @@ static int json_parse_object(struct json_parse_state_s* state,
       }
 
       if ('}' == state->src[state->offset]) {
+        // skip trailing '}'
+        state->offset++;
+        
         // finished the object!
         break;
       }
@@ -425,8 +454,6 @@ static int json_parse_object(struct json_parse_state_s* state,
       elements++;
     }
   }
-
-  
 
   return 0;
 }
@@ -489,6 +516,7 @@ static int json_parse_value(struct json_parse_state_s* state,
       'e' == state->src[state->offset + 3]) {
       value->type = json_type_true;
       value->payload = 0;
+      state->offset += 4;
       return 0;
     } else if ((state->offset + 5) < state->size &&
       'f' == state->src[state->offset + 0] &&
@@ -498,6 +526,7 @@ static int json_parse_value(struct json_parse_state_s* state,
       'e' == state->src[state->offset + 4]) {
       value->type = json_type_false;
       value->payload = 0;
+      state->offset += 5;
       return 0;
     } else if ((state->offset + 4) < state->size &&
       'n' == state->src[state->offset + 0] &&
@@ -506,6 +535,7 @@ static int json_parse_value(struct json_parse_state_s* state,
       'l' == state->src[state->offset + 3]) {
       value->type = json_type_null;
       value->payload = 0;
+      state->offset += 4;
       return 0;
     }
 
