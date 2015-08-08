@@ -31,6 +31,9 @@
 #if defined(__clang__)
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4711)
 #endif
 
 struct json_parse_state_s {
@@ -889,4 +892,6 @@ struct json_value_s* json_parse(const void* src, size_t src_size) {
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
 #endif
