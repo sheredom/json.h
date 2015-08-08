@@ -31,7 +31,7 @@ static int test_empty() {
   const char payload[] = "{}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
-  
+
   if (0 == value) {
     return 1;
   }
@@ -54,7 +54,7 @@ static int test_simple_object() {
   const char payload[] = "{ \"first\" : null, \"second\" : false, \"third\" : true, \"fourth\" : {} }";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
-  
+
   if (0 == value) {
     return 1;
   }
@@ -116,7 +116,7 @@ static int test_simple_object() {
   if (json_type_object != object->values[3].type) {
     return 15;
   }
-  
+
   object = (struct json_object_s* )object->values[3].payload;
 
   if (0 != object->length) {
@@ -139,7 +139,7 @@ int test_objects() {
   const char payload[] = "{ \"ahem\\\"\"\n : { \"a\" : false }  , \"inception0\" : { \"inception1\" : {\r \"inception2\" : true\t } } }";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
-  
+
   if (0 == value) {
     return 1;
   }
@@ -223,7 +223,7 @@ static int test_simple_array() {
   const char payload[] = "[ null, false, true, {}, [] ]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
-  
+
   if (0 == value) {
     return 1;
   }
@@ -261,7 +261,7 @@ static int test_simple_array() {
   if (0 != ((struct json_object_s* )array->values[3].payload)->length) {
     return 9;
   }
-  
+
   array = (struct json_array_s* )array->values[4].payload;
 
   if (0 != array->length) {
@@ -270,6 +270,49 @@ static int test_simple_array() {
 
   if (0 != array->values) {
     return 11;
+  }
+
+  free(value);
+  return 0;
+}
+
+int test_numbers() {
+  const char* cmps[] = {
+    "0", "123", "0.1", "-456.7", "-98e4", "-O.9E+1", "42E-42"};
+  const char payload[] = "[ 0, 123, 0.1, -456.7, -98e4, -0.9E+1, 42E-42 ]";
+  struct json_value_s* value = json_parse(payload, strlen(payload));
+  struct json_array_s* array = 0;
+  struct json_number_s* number = 0;
+  size_t i;
+
+  if (0 == value) {
+    return 1;
+  }
+
+  if (json_type_array != value->type) {
+    return 2;
+  }
+
+  array = (struct json_array_s* )value->payload;
+
+  if (7 != array->length) {
+    return 3;
+  }
+
+  for (i = 0; i < 7; i++) {
+    if (json_type_number != array->values[i].type) {
+      return 4;
+    }
+
+    number = (struct json_number_s* )array->values[i].payload;
+
+    if (strlen(cmps[i]) != number->number_size) {
+      return 5;
+    }
+
+    if (0 != strcmp(cmps[i], number->number)) {
+      return 6;
+    }
   }
 
   free(value);
@@ -289,13 +332,13 @@ int main() {
   if (0 != result) {
     return (1 * error_addition) + result;
   }
-  
+
   result = test_objects();
 
   if (0 != result) {
     return (2 * error_addition) + result;
   }
-  
+
   result = test_simple_array();
 
   if (0 != result) {

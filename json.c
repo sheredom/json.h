@@ -280,8 +280,68 @@ static int json_get_array_size(struct json_parse_state_s* state) {
 }
 
 static int json_get_number_size(struct json_parse_state_s* state) {
-  (void)state;
-  return 1;
+  size_t initial_offset = state->offset;
+
+  state->dom_size += sizeof(struct json_number_s);
+
+  if ((state->offset < state->size) && ('-' == state->src[state->offset])) {
+    // skip valid leading '-'
+    state->offset++;
+  }
+
+  if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
+    // skip valid '0'
+    state->offset++;
+
+    if ((state->offset < state->size) &&
+      ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
+      // a leading '0' must not be immediately followed by any digits!
+      return 1;
+    }
+  }
+
+  // the main digits of our number next
+  while ((state->offset < state->size) &&
+   ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
+     state->offset++;
+  }
+
+  if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
+    state->offset++;
+
+    // a decimal point can be followed by more digits of course!
+    while ((state->offset < state->size) &&
+     ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
+       state->offset++;
+    }
+  }
+
+  if ((state->offset < state->size) && ('e' == state->src[state->offset] ||
+    'E' == state->src[state->offset])) {
+    // our number has an exponent!
+
+    // skip 'e' or 'E'
+    state->offset++;
+
+    if ((state->offset < state->size) && ('-' == state->src[state->offset] ||
+      '+' == state->src[state->offset])) {
+      // skip optional '-' or '+'
+      state->offset++;
+    }
+
+    // consume exponent digits
+    while ((state->offset < state->size) &&
+     ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
+       state->offset++;
+    }
+  }
+
+  state->data_size += state->offset - initial_offset;
+
+  // one more byte for null terminator ending the number string!
+  state->data_size++;
+
+  return 0;
 }
 
 static int json_get_value_size(struct json_parse_state_s* state) {
@@ -664,8 +724,46 @@ static int json_parse_array(struct json_parse_state_s* state,
 
 static int json_parse_number(struct json_parse_state_s* state,
   struct json_number_s* number) {
-  (void)state; (void)number;
-  return 1;
+  size_t size = 0;
+
+  number->number = state->data;
+
+  while (state->offset < state->size) {
+    switch (state->src[state->offset]) {
+    default:
+      // we've reached the end of all valid number characters!
+      goto json_parse_number_cleanup;
+    case '+':
+    case '-':
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+    case '.':
+    case 'e':
+    case 'E':
+      state->data[size++] = state->src[state->offset++];
+      break;
+    }
+  }
+
+json_parse_number_cleanup:
+  // record the size of the number
+  number->number_size = size;
+
+  // add null terminator to number string
+  state->data[size++] = '\0';
+
+  // move data along
+  state->data += size;
+
+  return 0;
 }
 
 static int json_parse_value(struct json_parse_state_s* state,
