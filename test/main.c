@@ -278,7 +278,7 @@ static int test_simple_array() {
 
 int test_numbers() {
   const char* cmps[] = {
-    "0", "123", "0.1", "-456.7", "-98e4", "-O.9E+1", "42E-42"};
+    "0", "123", "0.1", "-456.7", "-98e4", "-0.9E+1", "42E-42"};
   const char payload[] = "[ 0, 123, 0.1, -456.7, -98e4, -0.9E+1, 42E-42 ]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -343,6 +343,12 @@ int main() {
 
   if (0 != result) {
     return (3 * error_addition) + result;
+  }
+
+  result = test_numbers();
+
+  if (0 != result) {
+    return (4 * error_addition) + result;
   }
 
   return 0;
