@@ -480,9 +480,6 @@ static int json_parse_object(struct json_parse_state_s* state,
       } while (('"' != state->src[count_offset]) ||
         ('\\' == state->src[count_offset - 1] &&
         '"' == state->src[count_offset]));
-
-      // skip trailing '"'
-      count_offset++;
     } else if ('[' == state->src[count_offset]) {
       // entering a child array
       array_depth++;
@@ -634,9 +631,6 @@ static int json_parse_array(struct json_parse_state_s* state,
       } while (('"' != state->src[count_offset]) ||
         ('\\' == state->src[count_offset - 1] &&
         '"' == state->src[count_offset]));
-
-      // skip trailing '"'
-      count_offset++;
     } else if ('[' == state->src[count_offset]) {
       // entering a child array
       array_depth++;
@@ -1091,7 +1085,7 @@ static char* json_write_minified_value(const struct json_value_s* value, char* d
   }
 }
 
-void* json_write_minified(const struct json_value_s* value) {
+size_t json_write_minified(const struct json_value_s* value, void** output) {
   size_t size = 0;
   char* data = 0;
 
@@ -1117,7 +1111,8 @@ void* json_write_minified(const struct json_value_s* value) {
     return 0;
   }
 
-  return data;
+  *output = data;
+  return size;
 }
 
 #if defined(__clang__)

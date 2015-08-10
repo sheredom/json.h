@@ -50,7 +50,7 @@ struct json_value_s* json_parse(
 // minimal string characters required to still encode the same data.
 // json_write_minified performs 1 call to malloc for the entire encoding.
 // Return 0 if an error occurred (malformed JSON input, or malloc failed).
-void* json_write_minified(const struct json_value_s* value);
+size_t json_write_minified(const struct json_value_s* value, void** output);
 
 // The various types JSON values can be. Used to identify what a value is
 enum json_type_e {
