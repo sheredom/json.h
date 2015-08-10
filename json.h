@@ -38,26 +38,19 @@
 extern "C" {
 #endif
 
-#if defined(__clang__) || defined(__GNUC__)
-#define json_pure __attribute__((pure))
-#define json_weak __attribute__((weak))
-#elif  defined(_MSC_VER)
-#define json_pure
-#define json_weak __inline
-#else
-#error Non clang, non gcc, non MSVC compiler found!
-#endif
-
 struct json_value_s;
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
 // structure. json_parse performs 1 call to malloc for the entire encoding.
 // Returns 0 if an error occurred (malformed JSON input, or malloc failed)
-json_pure struct json_value_s* json_parse(
+struct json_value_s* json_parse(
   const void* src, size_t src_size);
 
-#undef json_pure
-#undef json_weak
+// Write out a minified JSON utf-8 string. This string is an encoding of the
+// minimal string characters required to still encode the same data.
+// json_write_minified performs 1 call to malloc for the entire encoding.
+// Return 0 if an error occurred (malformed JSON input, or malloc failed).
+void* json_write_minified(const struct json_value_s* value);
 
 // The various types JSON values can be. Used to identify what a value is
 enum json_type_e {
