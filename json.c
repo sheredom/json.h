@@ -1207,7 +1207,7 @@ static int json_write_pretty_get_object_size(const struct json_object_s* object,
   return 0;
 }
 
-static int json_write_pretty_get_value_size(const struct json_value_s* value, 
+static int json_write_pretty_get_value_size(const struct json_value_s* value,
   size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
   switch (value->type) {
   default:
@@ -1234,7 +1234,7 @@ static int json_write_pretty_get_value_size(const struct json_value_s* value,
 }
 
 static char* json_write_pretty_value(const struct json_value_s* value,
-  size_t depth, char* indent, char* newline, char* data);
+  size_t depth, const char* indent, const char* newline, char* data);
 
 static char* json_write_pretty_number(const struct json_number_s* number, char* data) {
   size_t i;
@@ -1261,7 +1261,7 @@ static char* json_write_pretty_string(const struct json_string_s* string, char* 
 }
 
 static char* json_write_pretty_array(const struct json_array_s* array,
-  size_t depth, char* indent, char* newline, char* data) {
+  size_t depth, const char* indent, const char* newline, char* data) {
   size_t i, k, m;
 
   *data++ = '['; // open the array
@@ -1309,7 +1309,7 @@ static char* json_write_pretty_array(const struct json_array_s* array,
 }
 
 static char* json_write_pretty_object(const struct json_object_s* object,
-  size_t depth, char* indent, char* newline, char* data) {
+  size_t depth, const char* indent, const char* newline, char* data) {
   size_t i, k, m;
 
   *data++ = '{'; // open the object
@@ -1369,7 +1369,7 @@ static char* json_write_pretty_object(const struct json_object_s* object,
 }
 
 static char* json_write_pretty_value(const struct json_value_s* value,
-  size_t depth, char* indent, char* newline, char* data) {
+  size_t depth, const char* indent, const char* newline, char* data) {
   switch (value->type) {
   default:
     // unknown value type found!
@@ -1405,8 +1405,8 @@ static char* json_write_pretty_value(const struct json_value_s* value,
 }
 
 void* json_write_pretty(const struct json_value_s* value,
-  char* indent,
-  char* newline,
+  const char* indent,
+  const char* newline,
   size_t* out_size) {
   size_t size = 0;
   size_t indent_size = 0;
