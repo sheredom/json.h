@@ -1085,7 +1085,7 @@ static char* json_write_minified_value(const struct json_value_s* value, char* d
   }
 }
 
-size_t json_write_minified(const struct json_value_s* value, void** output) {
+void* json_write_minified(const struct json_value_s* value, size_t* out_size) {
   size_t size = 0;
   char* data = 0;
 
@@ -1111,8 +1111,11 @@ size_t json_write_minified(const struct json_value_s* value, void** output) {
     return 0;
   }
 
-  *output = data;
-  return size;
+  if (0 != out_size) {
+    *out_size = size;
+  }
+
+  return data;
 }
 
 #if defined(__clang__)
