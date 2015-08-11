@@ -1088,6 +1088,7 @@ static char* json_write_minified_value(const struct json_value_s* value, char* d
 void* json_write_minified(const struct json_value_s* value, size_t* out_size) {
   size_t size = 0;
   char* data = 0;
+  char* data_end = 0;
 
 	if (0 == value) {
     return 0;
@@ -1098,6 +1099,8 @@ void* json_write_minified(const struct json_value_s* value, size_t* out_size) {
     return 0;
   }
 
+  size += 1; // for the '\0' null terminating character
+
   data = malloc(size);
 
   if (0 == data) {
@@ -1105,11 +1108,356 @@ void* json_write_minified(const struct json_value_s* value, size_t* out_size) {
     return 0;
   }
 
-  if (0 == json_write_minified_value(value, data)) {
+  data_end = json_write_minified_value(value, data);
+
+  if (0 == data_end) {
     // bad chi occurred!
     free(data);
     return 0;
   }
+
+  // null terminated the string
+  *data_end = '\0';
+
+  if (0 != out_size) {
+    *out_size = size;
+  }
+
+  return data;
+}
+
+
+static int json_write_pretty_get_value_size(const struct json_value_s* value,
+  size_t depth, size_t indent_size, size_t newline_size, size_t* size);
+
+static int json_write_pretty_get_number_size(const struct json_number_s* number, size_t* size) {
+  *size += number->number_size; // the actual string of the number
+
+  return 0;
+}
+
+static int json_write_pretty_get_string_size(const struct json_string_s* string, size_t* size) {
+  *size += string->string_size; // the actual string
+  *size += 2; // need to encode the surrounding '"' characters
+
+  return 0;
+}
+
+static int json_write_pretty_get_array_size(const struct json_array_s* array,
+  size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
+  size_t i;
+
+  *size += 1; // '['
+  *size += newline_size; // need a newline next
+
+  if (1 < array->length) {
+    *size += (array->length - 1); // ','s seperate each element
+  }
+
+  for (i = 0; i < array->length; i++) {
+    // each element gets an indent and newline
+    *size += (depth + 1) * indent_size;
+    *size += newline_size;
+    if (json_write_pretty_get_value_size(array->values + i, depth + 1, indent_size, newline_size, size)) {
+      // value was malformed!
+      return 1;
+    }
+  }
+
+  *size += depth * indent_size;
+  *size += 1; // ']'
+  *size += newline_size; // need a newline next
+
+  return 0;
+}
+
+static int json_write_pretty_get_object_size(const struct json_object_s* object,
+  size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
+  size_t i;
+
+  *size += 1; // '{'
+  *size += newline_size; // need a newline next
+
+  if (1 < object->length) {
+    *size += object->length - 1; // ','s seperate each element
+  }
+
+  for (i = 0; i < object->length; i++) {
+    // each element gets an indent and newline
+    *size += (depth + 1) * indent_size;
+    *size += newline_size;
+
+    if (json_write_pretty_get_string_size(object->names + i, size)) {
+      // string was malformed!
+      return 1;
+    }
+
+    *size += 3; // seperate each name/value pair with " : "
+
+    if (json_write_pretty_get_value_size(object->values + i, depth + 1, indent_size, newline_size, size)) {
+      // value was malformed!
+      return 1;
+    }
+  }
+
+  *size += depth * indent_size;
+  *size += 1; // '}'
+  *size += newline_size; // need a newline next
+
+  return 0;
+}
+
+static int json_write_pretty_get_value_size(const struct json_value_s* value, 
+  size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
+  switch (value->type) {
+  default:
+    // unknown value type found!
+    return 1;
+  case json_type_number:
+    return json_write_pretty_get_number_size((struct json_number_s*)value->payload, size);
+  case json_type_string:
+    return json_write_pretty_get_string_size((struct json_string_s*)value->payload, size);
+  case json_type_array:
+    return json_write_pretty_get_array_size((struct json_array_s*)value->payload, depth, indent_size, newline_size, size);
+  case json_type_object:
+    return json_write_pretty_get_object_size((struct json_object_s*)value->payload, depth, indent_size, newline_size, size);
+  case json_type_true:
+    *size += 4; // the string "true"
+    return 0;
+  case json_type_false:
+    *size += 5; // the string "false"
+    return 0;
+  case json_type_null:
+    *size += 4; // the string "null"
+    return 0;
+  }
+}
+
+static char* json_write_pretty_value(const struct json_value_s* value,
+  size_t depth, char* indent, char* newline, char* data);
+
+static char* json_write_pretty_number(const struct json_number_s* number, char* data) {
+  size_t i;
+
+  for (i = 0; i < number->number_size; i++) {
+    *data++ = number->number[i];
+  }
+
+  return data;
+}
+
+static char* json_write_pretty_string(const struct json_string_s* string, char* data) {
+  size_t i;
+
+  *data++ = '"'; // open the string
+
+  for (i = 0; i < string->string_size; i++) {
+    *data++ = ((char*)string->string)[i];
+  }
+
+  *data++ = '"'; // close the string
+
+  return data;
+}
+
+static char* json_write_pretty_array(const struct json_array_s* array,
+  size_t depth, char* indent, char* newline, char* data) {
+  size_t i, k, m;
+
+  *data++ = '['; // open the array
+
+  for (k = 0; '\0' != newline[k]; k++) {
+    *data++ = newline[k];
+  }
+
+  for (i = 0; i < array->length; i++) {
+    if (0 < i) {
+      *data++ = ','; // ','s seperate each element
+
+      for (k = 0; '\0' != newline[k]; k++) {
+        *data++ = newline[k];
+      }
+    }
+
+    for (k = 0; k < depth + 1; k++) {
+      for (m = 0; '\0' != indent[m]; m++) {
+        *data++ = indent[m];
+      }
+    }
+
+    data = json_write_pretty_value(array->values + i, depth + 1, indent, newline, data);
+
+    if (0 == data) {
+      // value was malformed!
+      return 0;
+    }
+  }
+
+  for (k = 0; '\0' != newline[k]; k++) {
+    *data++ = newline[k];
+  }
+
+  for (k = 0; k < depth; k++) {
+    for (m = 0; '\0' != indent[m]; m++) {
+      *data++ = indent[m];
+    }
+  }
+
+  *data++ = ']'; // close the array
+
+  return data;
+}
+
+static char* json_write_pretty_object(const struct json_object_s* object,
+  size_t depth, char* indent, char* newline, char* data) {
+  size_t i, k, m;
+
+  *data++ = '{'; // open the object
+
+  for (k = 0; '\0' != newline[k]; k++) {
+    *data++ = newline[k];
+  }
+
+  for (i = 0; i < object->length; i++) {
+    if (0 < i) {
+      *data++ = ','; // ','s seperate each element
+
+      for (k = 0; '\0' != newline[k]; k++) {
+        *data++ = newline[k];
+      }
+    }
+
+    for (k = 0; k < depth + 1; k++) {
+      for (m = 0; '\0' != indent[m]; m++) {
+        *data++ = indent[m];
+      }
+    }
+
+    data = json_write_pretty_string(object->names + i, data);
+
+    if (0 == data) {
+      // string was malformed!
+      return 0;
+    }
+
+    // " : "s seperate each name/value pair
+    *data++ = ' ';
+    *data++ = ':';
+    *data++ = ' ';
+
+    data = json_write_pretty_value(object->values + i, depth + 1, indent, newline, data);
+
+    if (0 == data) {
+      // value was malformed!
+      return 0;
+    }
+  }
+
+  for (k = 0; '\0' != newline[k]; k++) {
+    *data++ = newline[k];
+  }
+
+  for (k = 0; k < depth; k++) {
+    for (m = 0; '\0' != indent[m]; m++) {
+      *data++ = indent[m];
+    }
+  }
+
+  *data++ = '}'; // close the object
+
+  return data;
+}
+
+static char* json_write_pretty_value(const struct json_value_s* value,
+  size_t depth, char* indent, char* newline, char* data) {
+  switch (value->type) {
+  default:
+    // unknown value type found!
+    return 0;
+  case json_type_number:
+    return json_write_pretty_number((struct json_number_s*)value->payload, data);
+  case json_type_string:
+    return json_write_pretty_string((struct json_string_s*)value->payload, data);
+  case json_type_array:
+    return json_write_pretty_array((struct json_array_s*)value->payload, depth, indent, newline, data);
+  case json_type_object:
+    return json_write_pretty_object((struct json_object_s*)value->payload, depth, indent, newline, data);
+  case json_type_true:
+    data[0] = 't';
+    data[1] = 'r';
+    data[2] = 'u';
+    data[3] = 'e';
+    return data + 4;
+  case json_type_false:
+    data[0] = 'f';
+    data[1] = 'a';
+    data[2] = 'l';
+    data[3] = 's';
+    data[4] = 'e';
+    return data + 5;
+  case json_type_null:
+    data[0] = 'n';
+    data[1] = 'u';
+    data[2] = 'l';
+    data[3] = 'l';
+    return data + 4;
+  }
+}
+
+void* json_write_pretty(const struct json_value_s* value,
+  char* indent,
+  char* newline,
+  size_t* out_size) {
+  size_t size = 0;
+  size_t indent_size = 0;
+  size_t newline_size = 0;
+  char* data = 0;
+  char* data_end = 0;
+
+  if (0 == value) {
+    return 0;
+  }
+
+  if (0 == indent) {
+    indent = "  "; // default to two spaces
+  }
+
+  if (0 == newline) {
+    newline = "\n"; // default to linux newlines
+  }
+
+  while ('\0' != indent[indent_size++]) {
+    ; // skip non-null terminating characters
+  }
+
+  while ('\0' != newline[newline_size++]) {
+    ; // skip non-null terminating characters
+  }
+
+  if (json_write_pretty_get_value_size(value, 0, indent_size, newline_size, &size)) {
+    // value was malformed!
+    return 0;
+  }
+
+  size += 1; // for the '\0' null terminating character
+
+  data = malloc(size);
+
+  if (0 == data) {
+    // malloc failed!
+    return 0;
+  }
+
+  data_end = json_write_pretty_value(value, 0, indent, newline, data);
+
+  if (0 == data_end) {
+    // bad chi occurred!
+    free(data);
+    return 0;
+}
+
+  // null terminated the string
+  *data_end = '\0';
 
   if (0 != out_size) {
     *out_size = size;
