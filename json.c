@@ -842,7 +842,7 @@ struct json_value_s* json_parse(const void* src, size_t src_size) {
   void* allocation;
 
   if (0 == src || 2 > src_size) {
-    // absolute minimum valid json is either "{}" pr "[]"
+    // absolute minimum valid json is either "{}" or "[]"
     return 0;
   }
 
