@@ -23,8 +23,8 @@
 //
 // For more information, please refer to <http://unlicense.org/>
 
-#ifndef __JSON_H__
-#define __JSON_H__
+#ifndef SHEREDOM_JSON_H_INCLUDED
+#define SHEREDOM_JSON_H_INCLUDED
 
 #include <stddef.h>
 #include <stdlib.h>
@@ -131,4 +131,4 @@ struct json_value_s {
 #pragma warning(pop)
 #endif
 
-#endif//__JSON_H__
+#endif//SHEREDOM_JSON_H_INCLUDED
