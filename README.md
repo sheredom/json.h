@@ -25,6 +25,11 @@ imagine!
 The structure of the data is always the json structs first (which encode the
 structure of the original JSON), followed by the data.
 
+## Todo ##
+
+- Add [Simplified JSON](http://bitsquid.blogspot.fr/2009/10/simplified-json-notation.html) support (as suggested by [@dougbinks](https://twitter.com/dougbinks) in https://twitter.com/dougbinks/status/633567020177575936)
+- Compare performance with [sajson](http://t.co/tIRNZUQimR) (as suggested by [@antumbral](https://twitter.com/antumbral) in https://twitter.com/antumbral/status/633567121134370816)
+
 ## License ##
 
 This is free and unencumbered software released into the public domain.
