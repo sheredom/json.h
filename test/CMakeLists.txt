@@ -26,26 +26,26 @@
 project(json)
 cmake_minimum_required(VERSION 2.8.7)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 
 add_executable(json_test
-  json.h
-  json.c
-  test/main.c
-  test/test.c
-  test/test.cpp
+  ../json.h
+  ../json.c
+  main.c
+  test.c
+  test.cpp
 )
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  set_source_files_properties(json.c test/test.c test/test.cpp PROPERTIES
+  set_source_files_properties(../json.c test.c test.cpp PROPERTIES
     COMPILE_FLAGS "-Wall -Wextra -Werror"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  set_source_files_properties(json.c test/test.c test/test.cpp PROPERTIES
+  set_source_files_properties(../json.c test.c test.cpp PROPERTIES
     COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
-  set_source_files_properties(json.c test/test.c test/test.cpp PROPERTIES
+  set_source_files_properties(../json.c test.c test.cpp PROPERTIES
     COMPILE_FLAGS "/Wall /WX /wd4514"
   )
 else()
