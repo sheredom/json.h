@@ -94,21 +94,37 @@ struct json_number_s {
   size_t number_size;
 };
 
+// an element of a JSON object
+struct json_object_element_s {
+  // the name of this element
+  struct json_string_s* name;
+  // the value of this element
+  struct json_value_s* value;
+  // the next array element (can be NULL if the last element in the object)
+  struct json_object_element_s* next;
+};
+
 // a JSON object value
 struct json_object_s {
-  // the names of the elements in the object
-  struct json_string_s* names;
-  // the values of the named elements in the object
-  struct json_value_s* values;
+  // a linked list of the elements in the array
+  struct json_object_element_s* start;
   // the length of names and values (number of elements in the object)
   size_t length;
 };
 
+// an element of a JSON array
+struct json_array_element_s {
+  // the value of this element
+  struct json_value_s* value;
+  // the next array element (can be NULL if the last element in the array)
+  struct json_array_element_s* next;
+};
+
 // a JSON array value
 struct json_array_s {
-  // the values of the elements in the array
-  struct json_value_s* values;
-  // the length of values (number of elements in the array)
+  // a linked list of the elements in the array
+  struct json_array_element_s* start;
+  // the number of elements in the array
   size_t length;
 };
 

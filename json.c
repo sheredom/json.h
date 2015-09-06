@@ -221,6 +221,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 
   state->dom_size += sizeof(struct json_string_s) * elements;
   state->dom_size += sizeof(struct json_value_s) * elements;
+  state->dom_size += sizeof(struct json_object_element_s) * elements;
 
   return 0;
 }
@@ -278,6 +279,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
   }
 
   state->dom_size += sizeof(struct json_value_s) * elements;
+  state->dom_size += sizeof(struct json_array_element_s) * elements;
 
   return 0;
 }
@@ -446,9 +448,7 @@ static int json_parse_string(struct json_parse_state_s* state,
 static int json_parse_object(struct json_parse_state_s* state,
   struct json_object_s* object) {
   size_t elements = 0;
-  size_t count_offset = 0;
-  size_t object_depth = 1;
-  size_t array_depth = 0;
+  struct json_object_element_s* previous = 0;
 
   if ('{' != state->src[state->offset]) {
     // expected object to begin with leading '{'
@@ -469,127 +469,101 @@ static int json_parse_object(struct json_parse_state_s* state,
     elements++;
   }
 
-  count_offset = state->offset;
+  // reset elements
+  elements = 0;
 
-  // need to count number of name/value pairs first
-  while(0 != object_depth) {
-    if ('"' == state->src[count_offset]) {
-      // skip string separately incase they have '{' or '}' in them
-      do {
-        count_offset++;
-      } while (('"' != state->src[count_offset]) ||
-        ('\\' == state->src[count_offset - 1] &&
-        '"' == state->src[count_offset]));
-    } else if ('[' == state->src[count_offset]) {
-      // entering a child array
-      array_depth++;
-    } else if (']' == state->src[count_offset]) {
-      // leaving an array
-      array_depth--;
-    } else if ('{' == state->src[count_offset]) {
-      // entering a child object
-      object_depth++;
-    } else if ('}' == state->src[count_offset]) {
-      // leaving an object
-      object_depth--;
-    } else if (1 == object_depth && 0 == array_depth &&
-      ',' == state->src[count_offset]) {
-      // if we are on our parent object, and not within an array,
-      // if we find a comma we have found another element
-      elements++;
-    }
-
-    count_offset++;
-  }
-
-  object->length = elements;
-  if (0 == elements) {
-    object->names = 0;
-    object->values = 0;
-
+  while (state->offset < state->size) {
     if (json_skip_whitespace(state)) {
       // reached end of buffer before object was complete!
       return 1;
     }
 
-    if ('}' != state->src[state->offset]) {
-      // expected an empty object!
-      return 1;
+    if ('}' == state->src[state->offset]) {
+      // skip trailing '}'
+      state->offset++;
+
+      // finished the object!
+      break;
     }
 
-    // skip trailing '}'
-    state->offset++;
-  } else {
-    object->names = (struct json_string_s* )state->dom;
-    state->dom += sizeof(struct json_string_s) * elements;
-    object->values = (struct json_value_s* )state->dom;
-    state->dom += sizeof(struct json_value_s) * elements;
-
-    // reset elements
-    elements = 0;
-
-    while (state->offset < state->size) {
-      if (json_skip_whitespace(state)) {
-        // reached end of buffer before object was complete!
+    // if we parsed at least once element previously, grok for a comma
+    if (0 < elements) {
+      if (',' != state->src[state->offset]) {
+        // expected a comma where there was none!
         return 1;
       }
 
-      if ('}' == state->src[state->offset]) {
-        // skip trailing '}'
-        state->offset++;
-
-        // finished the object!
-        break;
-      }
-
-      // if we parsed at least once element previously, grok for a comma
-      if (0 < elements) {
-        if (',' != state->src[state->offset]) {
-          // expected a comma where there was none!
-          return 1;
-        }
-
-        // skip comma
-        state->offset++;
-
-        if (json_skip_whitespace(state)) {
-          // reached end of buffer before object was complete!
-          return 1;
-        }
-      }
-
-      if (json_parse_string(state, object->names + elements)) {
-        // string parsing failed!
-        return 1;
-      }
-
-      if (json_skip_whitespace(state)) {
-        // reached end of buffer before object was complete!
-        return 1;
-      }
-
-      if (':' != state->src[state->offset]) {
-        // colon seperating name/value pair was missing!
-        return 1;
-      }
-
-      // skip colon
+      // skip comma
       state->offset++;
 
       if (json_skip_whitespace(state)) {
         // reached end of buffer before object was complete!
         return 1;
       }
-
-      if (json_parse_value(state, object->values + elements)) {
-        // value parsing failed!
-        return 1;
-      }
-
-      // successfully parsed a name/value pair!
-      elements++;
     }
+
+    struct json_object_element_s* element =
+      (struct json_object_element_s* )state->dom;
+
+    state->dom += sizeof(struct json_object_element_s);
+
+    if (0 == previous) {
+      // this is our first element, so record it in our object
+      object->start = element;
+    } else {
+      previous->next = element;
+    }
+
+    previous = element;
+
+    struct json_string_s* string = (struct json_string_s* )state->dom;
+
+    state->dom += sizeof(struct json_string_s);
+
+    element->name = string;
+
+    if (json_parse_string(state, string)) {
+      // string parsing failed!
+      return 1;
+    }
+
+    if (json_skip_whitespace(state)) {
+      // reached end of buffer before object was complete!
+      return 1;
+    }
+
+    if (':' != state->src[state->offset]) {
+      // colon seperating name/value pair was missing!
+      return 1;
+    }
+
+    // skip colon
+    state->offset++;
+
+    if (json_skip_whitespace(state)) {
+      // reached end of buffer before object was complete!
+      return 1;
+    }
+
+    struct json_value_s* value = (struct json_value_s* )state->dom;
+
+    state->dom += sizeof(struct json_value_s);
+
+    element->value = value;
+
+    if (json_parse_value(state, value)) {
+      // value parsing failed!
+      return 1;
+    }
+
+    // successfully parsed a name/value pair!
+    elements++;
   }
+
+  // end the linked list
+  previous->next = 0;
+
+  object->length = elements;
 
   return 0;
 }
@@ -597,9 +571,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 static int json_parse_array(struct json_parse_state_s* state,
   struct json_array_s* array) {
   size_t elements = 0;
-  size_t count_offset = 0;
-  size_t array_depth = 1;
-  size_t object_depth = 0;
+  struct json_array_element_s* previous = 0;
 
   if ('[' != state->src[state->offset]) {
     // expected object to begin with leading '['
@@ -614,107 +586,72 @@ static int json_parse_array(struct json_parse_state_s* state,
     return 1;
   }
 
-  if (']' != state->src[state->offset]) {
-    // we have at least one element as we definitely don't have
-    // an empty array [   ]!
-    elements++;
-  }
+  // reset elements
+  elements = 0;
 
-  count_offset = state->offset;
-
-  // need to count number of array elements first
-  while(0 != array_depth) {
-    if ('"' == state->src[count_offset]) {
-      // skip string separately incase they have '{' or '}' in them
-      do {
-        count_offset++;
-      } while (('"' != state->src[count_offset]) ||
-        ('\\' == state->src[count_offset - 1] &&
-        '"' == state->src[count_offset]));
-    } else if ('[' == state->src[count_offset]) {
-      // entering a child array
-      array_depth++;
-    } else if (']' == state->src[count_offset]) {
-      // leaving an array
-      array_depth--;
-    } else if ('{' == state->src[count_offset]) {
-      // entering a child object
-      object_depth++;
-    } else if ('}' == state->src[count_offset]) {
-      // leaving an object
-      object_depth--;
-    } else if (1 == array_depth && 0 == object_depth &&
-      ',' == state->src[count_offset]) {
-      // if we are on our parent array, and not within an object,
-      // if we find a comma we have found another element
-      elements++;
-    }
-
-    count_offset++;
-  }
-
-  array->length = elements;
-  if (0 == elements) {
-    array->values = 0;
-
+  while (state->offset < state->size) {
     if (json_skip_whitespace(state)) {
       // reached end of buffer before array was complete!
       return 1;
     }
 
-    if (']' != state->src[state->offset]) {
-      // expected empty array!
-      return 1;
+    if (']' == state->src[state->offset]) {
+      // skip trailing ']'
+      state->offset++;
+
+      // finished the array!
+      break;
     }
 
-    // skip trailing ']'
-    state->offset++;
-  } else {
-    array->values = (struct json_value_s* )state->dom;
-    state->dom += sizeof(struct json_value_s) * elements;
+    // if we parsed at least one element previously, grok for a comma
+    if (0 < elements) {
+      if (',' != state->src[state->offset]) {
+        // expected a comma where there was none!
+        return 1;
+      }
 
-    // reset elements
-    elements = 0;
+      // skip comma
+      state->offset++;
 
-    while (state->offset < state->size) {
       if (json_skip_whitespace(state)) {
         // reached end of buffer before array was complete!
         return 1;
       }
-
-      if (']' == state->src[state->offset]) {
-        // skip trailing ']'
-        state->offset++;
-
-        // finished the array!
-        break;
-      }
-
-      // if we parsed at least once element previously, grok for a comma
-      if (0 < elements) {
-        if (',' != state->src[state->offset]) {
-          // expected a comma where there was none!
-          return 1;
-        }
-
-        // skip comma
-        state->offset++;
-
-        if (json_skip_whitespace(state)) {
-          // reached end of buffer before array was complete!
-          return 1;
-        }
-      }
-
-      if (json_parse_value(state, array->values + elements)) {
-        // value parsing failed!
-        return 1;
-      }
-
-      // successfully parsed an array element!
-      elements++;
     }
+
+    struct json_array_element_s* element =
+      (struct json_array_element_s* )state->dom;
+
+    state->dom += sizeof(struct json_array_element_s);
+
+    if (0 == previous) {
+      // this is our first element, so record it in our array
+      array->start = element;
+    } else {
+      previous->next = element;
+    }
+
+    previous = element;
+
+    struct json_value_s* value = (struct json_value_s* )state->dom;
+
+    state->dom += sizeof(struct json_value_s);
+
+    element->value = value;
+
+    if (json_parse_value(state, value)) {
+      // value parsing failed!
+      return 1;
+    }
+
+    // successfully parsed an array element!
+    elements++;
   }
+
+  // end the linked list
+  previous->next = 0;
+
+  array->length = elements;
 
   return 0;
 }
@@ -900,7 +837,7 @@ static int json_write_minified_get_string_size(const struct json_string_s* strin
 }
 
 static int json_write_minified_get_array_size(const struct json_array_s* array, size_t* size) {
-  size_t i;
+  struct json_array_element_s* element;
 
   *size += 2; // '[' and ']'
 
@@ -908,8 +845,8 @@ static int json_write_minified_get_array_size(const struct json_array_s* array, 
     *size += array->length - 1; // ','s seperate each element
   }
 
-  for (i = 0; i < array->length; i++) {
-    if (json_write_minified_get_value_size(array->values + i, size)) {
+  for (element = array->start; 0 != element; element = element->next) {
+    if (json_write_minified_get_value_size(element->value, size)) {
       // value was malformed!
       return 1;
     }
@@ -919,7 +856,7 @@ static int json_write_minified_get_array_size(const struct json_array_s* array, 
 }
 
 static int json_write_minified_get_object_size(const struct json_object_s* object, size_t* size) {
-  size_t i;
+  struct json_object_element_s* element;
 
   *size += 2; // '{' and '}'
 
@@ -929,13 +866,13 @@ static int json_write_minified_get_object_size(const struct json_object_s* objec
     *size += object->length - 1; // ','s seperate each element
   }
 
-  for (i = 0; i < object->length; i++) {
-    if (json_write_minified_get_string_size(object->names + i, size)) {
+  for (element = object->start; 0 != element; element = element->next) {
+    if (json_write_minified_get_string_size(element->name, size)) {
       // string was malformed!
       return 1;
     }
 
-    if (json_write_minified_get_value_size(object->values + i, size)) {
+    if (json_write_minified_get_value_size(element->value, size)) {
       // value was malformed!
       return 1;
     }
@@ -996,16 +933,16 @@ static char* json_write_minified_string(const struct json_string_s* string, char
 }
 
 static char* json_write_minified_array(const struct json_array_s* array, char* data) {
-  size_t i;
+  struct json_array_element_s* element = 0;
 
   *data++ = '['; // open the array
 
-  for (i = 0; i < array->length; i++) {
-    if (0 < i) {
+  for (element = array->start; 0 != element; element = element->next) {
+    if (element != array->start) {
       *data++ = ','; // ','s seperate each element
     }
 
-    data = json_write_minified_value(array->values + i, data);
+    data = json_write_minified_value(element->value, data);
 
     if (0 == data) {
       // value was malformed!
@@ -1019,16 +956,16 @@ static char* json_write_minified_array(const struct json_array_s* array, char* d
 }
 
 static char* json_write_minified_object(const struct json_object_s* object, char* data) {
-  size_t i;
+  struct json_object_element_s* element = 0;
 
   *data++ = '{'; // open the object
 
-  for (i = 0; i < object->length; i++) {
-    if (0 < i) {
+  for (element = object->start; 0 != element; element = element->next) {
+    if (element != object->start) {
       *data++ = ','; // ','s seperate each element
     }
 
-    data = json_write_minified_string(object->names + i, data);
+    data = json_write_minified_string(element->name, data);
 
     if (0 == data) {
       // string was malformed!
@@ -1037,7 +974,7 @@ static char* json_write_minified_object(const struct json_object_s* object, char
 
     *data++ = ':'; // ':'s seperate each name/value pair
 
-    data = json_write_minified_value(object->values + i, data);
+    data = json_write_minified_value(element->value, data);
 
     if (0 == data) {
       // value was malformed!
@@ -1145,7 +1082,7 @@ static int json_write_pretty_get_string_size(const struct json_string_s* string,
 
 static int json_write_pretty_get_array_size(const struct json_array_s* array,
   size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
-  size_t i;
+  struct json_array_element_s* element;
 
   *size += 1; // '['
   *size += newline_size; // need a newline next
@@ -1154,11 +1091,12 @@ static int json_write_pretty_get_array_size(const struct json_array_s* array,
     *size += (array->length - 1); // ','s seperate each element
   }
 
-  for (i = 0; i < array->length; i++) {
+  for (element = array->start; 0 != element; element = element->next) {
     // each element gets an indent and newline
     *size += (depth + 1) * indent_size;
     *size += newline_size;
-    if (json_write_pretty_get_value_size(array->values + i, depth + 1, indent_size, newline_size, size)) {
+    if (json_write_pretty_get_value_size(
+      element->value, depth + 1, indent_size, newline_size, size)) {
       // value was malformed!
       return 1;
     }
@@ -1173,7 +1111,7 @@ static int json_write_pretty_get_array_size(const struct json_array_s* array,
 
 static int json_write_pretty_get_object_size(const struct json_object_s* object,
   size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
-  size_t i;
+  struct json_object_element_s* element;
 
   *size += 1; // '{'
   *size += newline_size; // need a newline next
@@ -1182,19 +1120,19 @@ static int json_write_pretty_get_object_size(const struct json_object_s* object,
     *size += object->length - 1; // ','s seperate each element
   }
 
-  for (i = 0; i < object->length; i++) {
+  for (element = object->start; 0 != element; element = element->next) {
     // each element gets an indent and newline
     *size += (depth + 1) * indent_size;
     *size += newline_size;
 
-    if (json_write_pretty_get_string_size(object->names + i, size)) {
+    if (json_write_pretty_get_string_size(element->name, size)) {
       // string was malformed!
       return 1;
     }
 
     *size += 3; // seperate each name/value pair with " : "
 
-    if (json_write_pretty_get_value_size(object->values + i, depth + 1, indent_size, newline_size, size)) {
+    if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size, newline_size, size)) {
       // value was malformed!
       return 1;
     }
@@ -1262,7 +1200,8 @@ static char* json_write_pretty_string(const struct json_string_s* string, char* 
 
 static char* json_write_pretty_array(const struct json_array_s* array,
   size_t depth, const char* indent, const char* newline, char* data) {
-  size_t i, k, m;
+  size_t k, m;
+  struct json_array_element_s* element;
 
   *data++ = '['; // open the array
 
@@ -1270,8 +1209,8 @@ static char* json_write_pretty_array(const struct json_array_s* array,
     *data++ = newline[k];
   }
 
-  for (i = 0; i < array->length; i++) {
-    if (0 < i) {
+  for (element = array->start; 0 != element; element = element->next) {
+    if (element != array->start) {
       *data++ = ','; // ','s seperate each element
 
       for (k = 0; '\0' != newline[k]; k++) {
@@ -1285,7 +1224,7 @@ static char* json_write_pretty_array(const struct json_array_s* array,
       }
     }
 
-    data = json_write_pretty_value(array->values + i, depth + 1, indent, newline, data);
+    data = json_write_pretty_value(element->value, depth + 1, indent, newline, data);
 
     if (0 == data) {
       // value was malformed!
@@ -1310,7 +1249,8 @@ static char* json_write_pretty_array(const struct json_array_s* array,
 
 static char* json_write_pretty_object(const struct json_object_s* object,
   size_t depth, const char* indent, const char* newline, char* data) {
-  size_t i, k, m;
+  size_t k, m;
+  struct json_object_element_s* element;
 
   *data++ = '{'; // open the object
 
@@ -1318,8 +1258,8 @@ static char* json_write_pretty_object(const struct json_object_s* object,
     *data++ = newline[k];
   }
 
-  for (i = 0; i < object->length; i++) {
-    if (0 < i) {
+  for (element = object->start; 0 != element; element = element->next) {
+    if (element != object->start) {
       *data++ = ','; // ','s seperate each element
 
       for (k = 0; '\0' != newline[k]; k++) {
@@ -1333,7 +1273,7 @@ static char* json_write_pretty_object(const struct json_object_s* object,
       }
     }
 
-    data = json_write_pretty_string(object->names + i, data);
+    data = json_write_pretty_string(element->name, data);
 
     if (0 == data) {
       // string was malformed!
@@ -1345,7 +1285,7 @@ static char* json_write_pretty_object(const struct json_object_s* object,
     *data++ = ':';
     *data++ = ' ';
 
-    data = json_write_pretty_value(object->values + i, depth + 1, indent, newline, data);
+    data = json_write_pretty_value(element->value, depth + 1, indent, newline, data);
 
     if (0 == data) {
       // value was malformed!
