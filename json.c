@@ -486,7 +486,7 @@ static int json_parse_object(struct json_parse_state_s* state,
       break;
     }
 
-    // if we parsed at least once element previously, grok for a comma
+    // if we parsed at least one element previously, grok for a comma
     if (0 < elements) {
       if (',' != state->src[state->offset]) {
         // expected a comma where there was none!
@@ -560,8 +560,14 @@ static int json_parse_object(struct json_parse_state_s* state,
     elements++;
   }
 
-  // end the linked list
-  previous->next = 0;
+  // if we had at least one element, end the linked list
+  if (previous) {
+    previous->next = 0;
+  }
+
+  if (0 == elements) {
+    object->start = 0;
+  }
 
   object->length = elements;
 
@@ -649,7 +655,13 @@ static int json_parse_array(struct json_parse_state_s* state,
   }
 
   // end the linked list
-  previous->next = 0;
+  if (previous) {
+    previous->next = 0;
+  }
+
+  if (0 == elements) {
+    array->start = 0;
+  }
 
   array->length = elements;
 
