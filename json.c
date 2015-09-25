@@ -473,6 +473,10 @@ static int json_parse_object(struct json_parse_state_s* state,
   elements = 0;
 
   while (state->offset < state->size) {
+	struct json_object_element_s* element = 0;
+	struct json_string_s* string = 0;
+	struct json_value_s* value = 0;
+
     if (json_skip_whitespace(state)) {
       // reached end of buffer before object was complete!
       return 1;
@@ -502,8 +506,7 @@ static int json_parse_object(struct json_parse_state_s* state,
       }
     }
 
-    struct json_object_element_s* element =
-      (struct json_object_element_s* )state->dom;
+    element = (struct json_object_element_s* )state->dom;
 
     state->dom += sizeof(struct json_object_element_s);
 
@@ -516,7 +519,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 
     previous = element;
 
-    struct json_string_s* string = (struct json_string_s* )state->dom;
+    string = (struct json_string_s* )state->dom;
 
     state->dom += sizeof(struct json_string_s);
 
@@ -545,7 +548,7 @@ static int json_parse_object(struct json_parse_state_s* state,
       return 1;
     }
 
-    struct json_value_s* value = (struct json_value_s* )state->dom;
+    value = (struct json_value_s* )state->dom;
 
     state->dom += sizeof(struct json_value_s);
 
@@ -596,6 +599,9 @@ static int json_parse_array(struct json_parse_state_s* state,
   elements = 0;
 
   while (state->offset < state->size) {
+	struct json_array_element_s* element = 0;
+	struct json_value_s* value = 0;
+
     if (json_skip_whitespace(state)) {
       // reached end of buffer before array was complete!
       return 1;
@@ -625,8 +631,7 @@ static int json_parse_array(struct json_parse_state_s* state,
       }
     }
 
-    struct json_array_element_s* element =
-      (struct json_array_element_s* )state->dom;
+    element = (struct json_array_element_s* )state->dom;
 
     state->dom += sizeof(struct json_array_element_s);
 
@@ -639,7 +644,7 @@ static int json_parse_array(struct json_parse_state_s* state,
 
     previous = element;
 
-    struct json_value_s* value = (struct json_value_s* )state->dom;
+    value = (struct json_value_s* )state->dom;
 
     state->dom += sizeof(struct json_value_s);
 
