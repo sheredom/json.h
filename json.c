@@ -1157,7 +1157,9 @@ static int json_write_pretty_get_object_size(const struct json_object_s* object,
 
   *size += depth * indent_size;
   *size += 1; // '}'
-  *size += newline_size; // need a newline next
+
+  if (0 != depth)
+	*size += newline_size; // need a newline next
 
   return 0;
 }
@@ -1383,12 +1385,12 @@ void* json_write_pretty(const struct json_value_s* value,
     newline = "\n"; // default to linux newlines
   }
 
-  while ('\0' != indent[indent_size++]) {
-    ; // skip non-null terminating characters
+  while ('\0' != indent[indent_size]) {
+    ++indent_size; // skip non-null terminating characters
   }
 
-  while ('\0' != newline[newline_size++]) {
-    ; // skip non-null terminating characters
+  while ('\0' != newline[newline_size]) {
+    ++newline_size; // skip non-null terminating characters
   }
 
   if (json_write_pretty_get_value_size(value, 0, indent_size, newline_size, &size)) {
