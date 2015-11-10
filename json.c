@@ -1159,7 +1159,9 @@ static int json_write_pretty_get_object_size(const struct json_object_s* object,
   *size += 1; // '}'
 
   if (0 != depth)
-	*size += newline_size; // need a newline next
+  {
+    *size += newline_size; // need a newline next
+  }
 
   return 0;
 }
