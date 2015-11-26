@@ -49,6 +49,13 @@ struct json_parse_state_s {
   size_t data_size;
 };
 
+static int json_is_non_quoted_identifier_char(const char c) {
+  return (('0' <= c && c <= '9') ||
+    ('a' <= c && c <= 'z') ||
+    ('A' <= c && c <= 'Z') ||
+	('_' == c));
+}
+
 static int json_is_hexadecimal_digit(const char c) {
   return (('0' <= c && c <= '9') ||
     ('a' <= c && c <= 'f') ||
@@ -81,21 +88,31 @@ static int json_skip_whitespace(struct json_parse_state_s* state) {
 
 static int json_get_value_size(struct json_parse_state_s* state);
 
-static int json_get_string_size(struct json_parse_state_s* state) {
+static int json_get_string_size(struct json_parse_state_s* state, 
+  int is_key) {
   const size_t initial_offset = state->offset;
+  int is_non_quoted_key = 0;
 
   state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
-	state->error = json_parse_error_expected_opening_quote;
-    return 1;
+    if (!is_key) {
+      state->error = json_parse_error_expected_opening_quote;
+      return 1;
+    }
+    is_non_quoted_key = 1;
   }
 
-  // skip leading '"'
-  state->offset++;
+  if (!is_non_quoted_key) {
+    // skip leading '"'
+    state->offset++;
+  }
 
   while (state->offset < state->size && '"' != state->src[state->offset]) {
-    if ('\\' == state->src[state->offset]) {
+    if (is_non_quoted_key && !json_is_non_quoted_identifier_char(state->src[state->offset]))
+      break;
+
+	if ('\\' == state->src[state->offset]) {
       // skip reverse solidus character
       state->offset++;
 
@@ -144,8 +161,10 @@ static int json_get_string_size(struct json_parse_state_s* state) {
     }
   }
 
-  // skip trailing '"'
-  state->offset++;
+  if (!is_non_quoted_key) {
+    // skip trailing '"'
+    state->offset++;
+  }
 
   state->data_size += state->offset - initial_offset;
 
@@ -193,7 +212,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
       continue;
     }
 
-    if (json_get_string_size(state)) {
+    if (json_get_string_size(state, 1)) {
       // string parsing failed!
       return 1;
     }
@@ -367,7 +386,7 @@ static int json_get_value_size(struct json_parse_state_s* state) {
 
   switch (state->src[state->offset]) {
   case '"':
-    return json_get_string_size(state);
+    return json_get_string_size(state, 0);
   case '{':
     return json_get_object_size(state);
   case '[':
@@ -419,28 +438,40 @@ static int json_parse_value(struct json_parse_state_s* state,
   struct json_value_s* value);
 
 static int json_parse_string(struct json_parse_state_s* state,
-  struct json_string_s* string) {
+  struct json_string_s* string,
+  int is_key) {
   size_t size = 0;
+  int is_non_quoted_key = 0;
 
   string->string = state->data;
 
   if ('"' != state->src[state->offset]) {
-    // expected string to begin with '"'!
-    return 1;
+    if (!is_key) {
+      // expected string to begin with '"'!
+      return 1;
+	}
+    is_non_quoted_key = 1;
   }
 
-  // skip leading '"'
-  state->offset++;
-
-  while (state->offset < state->size &&
-    ('"' != state->src[state->offset] ||
-    ('\\' == state->src[state->offset - 1] &&
-    '"' == state->src[state->offset]))) {
+  if (!is_non_quoted_key) {
+    // skip leading '"'
+    state->offset++;
+  }
+    
+  while (state->offset < state->size && '"' != state->src[state->offset]) {
+    if (is_non_quoted_key && !json_is_non_quoted_identifier_char(state->src[state->offset]))
+      break;
+    if ('\\' == state->src[state->offset]) {
+      // copy reverse solidus character
+      state->data[size++] = state->src[state->offset++];
+    }
     state->data[size++] = state->src[state->offset++];
   }
-
-  // skip trailing '"'
-  state->offset++;
+    
+  if (!is_non_quoted_key) {
+    // skip trailing '"'
+    state->offset++;
+  }
 
   // record the size of the string
   string->string_size = size;
@@ -532,7 +563,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 
     element->name = string;
 
-    if (json_parse_string(state, string)) {
+    if (json_parse_string(state, string, 1)) {
       // string parsing failed!
       return 1;
     }
@@ -736,7 +767,7 @@ static int json_parse_value(struct json_parse_state_s* state,
     value->type = json_type_string;
     value->payload = state->dom;
     state->dom += sizeof(struct json_string_s);
-    return json_parse_string(state, value->payload);
+    return json_parse_string(state, value->payload, 0);
   case '{':
     value->type = json_type_object;
     value->payload = state->dom;
