@@ -153,7 +153,7 @@ enum json_parse_error_e {
   json_parse_error_invalid_number_format,           // invalid number format!
   json_parse_error_invalid_value,                   // invalid value!
   json_parse_error_premature_end_of_buffer,         // reached end of buffer before object/array was complete!
-  json_parse_error_unknown,
+  json_parse_error_unknown
 };
 
 // error report from json_parse_ex()
