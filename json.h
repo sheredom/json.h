@@ -148,7 +148,7 @@ enum json_parse_error_e {
   json_parse_error_none = 0,
   json_parse_error_expected_comma,                  // expected a comma where there was none!
   json_parse_error_expected_colon,					// colon separating name/value pair was missing!
-  json_parse_error_expected_opening_quote,	        // expected string to begin with '"'!
+  json_parse_error_expected_opening_quote,          // expected string to begin with '"'!
   json_parse_error_invalid_string_escape_sequence,	// invalid escaped sequence in string!
   json_parse_error_invalid_number_format,           // invalid number format!
   json_parse_error_invalid_value,                   // invalid value!
@@ -158,8 +158,8 @@ enum json_parse_error_e {
 
 // error report from json_parse_ex()
 struct json_parse_result_s {
-  // the error code
-  enum json_parse_error_e error;
+  // the error code (one of json_parse_error_e)
+  size_t error;
   // the character offset for the error in the JSON input
   size_t error_offset;
   // the line number for the error in the JSON input

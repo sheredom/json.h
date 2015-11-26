@@ -42,7 +42,7 @@ struct json_parse_state_s {
   size_t offset;
   size_t line_no;            // line counter for error reporting
   size_t line_offset;        // (offset-line_offset) is the character number (in bytes)
-  enum json_parse_error_e error;
+  size_t error;
   char* dom;
   char* data;
   size_t dom_size;
