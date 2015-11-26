@@ -146,6 +146,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
 
 static int json_get_object_size(struct json_parse_state_s* state) {
   size_t elements = 0;
+  int allow_comma = 0;
 
   if ('{' != state->src[state->offset]) {
     // expected object to begin with leading '{'
@@ -172,7 +173,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
     }
 
     // if we parsed at least once element previously, grok for a comma
-    if (0 < elements) {
+    if (allow_comma) {
       if (',' != state->src[state->offset]) {
         // expected a comma where there was none!
         return 1;
@@ -180,11 +181,8 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 
       // skip comma
       state->offset++;
-
-      if (json_skip_whitespace(state)) {
-        // reached end of buffer before object was complete!
-        return 1;
-      }
+	  allow_comma = 0;
+      continue;
     }
 
     if (json_get_string_size(state)) {
@@ -217,6 +215,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 
     // successfully parsed a name/value pair!
     elements++;
+	allow_comma = 1;
   }
 
   state->dom_size += sizeof(struct json_string_s) * elements;
@@ -228,6 +227,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 
 static int json_get_array_size(struct json_parse_state_s* state) {
   size_t elements = 0;
+  int allow_comma = 0;
 
   if ('[' != state->src[state->offset]) {
     // expected array to begin with leading '['
@@ -254,7 +254,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
     }
 
     // if we parsed at least once element previously, grok for a comma
-    if (0 < elements) {
+    if (allow_comma) {
       if (',' != state->src[state->offset]) {
         // expected a comma where there was none!
         return 1;
@@ -262,11 +262,8 @@ static int json_get_array_size(struct json_parse_state_s* state) {
 
       // skip comma
       state->offset++;
-
-      if (json_skip_whitespace(state)) {
-        // reached end of buffer before array was complete!
-        return 1;
-      }
+	  allow_comma = 0;
+      continue;
     }
 
     if (json_get_value_size(state)) {
@@ -276,6 +273,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
 
     // successfully parsed an array element!
     elements++;
+	allow_comma = 1;
   }
 
   state->dom_size += sizeof(struct json_value_s) * elements;
@@ -448,6 +446,7 @@ static int json_parse_string(struct json_parse_state_s* state,
 static int json_parse_object(struct json_parse_state_s* state,
   struct json_object_s* object) {
   size_t elements = 0;
+  int allow_comma = 0;
   struct json_object_element_s* previous = 0;
 
   if ('{' != state->src[state->offset]) {
@@ -491,7 +490,7 @@ static int json_parse_object(struct json_parse_state_s* state,
     }
 
     // if we parsed at least one element previously, grok for a comma
-    if (0 < elements) {
+    if (allow_comma) {
       if (',' != state->src[state->offset]) {
         // expected a comma where there was none!
         return 1;
@@ -499,11 +498,8 @@ static int json_parse_object(struct json_parse_state_s* state,
 
       // skip comma
       state->offset++;
-
-      if (json_skip_whitespace(state)) {
-        // reached end of buffer before object was complete!
-        return 1;
-      }
+	  allow_comma = 0;
+      continue;
     }
 
     element = (struct json_object_element_s* )state->dom;
@@ -561,6 +557,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 
     // successfully parsed a name/value pair!
     elements++;
+	allow_comma = 1;
   }
 
   // if we had at least one element, end the linked list
@@ -580,6 +577,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 static int json_parse_array(struct json_parse_state_s* state,
   struct json_array_s* array) {
   size_t elements = 0;
+  int allow_comma = 0;
   struct json_array_element_s* previous = 0;
 
   if ('[' != state->src[state->offset]) {
@@ -616,7 +614,7 @@ static int json_parse_array(struct json_parse_state_s* state,
     }
 
     // if we parsed at least one element previously, grok for a comma
-    if (0 < elements) {
+    if (allow_comma) {
       if (',' != state->src[state->offset]) {
         // expected a comma where there was none!
         return 1;
@@ -624,11 +622,8 @@ static int json_parse_array(struct json_parse_state_s* state,
 
       // skip comma
       state->offset++;
-
-      if (json_skip_whitespace(state)) {
-        // reached end of buffer before array was complete!
-        return 1;
-      }
+	  allow_comma = 0;
+      continue;
     }
 
     element = (struct json_array_element_s* )state->dom;
@@ -657,6 +652,7 @@ static int json_parse_array(struct json_parse_state_s* state,
 
     // successfully parsed an array element!
     elements++;
+	allow_comma = 1;
   }
 
   // end the linked list
