@@ -161,11 +161,11 @@ struct json_parse_result_s {
   // the error code
   enum json_parse_error_e error;
   // the character offset for the error in the JSON input
-  int error_offset;
+  size_t error_offset;
   // the line number for the error in the JSON input
-  int error_line_no;
+  size_t error_line_no;
   // the row number for the error, in bytes
-  int error_row_no;
+  size_t error_row_no;
 };
 
 #ifdef __cplusplus
