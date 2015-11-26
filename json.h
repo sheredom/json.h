@@ -39,12 +39,16 @@ extern "C" {
 #endif
 
 struct json_value_s;
+struct json_parse_result_s;
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
 // structure. json_parse performs 1 call to malloc for the entire encoding.
 // Returns 0 if an error occurred (malformed JSON input, or malloc failed)
 struct json_value_s* json_parse(
   const void* src, size_t src_size);
+
+struct json_value_s* json_parse_ex(
+  const void* src, size_t src_size, struct json_parse_result_s* result);
 
 // Write out a minified JSON utf-8 string. This string is an encoding of the
 // minimal string characters required to still encode the same data.
@@ -137,6 +141,31 @@ struct json_value_s {
   // Must be one of json_type_e. If type is json_type_true, json_type_false, or
   // json_type_null, payload will be NULL
   size_t type;
+};
+
+// a parsing error code
+enum json_parse_error_e {
+  json_parse_error_none = 0,
+  json_parse_error_expected_comma,                  // expected a comma where there was none!
+  json_parse_error_expected_colon,					// colon separating name/value pair was missing!
+  json_parse_error_expected_opening_quote,	        // expected string to begin with '"'!
+  json_parse_error_invalid_string_escape_sequence,	// invalid escaped sequence in string!
+  json_parse_error_invalid_number_format,           // invalid number format!
+  json_parse_error_invalid_value,                   // invalid value!
+  json_parse_error_premature_end_of_buffer,         // reached end of buffer before object/array was complete!
+  json_parse_error_unknown,
+};
+
+// error report from json_parse_ex()
+struct json_parse_result_s {
+  // the error code
+  enum json_parse_error_e error;
+  // the character offset for the error in the JSON input
+  int error_offset;
+  // the line number for the error in the JSON input
+  int error_line_no;
+  // the row number for the error, in bytes
+  int error_row_no;
 };
 
 #ifdef __cplusplus
