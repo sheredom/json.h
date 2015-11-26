@@ -40,6 +40,9 @@ struct json_parse_state_s {
   const char* src;
   size_t size;
   size_t offset;
+  size_t line_no;            // line counter for error reporting
+  size_t line_offset;        // (offset-line_offset) is the character number (in bytes)
+  size_t error;
   char* dom;
   char* data;
   size_t dom_size;
@@ -61,8 +64,11 @@ static int json_skip_whitespace(struct json_parse_state_s* state) {
     default:
       state->offset = offset;
       return 0;
-    case ' ':
     case '\n':
+	  state->line_no++;
+	  state->line_offset = offset;
+      break;
+    case ' ':
     case '\r':
     case '\t':
       break;
@@ -81,7 +87,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
   state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
-    // expected string to begin with '"'!
+	state->error = json_parse_error_expected_opening_quote;
     return 1;
   }
 
@@ -100,7 +106,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
 
       switch (state->src[state->offset]) {
       default:
-        // invalid escaped sequence in string!
+		state->error = json_parse_error_invalid_string_escape_sequence;
         return 1;
       case '"':
       case '\\':
@@ -116,6 +122,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
       case 'u':
         if (state->offset + 5 < state->size) {
           // invalid escaped unicode sequence!
+		  state->error = json_parse_error_invalid_string_escape_sequence;
           return 1;
         } else if (
           !json_is_hexadecimal_digit(state->src[state->offset + 1]) ||
@@ -123,6 +130,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
           !json_is_hexadecimal_digit(state->src[state->offset + 3]) ||
           !json_is_hexadecimal_digit(state->src[state->offset + 4])) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
+          state->error = json_parse_error_invalid_string_escape_sequence;
           return 1;
         }
 
@@ -149,7 +157,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
   int allow_comma = 0;
 
   if ('{' != state->src[state->offset]) {
-    // expected object to begin with leading '{'
+	state->error = json_parse_error_unknown;
     return 1;
   }
 
@@ -160,7 +168,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 
   while (state->offset < state->size) {
     if (json_skip_whitespace(state)) {
-      // reached end of buffer before object was complete!
+      state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
 
@@ -175,7 +183,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
     // if we parsed at least once element previously, grok for a comma
     if (allow_comma) {
       if (',' != state->src[state->offset]) {
-        // expected a comma where there was none!
+		state->error = json_parse_error_expected_comma;
         return 1;
       }
 
@@ -191,12 +199,12 @@ static int json_get_object_size(struct json_parse_state_s* state) {
     }
 
     if (json_skip_whitespace(state)) {
-      // reached end of buffer before object was complete!
+      state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
 
     if (':' != state->src[state->offset]) {
-      // colon seperating name/value pair was missing!
+      state->error = json_parse_error_expected_colon;
       return 1;
     }
 
@@ -204,7 +212,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
     state->offset++;
 
     if (json_skip_whitespace(state)) {
-      // reached end of buffer before object was complete!
+      state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
 
@@ -230,7 +238,8 @@ static int json_get_array_size(struct json_parse_state_s* state) {
   int allow_comma = 0;
 
   if ('[' != state->src[state->offset]) {
-    // expected array to begin with leading '['
+	// expected array to begin with leading '['
+	state->error = json_parse_error_unknown;
     return 1;
   }
 
@@ -241,7 +250,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
 
   while (state->offset < state->size) {
     if (json_skip_whitespace(state)) {
-      // reached end of buffer before array was complete!
+      state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
 
@@ -256,7 +265,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
     // if we parsed at least once element previously, grok for a comma
     if (allow_comma) {
       if (',' != state->src[state->offset]) {
-        // expected a comma where there was none!
+        state->error = json_parse_error_expected_comma;
         return 1;
       }
 
@@ -299,6 +308,7 @@ static int json_get_number_size(struct json_parse_state_s* state) {
     if ((state->offset < state->size) &&
       ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
       // a leading '0' must not be immediately followed by any digits!
+	  state->error = json_parse_error_invalid_number_format;
       return 1;
     }
   }
@@ -349,7 +359,7 @@ static int json_get_number_size(struct json_parse_state_s* state) {
 
 static int json_get_value_size(struct json_parse_state_s* state) {
   if (json_skip_whitespace(state)) {
-    // consumed the whole buffer when we expected a value!
+	state->error = json_parse_error_premature_end_of_buffer;
     return 1;
   }
 
@@ -400,6 +410,7 @@ static int json_get_value_size(struct json_parse_state_s* state) {
     }
 
     // invalid value!
+	state->error = json_parse_error_invalid_value;
     return 1;
   }
 }
@@ -787,9 +798,16 @@ static int json_parse_value(struct json_parse_state_s* state,
   }
 }
 
-struct json_value_s* json_parse(const void* src, size_t src_size) {
+struct json_value_s* json_parse_ex(const void* src, size_t src_size, struct json_parse_result_s* result) {
   struct json_parse_state_s state;
   void* allocation;
+
+  if (result) {
+	result->error = json_parse_error_none;
+	result->error_offset = 0;
+	result->error_line_no = 0;
+	result->error_row_no = 0;
+  }
 
   if (0 == src || 2 > src_size) {
     // absolute minimum valid json is either "{}" or "[]"
@@ -799,11 +817,20 @@ struct json_value_s* json_parse(const void* src, size_t src_size) {
   state.src = src;
   state.size = src_size;
   state.offset = 0;
+  state.line_no = 1;
+  state.line_offset = 0;
+  state.error = json_parse_error_none;
   state.dom_size = 0;
   state.data_size = 0;
 
   if (json_get_value_size(&state)) {
     // parsing value's size failed (most likely an invalid JSON DOM!)
+	if (result) {
+	  result->error = state.error;
+	  result->error_offset = state.offset;
+	  result->error_line_no = state.line_no;
+	  result->error_row_no = state.offset - state.line_offset;
+	}
     return 0;
   }
 
@@ -832,6 +859,10 @@ struct json_value_s* json_parse(const void* src, size_t src_size) {
   }
 
   return allocation;
+}
+
+struct json_value_s* json_parse(const void* src, size_t src_size) {
+  return json_parse_ex(src, src_size, NULL);
 }
 
 static int json_write_minified_get_value_size(const struct json_value_s* value, size_t* size);
