@@ -44,11 +44,33 @@ struct json_parse_result_s;
 // Parse a JSON text file, returning a pointer to the root of the JSON
 // structure. json_parse performs 1 call to malloc for the entire encoding.
 // Returns 0 if an error occurred (malformed JSON input, or malloc failed)
-struct json_value_s* json_parse(
-  const void* src, size_t src_size);
+struct json_value_s* json_parse(const void* src, size_t src_size);
 
-struct json_value_s* json_parse_ex(
-  const void* src, size_t src_size, struct json_parse_result_s* result);
+// Parse a JSON text file, returning a pointer to the root of the JSON
+// structure. json_parse_ex performs 1 call to malloc for the entire encoding.
+// Returns 0 if an error occurred (malformed JSON input, or malloc failed). If
+// result is not NULL, the cause of the error will be written into the
+// json_parse_result_s struct.
+struct json_value_s* json_parse_ex(const void* src, size_t src_size,
+                                   struct json_parse_result_s* result);
+
+// Parse a simplified JSON text file, returning a pointer to the object at the
+// root of the
+// simplified JSON structure. json_parse_simplified_json performs 1 call to
+// malloc for the entire encoding.
+// Returns 0 if an error occurred (malformed JSON input, or malloc failed)
+struct json_object_s* json_parse_simplified_json(const void* src,
+                                                 size_t src_size);
+
+// Parse a simplified JSON text file, returning a pointer to the object at the
+// root of the
+// simplified. json_parse_simplified_json_ex performs 1 call to malloc for the
+// entire
+// encoding. Returns 0 if an error occurred (malformed JSON input, or malloc
+// failed). If result is not NULL, the cause of the error will be written into
+// the json_parse_result_s struct.
+struct json_object_s* json_parse_simplified_json_ex(
+    const void* src, size_t src_size, struct json_parse_result_s* result);
 
 // Write out a minified JSON utf-8 string. This string is an encoding of the
 // minimal string characters required to still encode the same data.
@@ -66,10 +88,8 @@ void* json_write_minified(const struct json_value_s* value, size_t* out_size);
 // json_write_pretty performs 1 call to malloc for the entire encoding.
 // Return 0 if an error occurred (malformed JSON input, or malloc failed).
 // The out_size parameter is optional as the utf-8 string is null terminated.
-void* json_write_pretty(const struct json_value_s* value,
-  const char* indent,
-  const char* newline,
-  size_t* out_size);
+void* json_write_pretty(const struct json_value_s* value, const char* indent,
+                        const char* newline, size_t* out_size);
 
 // The various types JSON values can be. Used to identify what a value is
 enum json_type_e {
@@ -146,13 +166,31 @@ struct json_value_s {
 // a parsing error code
 enum json_parse_error_e {
   json_parse_error_none = 0,
-  json_parse_error_expected_comma,                  // expected a comma where there was none!
-  json_parse_error_expected_colon,					// colon separating name/value pair was missing!
-  json_parse_error_expected_opening_quote,          // expected string to begin with '"'!
-  json_parse_error_invalid_string_escape_sequence,	// invalid escaped sequence in string!
-  json_parse_error_invalid_number_format,           // invalid number format!
-  json_parse_error_invalid_value,                   // invalid value!
-  json_parse_error_premature_end_of_buffer,         // reached end of buffer before object/array was complete!
+
+  // expected a comma where there was none!
+  json_parse_error_expected_comma,
+
+  // colon separating name/value pair was missing!
+  json_parse_error_expected_colon,
+
+  // expected string to begin with '"'!
+  json_parse_error_expected_opening_quote,
+
+  // invalid escaped sequence in string!
+  json_parse_error_invalid_string_escape_sequence,
+  // invalid number format!
+  json_parse_error_invalid_number_format,
+
+  // invalid value!
+  json_parse_error_invalid_value,
+
+  // reached end of buffer before object/array was complete!
+  json_parse_error_premature_end_of_buffer,
+
+  // expected a identifier for an object member!
+  json_parse_error_expected_identifier,
+
+  // catch-all error for anything else that went wrong
   json_parse_error_unknown
 };
 
@@ -169,11 +207,11 @@ struct json_parse_result_s {
 };
 
 #ifdef __cplusplus
-} // extern "C"
+}  // extern "C"
 #endif
 
 #if defined(_MSC_VER)
 #pragma warning(pop)
 #endif
 
-#endif//SHEREDOM_JSON_H_INCLUDED
+#endif  // SHEREDOM_JSON_H_INCLUDED
