@@ -279,7 +279,15 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       // skip comma
       state->offset++;
       allow_comma = 0;
-      continue;
+      
+      if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
+        continue;
+      } else {
+        if (json_skip_whitespace(state)) {
+          state->error = json_parse_error_premature_end_of_buffer;
+          return 1;
+        }
+      }
     }
 
     if (json_get_value_size(state)) {
