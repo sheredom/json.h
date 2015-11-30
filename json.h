@@ -46,9 +46,11 @@ enum json_parse_flags_e {
   json_parse_flags_default = 0,
   json_parse_flags_allow_trailing_comma = 0x1,
   json_parse_flags_allow_unquoted_keys = 0x2,
-  json_flag_allow_global_object = 0x4,
-  json_flag_allow_simplified_json = (json_parse_flags_allow_trailing_comma |
-    json_parse_flags_allow_unquoted_keys | json_flag_allow_global_object)
+  json_parse_flag_allow_global_object = 0x4,
+  json_parse_flag_allow_simplified_json =
+      (json_parse_flags_allow_trailing_comma |
+       json_parse_flags_allow_unquoted_keys |
+       json_parse_flag_allow_global_object)
 };
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
