@@ -486,10 +486,11 @@ static int json_parse_string(struct json_parse_state_s *state,
   // skip leading '"'
   state->offset++;
 
-  while (state->offset < state->size &&
-         ('"' != state->src[state->offset] ||
-          ('\\' == state->src[state->offset - 1] &&
-           '"' == state->src[state->offset]))) {
+  while (state->offset < state->size && '"' != state->src[state->offset]) {
+    if ('\\' == state->src[state->offset]) {
+      // copy reverse solidus character
+      state->data[size++] = state->src[state->offset++];
+    }
     state->data[size++] = state->src[state->offset++];
   }
 
