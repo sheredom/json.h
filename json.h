@@ -41,14 +41,26 @@ extern "C" {
 struct json_value_s;
 struct json_parse_result_s;
 
+enum json_parse_flags_e {
+  json_parse_flags_default = 0,
+  json_parse_flags_allow_trailing_comma = 0x1
+};
+
 // Parse a JSON text file, returning a pointer to the root of the JSON
 // structure. json_parse performs 1 call to malloc for the entire encoding.
 // Returns 0 if an error occurred (malformed JSON input, or malloc failed)
 struct json_value_s* json_parse(
   const void* src, size_t src_size);
 
+// Parse a JSON text file, returning a pointer to the root of the JSON
+// structure. json_parse performs 1 call to malloc for the entire encoding.
+// Returns 0 if an error occurred (malformed JSON input, or malloc failed). If 
+// an error occurred, the result struct (if not NULL) will explain the type of 
+// error, and the location in the input it occurred.
 struct json_value_s* json_parse_ex(
-  const void* src, size_t src_size, struct json_parse_result_s* result);
+  const void* src, size_t src_size,
+  size_t flags_bitset,
+  struct json_parse_result_s* result);
 
 // Write out a minified JSON utf-8 string. This string is an encoding of the
 // minimal string characters required to still encode the same data.

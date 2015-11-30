@@ -47,6 +47,7 @@ struct json_parse_state_s {
   char* data;
   size_t dom_size;
   size_t data_size;
+  size_t flags_bitset;
 };
 
 static int json_is_hexadecimal_digit(const char c) {
@@ -190,7 +191,10 @@ static int json_get_object_size(struct json_parse_state_s* state) {
       // skip comma
       state->offset++;
 	  allow_comma = 0;
-      continue;
+
+      if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
+        continue;
+      }
     }
 
     if (json_get_string_size(state)) {
@@ -798,7 +802,7 @@ static int json_parse_value(struct json_parse_state_s* state,
   }
 }
 
-struct json_value_s* json_parse_ex(const void* src, size_t src_size, struct json_parse_result_s* result) {
+struct json_value_s* json_parse_ex(const void* src, size_t src_size, size_t flags_bitset, struct json_parse_result_s* result) {
   struct json_parse_state_s state;
   void* allocation;
 
@@ -822,6 +826,7 @@ struct json_value_s* json_parse_ex(const void* src, size_t src_size, struct json
   state.error = json_parse_error_none;
   state.dom_size = 0;
   state.data_size = 0;
+  state.flags_bitset = flags_bitset;
 
   if (json_get_value_size(&state)) {
     // parsing value's size failed (most likely an invalid JSON DOM!)
@@ -862,7 +867,7 @@ struct json_value_s* json_parse_ex(const void* src, size_t src_size, struct json
 }
 
 struct json_value_s* json_parse(const void* src, size_t src_size) {
-  return json_parse_ex(src, src_size, NULL);
+  return json_parse_ex(src, src_size, json_parse_flags_default, NULL);
 }
 
 static int json_write_minified_get_value_size(const struct json_value_s* value, size_t* size);
