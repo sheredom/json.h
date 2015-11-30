@@ -43,7 +43,8 @@ struct json_parse_result_s;
 
 enum json_parse_flags_e {
   json_parse_flags_default = 0,
-  json_parse_flags_allow_trailing_comma = 0x1
+  json_parse_flags_allow_trailing_comma = 0x1,
+  json_parse_flags_allow_unquoted_keys = 0x2
 };
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
@@ -176,6 +177,9 @@ enum json_parse_error_e {
 
   // reached end of buffer before object/array was complete!
   json_parse_error_premature_end_of_buffer,
+
+  // string was malformed!
+  json_parse_error_invalid_string,
 
   // catch-all error for everything else that exploded (real bad chi!)
   json_parse_error_unknown

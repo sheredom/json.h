@@ -146,9 +146,43 @@ static int json_get_string_size(struct json_parse_state_s *state) {
   // skip trailing '"'
   state->offset++;
 
+  // one more byte for null terminator ending the string!
+  state->data_size++;
+
   state->data_size += state->offset - initial_offset;
 
   return 0;
+}
+
+static int is_valid_unquoted_key_char(const char c) {
+  return (('0' <= c && c <= '9') || ('a' <= c && c <= 'z') ||
+          ('A' <= c && c <= 'Z') || ('_' == c));
+}
+
+static int json_get_key_size(struct json_parse_state_s *state) {
+  if (json_parse_flags_allow_unquoted_keys & state->flags_bitset) {
+    // if we are allowing unquoted keys, first grok for a comma...
+    if ('"' == state->src[state->offset]) {
+      // ... if we got a comma, just parse the key as a string as normal
+      return json_get_string_size(state);
+    } else {
+      while ((state->offset < state->size) &&
+             is_valid_unquoted_key_char(state->src[state->offset])) {
+        state->offset++;
+        state->data_size++;
+      }
+
+      // one more byte for null terminator ending the string!
+      state->data_size++;
+
+      state->dom_size += sizeof(struct json_string_s);
+
+      return 0;
+    }
+  } else {
+    // we are only allowed to have quoted keys, so just parse a string!
+    return json_get_string_size(state);
+  }
 }
 
 static int json_get_object_size(struct json_parse_state_s *state) {
@@ -200,8 +234,9 @@ static int json_get_object_size(struct json_parse_state_s *state) {
       }
     }
 
-    if (json_get_string_size(state)) {
-      // string parsing failed!
+    if (json_get_key_size(state)) {
+      // key parsing failed!
+      state->error = json_parse_error_invalid_string;
       return 1;
     }
 
@@ -279,7 +314,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       // skip comma
       state->offset++;
       allow_comma = 0;
-      
+
       if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
         continue;
       } else {
@@ -471,6 +506,40 @@ static int json_parse_string(struct json_parse_state_s *state,
   return 0;
 }
 
+static int json_parse_key(struct json_parse_state_s *state,
+                          struct json_string_s *string) {
+  if (json_parse_flags_allow_unquoted_keys & state->flags_bitset) {
+    // if we are allowing unquoted keys, check for quoted anyway...
+    if ('"' == state->src[state->offset]) {
+      // ... if we got a comma, just parse the key as a string as normal
+      return json_parse_string(state, string);
+    } else {
+      size_t size = 0;
+
+      string->string = state->data;
+
+      while ((state->offset < state->size) &&
+             is_valid_unquoted_key_char(state->src[state->offset])) {
+        state->data[size++] = state->src[state->offset++];
+      }
+
+      // add null terminator to string
+      state->data[size++] = '\0';
+
+      // record the size of the string
+      string->string_size = size;
+
+      // move data along
+      state->data += size;
+
+      return 0;
+    }
+  } else {
+    // we are only allowed to have quoted keys, so just parse a string!
+    return json_parse_string(state, string);
+  }
+}
+
 static int json_parse_object(struct json_parse_state_s *state,
                              struct json_object_s *object) {
   size_t elements = 0;
@@ -549,8 +618,8 @@ static int json_parse_object(struct json_parse_state_s *state,
 
     element->name = string;
 
-    if (json_parse_string(state, string)) {
-      // string parsing failed!
+    if (json_parse_key(state, string)) {
+      // key parsing failed!
       return 1;
     }
 
