@@ -945,8 +945,8 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   state.flags_bitset = flags_bitset;
 
   if (json_get_value_size(
-          &state, /* is_global_object = */ (json_flag_allow_global_object &
-                                            state.flags_bitset))) {
+          &state, /* is_global_object = */ (
+              json_parse_flag_allow_global_object & state.flags_bitset))) {
     // parsing value's size failed (most likely an invalid JSON DOM!)
     if (result) {
       result->error = state.error;
@@ -975,9 +975,10 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
 
   state.dom += sizeof(struct json_value_s);
 
-  if (json_parse_value(&state, /* is_global_object = */ (
-                           json_flag_allow_global_object & state.flags_bitset),
-                       (struct json_value_s *)allocation)) {
+  if (json_parse_value(
+          &state, /* is_global_object = */ (
+              json_parse_flag_allow_global_object & state.flags_bitset),
+          (struct json_value_s *)allocation)) {
     // really bad chi here
     free(allocation);
     return 0;
