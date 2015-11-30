@@ -192,6 +192,11 @@ static int json_get_object_size(struct json_parse_state_s *state) {
 
       if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
         continue;
+      } else {
+        if (json_skip_whitespace(state)) {
+          state->error = json_parse_error_premature_end_of_buffer;
+          return 1;
+        }
       }
     }
 
