@@ -49,25 +49,23 @@ enum json_parse_flags_e {
 // Parse a JSON text file, returning a pointer to the root of the JSON
 // structure. json_parse performs 1 call to malloc for the entire encoding.
 // Returns 0 if an error occurred (malformed JSON input, or malloc failed)
-struct json_value_s* json_parse(
-  const void* src, size_t src_size);
+struct json_value_s *json_parse(const void *src, size_t src_size);
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
 // structure. json_parse performs 1 call to malloc for the entire encoding.
-// Returns 0 if an error occurred (malformed JSON input, or malloc failed). If 
-// an error occurred, the result struct (if not NULL) will explain the type of 
+// Returns 0 if an error occurred (malformed JSON input, or malloc failed). If
+// an error occurred, the result struct (if not NULL) will explain the type of
 // error, and the location in the input it occurred.
-struct json_value_s* json_parse_ex(
-  const void* src, size_t src_size,
-  size_t flags_bitset,
-  struct json_parse_result_s* result);
+struct json_value_s *json_parse_ex(const void *src, size_t src_size,
+                                   size_t flags_bitset,
+                                   struct json_parse_result_s *result);
 
 // Write out a minified JSON utf-8 string. This string is an encoding of the
 // minimal string characters required to still encode the same data.
 // json_write_minified performs 1 call to malloc for the entire encoding.
 // Return 0 if an error occurred (malformed JSON input, or malloc failed).
 // The out_size parameter is optional as the utf-8 string is null terminated.
-void* json_write_minified(const struct json_value_s* value, size_t* out_size);
+void *json_write_minified(const struct json_value_s *value, size_t *out_size);
 
 // Write out a pretty JSON utf-8 string. This string is encoded such that the
 // resultant JSON is pretty in that it is easily human readable. The indent and
@@ -78,10 +76,8 @@ void* json_write_minified(const struct json_value_s* value, size_t* out_size);
 // json_write_pretty performs 1 call to malloc for the entire encoding.
 // Return 0 if an error occurred (malformed JSON input, or malloc failed).
 // The out_size parameter is optional as the utf-8 string is null terminated.
-void* json_write_pretty(const struct json_value_s* value,
-  const char* indent,
-  const char* newline,
-  size_t* out_size);
+void *json_write_pretty(const struct json_value_s *value, const char *indent,
+                        const char *newline, size_t *out_size);
 
 // The various types JSON values can be. Used to identify what a value is
 enum json_type_e {
@@ -97,7 +93,7 @@ enum json_type_e {
 // A JSON string value
 struct json_string_s {
   // utf-8 string
-  void* string;
+  void *string;
   // the size (in bytes) of the string
   size_t string_size;
 };
@@ -105,7 +101,7 @@ struct json_string_s {
 // a JSON number value
 struct json_number_s {
   // ASCII string containing representation of the number
-  char* number;
+  char *number;
   // the size (in bytes) of the number
   size_t number_size;
 };
@@ -113,17 +109,17 @@ struct json_number_s {
 // an element of a JSON object
 struct json_object_element_s {
   // the name of this element
-  struct json_string_s* name;
+  struct json_string_s *name;
   // the value of this element
-  struct json_value_s* value;
+  struct json_value_s *value;
   // the next array element (can be NULL if the last element in the object)
-  struct json_object_element_s* next;
+  struct json_object_element_s *next;
 };
 
 // a JSON object value
 struct json_object_s {
   // a linked list of the elements in the array
-  struct json_object_element_s* start;
+  struct json_object_element_s *start;
   // the length of names and values (number of elements in the object)
   size_t length;
 };
@@ -131,15 +127,15 @@ struct json_object_s {
 // an element of a JSON array
 struct json_array_element_s {
   // the value of this element
-  struct json_value_s* value;
+  struct json_value_s *value;
   // the next array element (can be NULL if the last element in the array)
-  struct json_array_element_s* next;
+  struct json_array_element_s *next;
 };
 
 // a JSON array value
 struct json_array_s {
   // a linked list of the elements in the array
-  struct json_array_element_s* start;
+  struct json_array_element_s *start;
   // the number of elements in the array
   size_t length;
 };
@@ -149,7 +145,7 @@ struct json_value_s {
   // a pointer to either a json_string_s, json_number_s, json_object_s, or
   // json_array_s. Should be cast to the appropriate struct type based on what
   // the type of this value is
-  void* payload;
+  void *payload;
   // Must be one of json_type_e. If type is json_type_true, json_type_false, or
   // json_type_null, payload will be NULL
   size_t type;
@@ -158,13 +154,16 @@ struct json_value_s {
 // a parsing error code
 enum json_parse_error_e {
   json_parse_error_none = 0,
-  json_parse_error_expected_comma,                  // expected a comma where there was none!
-  json_parse_error_expected_colon,					// colon separating name/value pair was missing!
-  json_parse_error_expected_opening_quote,          // expected string to begin with '"'!
-  json_parse_error_invalid_string_escape_sequence,	// invalid escaped sequence in string!
-  json_parse_error_invalid_number_format,           // invalid number format!
-  json_parse_error_invalid_value,                   // invalid value!
-  json_parse_error_premature_end_of_buffer,         // reached end of buffer before object/array was complete!
+  json_parse_error_expected_comma, // expected a comma where there was none!
+  json_parse_error_expected_colon, // colon separating name/value pair was
+                                   // missing!
+  json_parse_error_expected_opening_quote, // expected string to begin with '"'!
+  json_parse_error_invalid_string_escape_sequence, // invalid escaped sequence
+                                                   // in string!
+  json_parse_error_invalid_number_format,          // invalid number format!
+  json_parse_error_invalid_value,                  // invalid value!
+  json_parse_error_premature_end_of_buffer, // reached end of buffer before
+                                            // object/array was complete!
   json_parse_error_unknown
 };
 
@@ -188,4 +187,4 @@ struct json_parse_result_s {
 #pragma warning(pop)
 #endif
 
-#endif//SHEREDOM_JSON_H_INCLUDED
+#endif // SHEREDOM_JSON_H_INCLUDED

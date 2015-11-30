@@ -37,26 +37,25 @@
 #endif
 
 struct json_parse_state_s {
-  const char* src;
+  const char *src;
   size_t size;
   size_t offset;
-  size_t line_no;            // line counter for error reporting
-  size_t line_offset;        // (offset-line_offset) is the character number (in bytes)
+  size_t line_no;     // line counter for error reporting
+  size_t line_offset; // (offset-line_offset) is the character number (in bytes)
   size_t error;
-  char* dom;
-  char* data;
+  char *dom;
+  char *data;
   size_t dom_size;
   size_t data_size;
   size_t flags_bitset;
 };
 
 static int json_is_hexadecimal_digit(const char c) {
-  return (('0' <= c && c <= '9') ||
-    ('a' <= c && c <= 'f') ||
-    ('A' <= c && c <= 'F'));
+  return (('0' <= c && c <= '9') || ('a' <= c && c <= 'f') ||
+          ('A' <= c && c <= 'F'));
 }
 
-static int json_skip_whitespace(struct json_parse_state_s* state) {
+static int json_skip_whitespace(struct json_parse_state_s *state) {
   // the only valid whitespace according to ECMA-404 is ' ', '\n', '\r' and '\t'
   size_t offset = 0, size = 0;
 
@@ -66,8 +65,8 @@ static int json_skip_whitespace(struct json_parse_state_s* state) {
       state->offset = offset;
       return 0;
     case '\n':
-	  state->line_no++;
-	  state->line_offset = offset;
+      state->line_no++;
+      state->line_offset = offset;
       break;
     case ' ':
     case '\r':
@@ -80,15 +79,15 @@ static int json_skip_whitespace(struct json_parse_state_s* state) {
   return 1;
 }
 
-static int json_get_value_size(struct json_parse_state_s* state);
+static int json_get_value_size(struct json_parse_state_s *state);
 
-static int json_get_string_size(struct json_parse_state_s* state) {
+static int json_get_string_size(struct json_parse_state_s *state) {
   const size_t initial_offset = state->offset;
 
   state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
-	state->error = json_parse_error_expected_opening_quote;
+    state->error = json_parse_error_expected_opening_quote;
     return 1;
   }
 
@@ -107,7 +106,7 @@ static int json_get_string_size(struct json_parse_state_s* state) {
 
       switch (state->src[state->offset]) {
       default:
-		state->error = json_parse_error_invalid_string_escape_sequence;
+        state->error = json_parse_error_invalid_string_escape_sequence;
         return 1;
       case '"':
       case '\\':
@@ -123,13 +122,12 @@ static int json_get_string_size(struct json_parse_state_s* state) {
       case 'u':
         if (state->offset + 5 < state->size) {
           // invalid escaped unicode sequence!
-		  state->error = json_parse_error_invalid_string_escape_sequence;
+          state->error = json_parse_error_invalid_string_escape_sequence;
           return 1;
-        } else if (
-          !json_is_hexadecimal_digit(state->src[state->offset + 1]) ||
-          !json_is_hexadecimal_digit(state->src[state->offset + 2]) ||
-          !json_is_hexadecimal_digit(state->src[state->offset + 3]) ||
-          !json_is_hexadecimal_digit(state->src[state->offset + 4])) {
+        } else if (!json_is_hexadecimal_digit(state->src[state->offset + 1]) ||
+                   !json_is_hexadecimal_digit(state->src[state->offset + 2]) ||
+                   !json_is_hexadecimal_digit(state->src[state->offset + 3]) ||
+                   !json_is_hexadecimal_digit(state->src[state->offset + 4])) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
           state->error = json_parse_error_invalid_string_escape_sequence;
           return 1;
@@ -153,12 +151,12 @@ static int json_get_string_size(struct json_parse_state_s* state) {
   return 0;
 }
 
-static int json_get_object_size(struct json_parse_state_s* state) {
+static int json_get_object_size(struct json_parse_state_s *state) {
   size_t elements = 0;
   int allow_comma = 0;
 
   if ('{' != state->src[state->offset]) {
-	state->error = json_parse_error_unknown;
+    state->error = json_parse_error_unknown;
     return 1;
   }
 
@@ -184,13 +182,13 @@ static int json_get_object_size(struct json_parse_state_s* state) {
     // if we parsed at least once element previously, grok for a comma
     if (allow_comma) {
       if (',' != state->src[state->offset]) {
-		state->error = json_parse_error_expected_comma;
+        state->error = json_parse_error_expected_comma;
         return 1;
       }
 
       // skip comma
       state->offset++;
-	  allow_comma = 0;
+      allow_comma = 0;
 
       if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
         continue;
@@ -227,7 +225,7 @@ static int json_get_object_size(struct json_parse_state_s* state) {
 
     // successfully parsed a name/value pair!
     elements++;
-	allow_comma = 1;
+    allow_comma = 1;
   }
 
   state->dom_size += sizeof(struct json_string_s) * elements;
@@ -237,13 +235,13 @@ static int json_get_object_size(struct json_parse_state_s* state) {
   return 0;
 }
 
-static int json_get_array_size(struct json_parse_state_s* state) {
+static int json_get_array_size(struct json_parse_state_s *state) {
   size_t elements = 0;
   int allow_comma = 0;
 
   if ('[' != state->src[state->offset]) {
-	// expected array to begin with leading '['
-	state->error = json_parse_error_unknown;
+    // expected array to begin with leading '['
+    state->error = json_parse_error_unknown;
     return 1;
   }
 
@@ -275,7 +273,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
 
       // skip comma
       state->offset++;
-	  allow_comma = 0;
+      allow_comma = 0;
       continue;
     }
 
@@ -286,7 +284,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
 
     // successfully parsed an array element!
     elements++;
-	allow_comma = 1;
+    allow_comma = 1;
   }
 
   state->dom_size += sizeof(struct json_value_s) * elements;
@@ -295,7 +293,7 @@ static int json_get_array_size(struct json_parse_state_s* state) {
   return 0;
 }
 
-static int json_get_number_size(struct json_parse_state_s* state) {
+static int json_get_number_size(struct json_parse_state_s *state) {
   size_t initial_offset = state->offset;
 
   state->dom_size += sizeof(struct json_number_s);
@@ -309,18 +307,18 @@ static int json_get_number_size(struct json_parse_state_s* state) {
     // skip valid '0'
     state->offset++;
 
-    if ((state->offset < state->size) &&
-      ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
+    if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
+                                          state->src[state->offset] <= '9')) {
       // a leading '0' must not be immediately followed by any digits!
-	  state->error = json_parse_error_invalid_number_format;
+      state->error = json_parse_error_invalid_number_format;
       return 1;
     }
   }
 
   // the main digits of our number next
-  while ((state->offset < state->size) &&
-   ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
-     state->offset++;
+  while ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
+                                           state->src[state->offset] <= '9')) {
+    state->offset++;
   }
 
   if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
@@ -328,28 +326,30 @@ static int json_get_number_size(struct json_parse_state_s* state) {
 
     // a decimal point can be followed by more digits of course!
     while ((state->offset < state->size) &&
-     ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
-       state->offset++;
+           ('0' <= state->src[state->offset] &&
+            state->src[state->offset] <= '9')) {
+      state->offset++;
     }
   }
 
-  if ((state->offset < state->size) && ('e' == state->src[state->offset] ||
-    'E' == state->src[state->offset])) {
+  if ((state->offset < state->size) &&
+      ('e' == state->src[state->offset] || 'E' == state->src[state->offset])) {
     // our number has an exponent!
 
     // skip 'e' or 'E'
     state->offset++;
 
     if ((state->offset < state->size) && ('-' == state->src[state->offset] ||
-      '+' == state->src[state->offset])) {
+                                          '+' == state->src[state->offset])) {
       // skip optional '-' or '+'
       state->offset++;
     }
 
     // consume exponent digits
     while ((state->offset < state->size) &&
-     ('0' <= state->src[state->offset] && state->src[state->offset] <= '9')) {
-       state->offset++;
+           ('0' <= state->src[state->offset] &&
+            state->src[state->offset] <= '9')) {
+      state->offset++;
     }
   }
 
@@ -361,9 +361,9 @@ static int json_get_number_size(struct json_parse_state_s* state) {
   return 0;
 }
 
-static int json_get_value_size(struct json_parse_state_s* state) {
+static int json_get_value_size(struct json_parse_state_s *state) {
   if (json_skip_whitespace(state)) {
-	state->error = json_parse_error_premature_end_of_buffer;
+    state->error = json_parse_error_premature_end_of_buffer;
     return 1;
   }
 
@@ -390,40 +390,40 @@ static int json_get_value_size(struct json_parse_state_s* state) {
     return json_get_number_size(state);
   default:
     if ((state->offset + 4) < state->size &&
-      't' == state->src[state->offset + 0] &&
-      'r' == state->src[state->offset + 1] &&
-      'u' == state->src[state->offset + 2] &&
-      'e' == state->src[state->offset + 3]) {
+        't' == state->src[state->offset + 0] &&
+        'r' == state->src[state->offset + 1] &&
+        'u' == state->src[state->offset + 2] &&
+        'e' == state->src[state->offset + 3]) {
       state->offset += 4;
       return 0;
     } else if ((state->offset + 5) < state->size &&
-      'f' == state->src[state->offset + 0] &&
-      'a' == state->src[state->offset + 1] &&
-      'l' == state->src[state->offset + 2] &&
-      's' == state->src[state->offset + 3] &&
-      'e' == state->src[state->offset + 4]) {
+               'f' == state->src[state->offset + 0] &&
+               'a' == state->src[state->offset + 1] &&
+               'l' == state->src[state->offset + 2] &&
+               's' == state->src[state->offset + 3] &&
+               'e' == state->src[state->offset + 4]) {
       state->offset += 5;
       return 0;
     } else if ((state->offset + 4) < state->size &&
-      'n' == state->src[state->offset + 0] &&
-      'u' == state->src[state->offset + 1] &&
-      'l' == state->src[state->offset + 2] &&
-      'l' == state->src[state->offset + 3]) {
+               'n' == state->src[state->offset + 0] &&
+               'u' == state->src[state->offset + 1] &&
+               'l' == state->src[state->offset + 2] &&
+               'l' == state->src[state->offset + 3]) {
       state->offset += 4;
       return 0;
     }
 
     // invalid value!
-	state->error = json_parse_error_invalid_value;
+    state->error = json_parse_error_invalid_value;
     return 1;
   }
 }
 
-static int json_parse_value(struct json_parse_state_s* state,
-  struct json_value_s* value);
+static int json_parse_value(struct json_parse_state_s *state,
+                            struct json_value_s *value);
 
-static int json_parse_string(struct json_parse_state_s* state,
-  struct json_string_s* string) {
+static int json_parse_string(struct json_parse_state_s *state,
+                             struct json_string_s *string) {
   size_t size = 0;
 
   string->string = state->data;
@@ -437,9 +437,9 @@ static int json_parse_string(struct json_parse_state_s* state,
   state->offset++;
 
   while (state->offset < state->size &&
-    ('"' != state->src[state->offset] ||
-    ('\\' == state->src[state->offset - 1] &&
-    '"' == state->src[state->offset]))) {
+         ('"' != state->src[state->offset] ||
+          ('\\' == state->src[state->offset - 1] &&
+           '"' == state->src[state->offset]))) {
     state->data[size++] = state->src[state->offset++];
   }
 
@@ -458,11 +458,11 @@ static int json_parse_string(struct json_parse_state_s* state,
   return 0;
 }
 
-static int json_parse_object(struct json_parse_state_s* state,
-  struct json_object_s* object) {
+static int json_parse_object(struct json_parse_state_s *state,
+                             struct json_object_s *object) {
   size_t elements = 0;
   int allow_comma = 0;
-  struct json_object_element_s* previous = 0;
+  struct json_object_element_s *previous = 0;
 
   if ('{' != state->src[state->offset]) {
     // expected object to begin with leading '{'
@@ -487,9 +487,9 @@ static int json_parse_object(struct json_parse_state_s* state,
   elements = 0;
 
   while (state->offset < state->size) {
-	struct json_object_element_s* element = 0;
-	struct json_string_s* string = 0;
-	struct json_value_s* value = 0;
+    struct json_object_element_s *element = 0;
+    struct json_string_s *string = 0;
+    struct json_value_s *value = 0;
 
     if (json_skip_whitespace(state)) {
       // reached end of buffer before object was complete!
@@ -513,11 +513,11 @@ static int json_parse_object(struct json_parse_state_s* state,
 
       // skip comma
       state->offset++;
-	  allow_comma = 0;
+      allow_comma = 0;
       continue;
     }
 
-    element = (struct json_object_element_s* )state->dom;
+    element = (struct json_object_element_s *)state->dom;
 
     state->dom += sizeof(struct json_object_element_s);
 
@@ -530,7 +530,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 
     previous = element;
 
-    string = (struct json_string_s* )state->dom;
+    string = (struct json_string_s *)state->dom;
 
     state->dom += sizeof(struct json_string_s);
 
@@ -559,7 +559,7 @@ static int json_parse_object(struct json_parse_state_s* state,
       return 1;
     }
 
-    value = (struct json_value_s* )state->dom;
+    value = (struct json_value_s *)state->dom;
 
     state->dom += sizeof(struct json_value_s);
 
@@ -572,7 +572,7 @@ static int json_parse_object(struct json_parse_state_s* state,
 
     // successfully parsed a name/value pair!
     elements++;
-	allow_comma = 1;
+    allow_comma = 1;
   }
 
   // if we had at least one element, end the linked list
@@ -589,11 +589,11 @@ static int json_parse_object(struct json_parse_state_s* state,
   return 0;
 }
 
-static int json_parse_array(struct json_parse_state_s* state,
-  struct json_array_s* array) {
+static int json_parse_array(struct json_parse_state_s *state,
+                            struct json_array_s *array) {
   size_t elements = 0;
   int allow_comma = 0;
-  struct json_array_element_s* previous = 0;
+  struct json_array_element_s *previous = 0;
 
   if ('[' != state->src[state->offset]) {
     // expected object to begin with leading '['
@@ -612,8 +612,8 @@ static int json_parse_array(struct json_parse_state_s* state,
   elements = 0;
 
   while (state->offset < state->size) {
-	struct json_array_element_s* element = 0;
-	struct json_value_s* value = 0;
+    struct json_array_element_s *element = 0;
+    struct json_value_s *value = 0;
 
     if (json_skip_whitespace(state)) {
       // reached end of buffer before array was complete!
@@ -637,11 +637,11 @@ static int json_parse_array(struct json_parse_state_s* state,
 
       // skip comma
       state->offset++;
-	  allow_comma = 0;
+      allow_comma = 0;
       continue;
     }
 
-    element = (struct json_array_element_s* )state->dom;
+    element = (struct json_array_element_s *)state->dom;
 
     state->dom += sizeof(struct json_array_element_s);
 
@@ -654,7 +654,7 @@ static int json_parse_array(struct json_parse_state_s* state,
 
     previous = element;
 
-    value = (struct json_value_s* )state->dom;
+    value = (struct json_value_s *)state->dom;
 
     state->dom += sizeof(struct json_value_s);
 
@@ -667,7 +667,7 @@ static int json_parse_array(struct json_parse_state_s* state,
 
     // successfully parsed an array element!
     elements++;
-	allow_comma = 1;
+    allow_comma = 1;
   }
 
   // end the linked list
@@ -684,8 +684,8 @@ static int json_parse_array(struct json_parse_state_s* state,
   return 0;
 }
 
-static int json_parse_number(struct json_parse_state_s* state,
-  struct json_number_s* number) {
+static int json_parse_number(struct json_parse_state_s *state,
+                             struct json_number_s *number) {
   size_t size = 0;
 
   number->number = state->data;
@@ -728,8 +728,8 @@ json_parse_number_cleanup:
   return 0;
 }
 
-static int json_parse_value(struct json_parse_state_s* state,
-  struct json_value_s* value) {
+static int json_parse_value(struct json_parse_state_s *state,
+                            struct json_value_s *value) {
   if (json_skip_whitespace(state)) {
     // consumed the whole buffer when we expected a value!
     return 1;
@@ -768,29 +768,29 @@ static int json_parse_value(struct json_parse_state_s* state,
     return json_parse_number(state, value->payload);
   default:
     if ((state->offset + 4) < state->size &&
-      't' == state->src[state->offset + 0] &&
-      'r' == state->src[state->offset + 1] &&
-      'u' == state->src[state->offset + 2] &&
-      'e' == state->src[state->offset + 3]) {
+        't' == state->src[state->offset + 0] &&
+        'r' == state->src[state->offset + 1] &&
+        'u' == state->src[state->offset + 2] &&
+        'e' == state->src[state->offset + 3]) {
       value->type = json_type_true;
       value->payload = 0;
       state->offset += 4;
       return 0;
     } else if ((state->offset + 5) < state->size &&
-      'f' == state->src[state->offset + 0] &&
-      'a' == state->src[state->offset + 1] &&
-      'l' == state->src[state->offset + 2] &&
-      's' == state->src[state->offset + 3] &&
-      'e' == state->src[state->offset + 4]) {
+               'f' == state->src[state->offset + 0] &&
+               'a' == state->src[state->offset + 1] &&
+               'l' == state->src[state->offset + 2] &&
+               's' == state->src[state->offset + 3] &&
+               'e' == state->src[state->offset + 4]) {
       value->type = json_type_false;
       value->payload = 0;
       state->offset += 5;
       return 0;
     } else if ((state->offset + 4) < state->size &&
-      'n' == state->src[state->offset + 0] &&
-      'u' == state->src[state->offset + 1] &&
-      'l' == state->src[state->offset + 2] &&
-      'l' == state->src[state->offset + 3]) {
+               'n' == state->src[state->offset + 0] &&
+               'u' == state->src[state->offset + 1] &&
+               'l' == state->src[state->offset + 2] &&
+               'l' == state->src[state->offset + 3]) {
       value->type = json_type_null;
       value->payload = 0;
       state->offset += 4;
@@ -802,15 +802,17 @@ static int json_parse_value(struct json_parse_state_s* state,
   }
 }
 
-struct json_value_s* json_parse_ex(const void* src, size_t src_size, size_t flags_bitset, struct json_parse_result_s* result) {
+struct json_value_s *json_parse_ex(const void *src, size_t src_size,
+                                   size_t flags_bitset,
+                                   struct json_parse_result_s *result) {
   struct json_parse_state_s state;
-  void* allocation;
+  void *allocation;
 
   if (result) {
-	result->error = json_parse_error_none;
-	result->error_offset = 0;
-	result->error_line_no = 0;
-	result->error_row_no = 0;
+    result->error = json_parse_error_none;
+    result->error_offset = 0;
+    result->error_line_no = 0;
+    result->error_row_no = 0;
   }
 
   if (0 == src || 2 > src_size) {
@@ -830,12 +832,12 @@ struct json_value_s* json_parse_ex(const void* src, size_t src_size, size_t flag
 
   if (json_get_value_size(&state)) {
     // parsing value's size failed (most likely an invalid JSON DOM!)
-	if (result) {
-	  result->error = state.error;
-	  result->error_offset = state.offset;
-	  result->error_line_no = state.line_no;
-	  result->error_row_no = state.offset - state.line_offset;
-	}
+    if (result) {
+      result->error = state.error;
+      result->error_offset = state.offset;
+      result->error_line_no = state.line_no;
+      result->error_row_no = state.offset - state.line_offset;
+    }
     return 0;
   }
 
@@ -857,7 +859,7 @@ struct json_value_s* json_parse_ex(const void* src, size_t src_size, size_t flag
 
   state.dom += sizeof(struct json_value_s);
 
-  if (json_parse_value(&state, (struct json_value_s* )allocation)) {
+  if (json_parse_value(&state, (struct json_value_s *)allocation)) {
     // really bad chi here
     free(allocation);
     return 0;
@@ -866,27 +868,33 @@ struct json_value_s* json_parse_ex(const void* src, size_t src_size, size_t flag
   return allocation;
 }
 
-struct json_value_s* json_parse(const void* src, size_t src_size) {
+struct json_value_s *json_parse(const void *src, size_t src_size) {
   return json_parse_ex(src, src_size, json_parse_flags_default, NULL);
 }
 
-static int json_write_minified_get_value_size(const struct json_value_s* value, size_t* size);
+static int json_write_minified_get_value_size(const struct json_value_s *value,
+                                              size_t *size);
 
-static int json_write_minified_get_number_size(const struct json_number_s* number, size_t* size) {
+static int
+json_write_minified_get_number_size(const struct json_number_s *number,
+                                    size_t *size) {
   *size += number->number_size; // the actual string of the number
 
   return 0;
 }
 
-static int json_write_minified_get_string_size(const struct json_string_s* string, size_t* size) {
+static int
+json_write_minified_get_string_size(const struct json_string_s *string,
+                                    size_t *size) {
   *size += string->string_size; // the actual string
-  *size += 2; // need to encode the surrounding '"' characters
+  *size += 2;                   // need to encode the surrounding '"' characters
 
   return 0;
 }
 
-static int json_write_minified_get_array_size(const struct json_array_s* array, size_t* size) {
-  struct json_array_element_s* element;
+static int json_write_minified_get_array_size(const struct json_array_s *array,
+                                              size_t *size) {
+  struct json_array_element_s *element;
 
   *size += 2; // '[' and ']'
 
@@ -904,8 +912,10 @@ static int json_write_minified_get_array_size(const struct json_array_s* array, 
   return 0;
 }
 
-static int json_write_minified_get_object_size(const struct json_object_s* object, size_t* size) {
-  struct json_object_element_s* element;
+static int
+json_write_minified_get_object_size(const struct json_object_s *object,
+                                    size_t *size) {
+  struct json_object_element_s *element;
 
   *size += 2; // '{' and '}'
 
@@ -930,19 +940,24 @@ static int json_write_minified_get_object_size(const struct json_object_s* objec
   return 0;
 }
 
-static int json_write_minified_get_value_size(const struct json_value_s* value, size_t* size) {
+static int json_write_minified_get_value_size(const struct json_value_s *value,
+                                              size_t *size) {
   switch (value->type) {
   default:
     // unknown value type found!
     return 1;
   case json_type_number:
-    return json_write_minified_get_number_size((struct json_number_s* )value->payload, size);
+    return json_write_minified_get_number_size(
+        (struct json_number_s *)value->payload, size);
   case json_type_string:
-    return json_write_minified_get_string_size((struct json_string_s* )value->payload, size);
+    return json_write_minified_get_string_size(
+        (struct json_string_s *)value->payload, size);
   case json_type_array:
-    return json_write_minified_get_array_size((struct json_array_s* )value->payload, size);
+    return json_write_minified_get_array_size(
+        (struct json_array_s *)value->payload, size);
   case json_type_object:
-    return json_write_minified_get_object_size((struct json_object_s* )value->payload, size);
+    return json_write_minified_get_object_size(
+        (struct json_object_s *)value->payload, size);
   case json_type_true:
     *size += 4; // the string "true"
     return 0;
@@ -955,9 +970,11 @@ static int json_write_minified_get_value_size(const struct json_value_s* value, 
   }
 }
 
-static char* json_write_minified_value(const struct json_value_s* value, char* data);
+static char *json_write_minified_value(const struct json_value_s *value,
+                                       char *data);
 
-static char* json_write_minified_number(const struct json_number_s* number, char* data) {
+static char *json_write_minified_number(const struct json_number_s *number,
+                                        char *data) {
   size_t i;
 
   for (i = 0; i < number->number_size; i++) {
@@ -967,13 +984,14 @@ static char* json_write_minified_number(const struct json_number_s* number, char
   return data;
 }
 
-static char* json_write_minified_string(const struct json_string_s* string, char* data) {
+static char *json_write_minified_string(const struct json_string_s *string,
+                                        char *data) {
   size_t i;
 
   *data++ = '"'; // open the string
 
   for (i = 0; i < string->string_size; i++) {
-    *data++ = ((char* )string->string)[i];
+    *data++ = ((char *)string->string)[i];
   }
 
   *data++ = '"'; // close the string
@@ -981,8 +999,9 @@ static char* json_write_minified_string(const struct json_string_s* string, char
   return data;
 }
 
-static char* json_write_minified_array(const struct json_array_s* array, char* data) {
-  struct json_array_element_s* element = 0;
+static char *json_write_minified_array(const struct json_array_s *array,
+                                       char *data) {
+  struct json_array_element_s *element = 0;
 
   *data++ = '['; // open the array
 
@@ -1004,8 +1023,9 @@ static char* json_write_minified_array(const struct json_array_s* array, char* d
   return data;
 }
 
-static char* json_write_minified_object(const struct json_object_s* object, char* data) {
-  struct json_object_element_s* element = 0;
+static char *json_write_minified_object(const struct json_object_s *object,
+                                        char *data) {
+  struct json_object_element_s *element = 0;
 
   *data++ = '{'; // open the object
 
@@ -1036,19 +1056,24 @@ static char* json_write_minified_object(const struct json_object_s* object, char
   return data;
 }
 
-static char* json_write_minified_value(const struct json_value_s* value, char* data) {
+static char *json_write_minified_value(const struct json_value_s *value,
+                                       char *data) {
   switch (value->type) {
   default:
     // unknown value type found!
     return 0;
   case json_type_number:
-    return json_write_minified_number((struct json_number_s*)value->payload, data);
+    return json_write_minified_number((struct json_number_s *)value->payload,
+                                      data);
   case json_type_string:
-    return json_write_minified_string((struct json_string_s*)value->payload, data);
+    return json_write_minified_string((struct json_string_s *)value->payload,
+                                      data);
   case json_type_array:
-    return json_write_minified_array((struct json_array_s*)value->payload, data);
+    return json_write_minified_array((struct json_array_s *)value->payload,
+                                     data);
   case json_type_object:
-    return json_write_minified_object((struct json_object_s*)value->payload, data);
+    return json_write_minified_object((struct json_object_s *)value->payload,
+                                      data);
   case json_type_true:
     data[0] = 't';
     data[1] = 'r';
@@ -1071,14 +1096,14 @@ static char* json_write_minified_value(const struct json_value_s* value, char* d
   }
 }
 
-void* json_write_minified(const struct json_value_s* value, size_t* out_size) {
+void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
   size_t size = 0;
-  char* data = 0;
-  char* data_end = 0;
+  char *data = 0;
+  char *data_end = 0;
 
-	if (0 == value) {
+  if (0 == value) {
     return 0;
-	}
+  }
 
   if (json_write_minified_get_value_size(value, &size)) {
     // value was malformed!
@@ -1112,28 +1137,31 @@ void* json_write_minified(const struct json_value_s* value, size_t* out_size) {
   return data;
 }
 
+static int json_write_pretty_get_value_size(const struct json_value_s *value,
+                                            size_t depth, size_t indent_size,
+                                            size_t newline_size, size_t *size);
 
-static int json_write_pretty_get_value_size(const struct json_value_s* value,
-  size_t depth, size_t indent_size, size_t newline_size, size_t* size);
-
-static int json_write_pretty_get_number_size(const struct json_number_s* number, size_t* size) {
+static int json_write_pretty_get_number_size(const struct json_number_s *number,
+                                             size_t *size) {
   *size += number->number_size; // the actual string of the number
 
   return 0;
 }
 
-static int json_write_pretty_get_string_size(const struct json_string_s* string, size_t* size) {
+static int json_write_pretty_get_string_size(const struct json_string_s *string,
+                                             size_t *size) {
   *size += string->string_size; // the actual string
-  *size += 2; // need to encode the surrounding '"' characters
+  *size += 2;                   // need to encode the surrounding '"' characters
 
   return 0;
 }
 
-static int json_write_pretty_get_array_size(const struct json_array_s* array,
-  size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
-  struct json_array_element_s* element;
+static int json_write_pretty_get_array_size(const struct json_array_s *array,
+                                            size_t depth, size_t indent_size,
+                                            size_t newline_size, size_t *size) {
+  struct json_array_element_s *element;
 
-  *size += 1; // '['
+  *size += 1;            // '['
   *size += newline_size; // need a newline next
 
   if (1 < array->length) {
@@ -1144,25 +1172,27 @@ static int json_write_pretty_get_array_size(const struct json_array_s* array,
     // each element gets an indent and newline
     *size += (depth + 1) * indent_size;
     *size += newline_size;
-    if (json_write_pretty_get_value_size(
-      element->value, depth + 1, indent_size, newline_size, size)) {
+    if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size,
+                                         newline_size, size)) {
       // value was malformed!
       return 1;
     }
   }
 
   *size += depth * indent_size;
-  *size += 1; // ']'
+  *size += 1;            // ']'
   *size += newline_size; // need a newline next
 
   return 0;
 }
 
-static int json_write_pretty_get_object_size(const struct json_object_s* object,
-  size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
-  struct json_object_element_s* element;
+static int json_write_pretty_get_object_size(const struct json_object_s *object,
+                                             size_t depth, size_t indent_size,
+                                             size_t newline_size,
+                                             size_t *size) {
+  struct json_object_element_s *element;
 
-  *size += 1; // '{'
+  *size += 1;            // '{'
   *size += newline_size; // need a newline next
 
   if (1 < object->length) {
@@ -1181,7 +1211,8 @@ static int json_write_pretty_get_object_size(const struct json_object_s* object,
 
     *size += 3; // seperate each name/value pair with " : "
 
-    if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size, newline_size, size)) {
+    if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size,
+                                         newline_size, size)) {
       // value was malformed!
       return 1;
     }
@@ -1190,28 +1221,34 @@ static int json_write_pretty_get_object_size(const struct json_object_s* object,
   *size += depth * indent_size;
   *size += 1; // '}'
 
-  if (0 != depth)
-  {
+  if (0 != depth) {
     *size += newline_size; // need a newline next
   }
 
   return 0;
 }
 
-static int json_write_pretty_get_value_size(const struct json_value_s* value,
-  size_t depth, size_t indent_size, size_t newline_size, size_t* size) {
+static int json_write_pretty_get_value_size(const struct json_value_s *value,
+                                            size_t depth, size_t indent_size,
+                                            size_t newline_size, size_t *size) {
   switch (value->type) {
   default:
     // unknown value type found!
     return 1;
   case json_type_number:
-    return json_write_pretty_get_number_size((struct json_number_s*)value->payload, size);
+    return json_write_pretty_get_number_size(
+        (struct json_number_s *)value->payload, size);
   case json_type_string:
-    return json_write_pretty_get_string_size((struct json_string_s*)value->payload, size);
+    return json_write_pretty_get_string_size(
+        (struct json_string_s *)value->payload, size);
   case json_type_array:
-    return json_write_pretty_get_array_size((struct json_array_s*)value->payload, depth, indent_size, newline_size, size);
+    return json_write_pretty_get_array_size(
+        (struct json_array_s *)value->payload, depth, indent_size, newline_size,
+        size);
   case json_type_object:
-    return json_write_pretty_get_object_size((struct json_object_s*)value->payload, depth, indent_size, newline_size, size);
+    return json_write_pretty_get_object_size(
+        (struct json_object_s *)value->payload, depth, indent_size,
+        newline_size, size);
   case json_type_true:
     *size += 4; // the string "true"
     return 0;
@@ -1224,10 +1261,12 @@ static int json_write_pretty_get_value_size(const struct json_value_s* value,
   }
 }
 
-static char* json_write_pretty_value(const struct json_value_s* value,
-  size_t depth, const char* indent, const char* newline, char* data);
+static char *json_write_pretty_value(const struct json_value_s *value,
+                                     size_t depth, const char *indent,
+                                     const char *newline, char *data);
 
-static char* json_write_pretty_number(const struct json_number_s* number, char* data) {
+static char *json_write_pretty_number(const struct json_number_s *number,
+                                      char *data) {
   size_t i;
 
   for (i = 0; i < number->number_size; i++) {
@@ -1237,13 +1276,14 @@ static char* json_write_pretty_number(const struct json_number_s* number, char* 
   return data;
 }
 
-static char* json_write_pretty_string(const struct json_string_s* string, char* data) {
+static char *json_write_pretty_string(const struct json_string_s *string,
+                                      char *data) {
   size_t i;
 
   *data++ = '"'; // open the string
 
   for (i = 0; i < string->string_size; i++) {
-    *data++ = ((char*)string->string)[i];
+    *data++ = ((char *)string->string)[i];
   }
 
   *data++ = '"'; // close the string
@@ -1251,10 +1291,11 @@ static char* json_write_pretty_string(const struct json_string_s* string, char* 
   return data;
 }
 
-static char* json_write_pretty_array(const struct json_array_s* array,
-  size_t depth, const char* indent, const char* newline, char* data) {
+static char *json_write_pretty_array(const struct json_array_s *array,
+                                     size_t depth, const char *indent,
+                                     const char *newline, char *data) {
   size_t k, m;
-  struct json_array_element_s* element;
+  struct json_array_element_s *element;
 
   *data++ = '['; // open the array
 
@@ -1277,7 +1318,8 @@ static char* json_write_pretty_array(const struct json_array_s* array,
       }
     }
 
-    data = json_write_pretty_value(element->value, depth + 1, indent, newline, data);
+    data = json_write_pretty_value(element->value, depth + 1, indent, newline,
+                                   data);
 
     if (0 == data) {
       // value was malformed!
@@ -1300,10 +1342,11 @@ static char* json_write_pretty_array(const struct json_array_s* array,
   return data;
 }
 
-static char* json_write_pretty_object(const struct json_object_s* object,
-  size_t depth, const char* indent, const char* newline, char* data) {
+static char *json_write_pretty_object(const struct json_object_s *object,
+                                      size_t depth, const char *indent,
+                                      const char *newline, char *data) {
   size_t k, m;
-  struct json_object_element_s* element;
+  struct json_object_element_s *element;
 
   *data++ = '{'; // open the object
 
@@ -1338,7 +1381,8 @@ static char* json_write_pretty_object(const struct json_object_s* object,
     *data++ = ':';
     *data++ = ' ';
 
-    data = json_write_pretty_value(element->value, depth + 1, indent, newline, data);
+    data = json_write_pretty_value(element->value, depth + 1, indent, newline,
+                                   data);
 
     if (0 == data) {
       // value was malformed!
@@ -1361,20 +1405,25 @@ static char* json_write_pretty_object(const struct json_object_s* object,
   return data;
 }
 
-static char* json_write_pretty_value(const struct json_value_s* value,
-  size_t depth, const char* indent, const char* newline, char* data) {
+static char *json_write_pretty_value(const struct json_value_s *value,
+                                     size_t depth, const char *indent,
+                                     const char *newline, char *data) {
   switch (value->type) {
   default:
     // unknown value type found!
     return 0;
   case json_type_number:
-    return json_write_pretty_number((struct json_number_s*)value->payload, data);
+    return json_write_pretty_number((struct json_number_s *)value->payload,
+                                    data);
   case json_type_string:
-    return json_write_pretty_string((struct json_string_s*)value->payload, data);
+    return json_write_pretty_string((struct json_string_s *)value->payload,
+                                    data);
   case json_type_array:
-    return json_write_pretty_array((struct json_array_s*)value->payload, depth, indent, newline, data);
+    return json_write_pretty_array((struct json_array_s *)value->payload, depth,
+                                   indent, newline, data);
   case json_type_object:
-    return json_write_pretty_object((struct json_object_s*)value->payload, depth, indent, newline, data);
+    return json_write_pretty_object((struct json_object_s *)value->payload,
+                                    depth, indent, newline, data);
   case json_type_true:
     data[0] = 't';
     data[1] = 'r';
@@ -1397,15 +1446,13 @@ static char* json_write_pretty_value(const struct json_value_s* value,
   }
 }
 
-void* json_write_pretty(const struct json_value_s* value,
-  const char* indent,
-  const char* newline,
-  size_t* out_size) {
+void *json_write_pretty(const struct json_value_s *value, const char *indent,
+                        const char *newline, size_t *out_size) {
   size_t size = 0;
   size_t indent_size = 0;
   size_t newline_size = 0;
-  char* data = 0;
-  char* data_end = 0;
+  char *data = 0;
+  char *data_end = 0;
 
   if (0 == value) {
     return 0;
@@ -1427,7 +1474,8 @@ void* json_write_pretty(const struct json_value_s* value,
     ++newline_size; // skip non-null terminating characters
   }
 
-  if (json_write_pretty_get_value_size(value, 0, indent_size, newline_size, &size)) {
+  if (json_write_pretty_get_value_size(value, 0, indent_size, newline_size,
+                                       &size)) {
     // value was malformed!
     return 0;
   }
@@ -1447,7 +1495,7 @@ void* json_write_pretty(const struct json_value_s* value,
     // bad chi occurred!
     free(data);
     return 0;
-}
+  }
 
   // null terminated the string
   *data_end = '\0';
