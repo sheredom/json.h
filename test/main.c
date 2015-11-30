@@ -25,6 +25,7 @@
 
 #include "json.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static int test_empty() {

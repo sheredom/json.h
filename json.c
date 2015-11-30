@@ -25,6 +25,8 @@
 
 #include "json.h"
 
+#include <stdlib.h>
+
 // we do one big allocation via malloc, then cast aligned slices of this for
 // our structures - we don't have a way to tell the compiler we know what we
 // are doing, so disable the warning instead!
