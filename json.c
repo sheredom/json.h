@@ -81,7 +81,8 @@ static int json_skip_whitespace(struct json_parse_state_s *state) {
   return 1;
 }
 
-static int json_get_value_size(struct json_parse_state_s *state);
+static int json_get_value_size(struct json_parse_state_s *state,
+                               int is_global_object);
 
 static int json_get_string_size(struct json_parse_state_s *state) {
   const size_t initial_offset = state->offset;
@@ -187,32 +188,43 @@ static int json_get_key_size(struct json_parse_state_s *state) {
   }
 }
 
-static int json_get_object_size(struct json_parse_state_s *state) {
+static int json_get_object_size(struct json_parse_state_s *state,
+                                int is_global_object) {
   size_t elements = 0;
   int allow_comma = 0;
 
-  if ('{' != state->src[state->offset]) {
-    state->error = json_parse_error_unknown;
-    return 1;
-  }
+  if (!is_global_object) {
+    if ('{' != state->src[state->offset]) {
+      state->error = json_parse_error_unknown;
+      return 1;
+    }
 
-  // skip leading '{'
-  state->offset++;
+    // skip leading '{'
+    state->offset++;
+  }
 
   state->dom_size += sizeof(struct json_object_s);
 
   while (state->offset < state->size) {
-    if (json_skip_whitespace(state)) {
-      state->error = json_parse_error_premature_end_of_buffer;
-      return 1;
-    }
 
-    if ('}' == state->src[state->offset]) {
-      // skip trailing '}'
-      state->offset++;
+    if (!is_global_object) {
+      if (json_skip_whitespace(state)) {
+        state->error = json_parse_error_premature_end_of_buffer;
+        return 1;
+      }
+      if ('}' == state->src[state->offset]) {
+        // skip trailing '}'
+        state->offset++;
 
-      // finished the object!
-      break;
+        // finished the object!
+        break;
+      }
+    } else {
+      // we don't require brackets, so that means the object ends when the input
+      // stream ends!
+      if (json_skip_whitespace(state)) {
+        break;
+      }
     }
 
     // if we parsed at least once element previously, grok for a comma
@@ -260,7 +272,7 @@ static int json_get_object_size(struct json_parse_state_s *state) {
       return 1;
     }
 
-    if (json_get_value_size(state)) {
+    if (json_get_value_size(state, /* is_global_object = */ 0)) {
       // value parsing failed!
       return 1;
     }
@@ -327,7 +339,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       }
     }
 
-    if (json_get_value_size(state)) {
+    if (json_get_value_size(state, /* is_global_object = */ 0)) {
       // value parsing failed!
       return 1;
     }
@@ -411,7 +423,8 @@ static int json_get_number_size(struct json_parse_state_s *state) {
   return 0;
 }
 
-static int json_get_value_size(struct json_parse_state_s *state) {
+static int json_get_value_size(struct json_parse_state_s *state,
+                               int is_global_object) {
   if (json_skip_whitespace(state)) {
     state->error = json_parse_error_premature_end_of_buffer;
     return 1;
@@ -419,58 +432,62 @@ static int json_get_value_size(struct json_parse_state_s *state) {
 
   state->dom_size += sizeof(struct json_value_s);
 
-  switch (state->src[state->offset]) {
-  case '"':
-    return json_get_string_size(state);
-  case '{':
-    return json_get_object_size(state);
-  case '[':
-    return json_get_array_size(state);
-  case '-':
-  case '0':
-  case '1':
-  case '2':
-  case '3':
-  case '4':
-  case '5':
-  case '6':
-  case '7':
-  case '8':
-  case '9':
-    return json_get_number_size(state);
-  default:
-    if ((state->offset + 4) < state->size &&
-        't' == state->src[state->offset + 0] &&
-        'r' == state->src[state->offset + 1] &&
-        'u' == state->src[state->offset + 2] &&
-        'e' == state->src[state->offset + 3]) {
-      state->offset += 4;
-      return 0;
-    } else if ((state->offset + 5) < state->size &&
-               'f' == state->src[state->offset + 0] &&
-               'a' == state->src[state->offset + 1] &&
-               'l' == state->src[state->offset + 2] &&
-               's' == state->src[state->offset + 3] &&
-               'e' == state->src[state->offset + 4]) {
-      state->offset += 5;
-      return 0;
-    } else if ((state->offset + 4) < state->size &&
-               'n' == state->src[state->offset + 0] &&
-               'u' == state->src[state->offset + 1] &&
-               'l' == state->src[state->offset + 2] &&
-               'l' == state->src[state->offset + 3]) {
-      state->offset += 4;
-      return 0;
-    }
+  if (is_global_object) {
+    return json_get_object_size(state, /* is_global_object = */ 1);
+  } else {
+    switch (state->src[state->offset]) {
+    case '"':
+      return json_get_string_size(state);
+    case '{':
+      return json_get_object_size(state, /* is_global_object = */ 0);
+    case '[':
+      return json_get_array_size(state);
+    case '-':
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      return json_get_number_size(state);
+    default:
+      if ((state->offset + 4) < state->size &&
+          't' == state->src[state->offset + 0] &&
+          'r' == state->src[state->offset + 1] &&
+          'u' == state->src[state->offset + 2] &&
+          'e' == state->src[state->offset + 3]) {
+        state->offset += 4;
+        return 0;
+      } else if ((state->offset + 5) < state->size &&
+                 'f' == state->src[state->offset + 0] &&
+                 'a' == state->src[state->offset + 1] &&
+                 'l' == state->src[state->offset + 2] &&
+                 's' == state->src[state->offset + 3] &&
+                 'e' == state->src[state->offset + 4]) {
+        state->offset += 5;
+        return 0;
+      } else if ((state->offset + 4) < state->size &&
+                 'n' == state->src[state->offset + 0] &&
+                 'u' == state->src[state->offset + 1] &&
+                 'l' == state->src[state->offset + 2] &&
+                 'l' == state->src[state->offset + 3]) {
+        state->offset += 4;
+        return 0;
+      }
 
-    // invalid value!
-    state->error = json_parse_error_invalid_value;
-    return 1;
+      // invalid value!
+      state->error = json_parse_error_invalid_value;
+      return 1;
+    }
   }
 }
 
 static int json_parse_value(struct json_parse_state_s *state,
-                            struct json_value_s *value);
+                            int is_global_object, struct json_value_s *value);
 
 static int json_parse_string(struct json_parse_state_s *state,
                              struct json_string_s *string) {
@@ -544,28 +561,25 @@ static int json_parse_key(struct json_parse_state_s *state,
 }
 
 static int json_parse_object(struct json_parse_state_s *state,
+                             int is_global_object,
                              struct json_object_s *object) {
   size_t elements = 0;
   int allow_comma = 0;
   struct json_object_element_s *previous = 0;
 
-  if ('{' != state->src[state->offset]) {
-    // expected object to begin with leading '{'
-    return 1;
-  }
+  if (!is_global_object) {
+    if ('{' != state->src[state->offset]) {
+      // expected object to begin with leading '{'
+      return 1;
+    }
 
-  // skip leading '{'
-  state->offset++;
+    // skip leading '{'
+    state->offset++;
+  }
 
   if (json_skip_whitespace(state)) {
     // consumed the whole buffer when we expected a value!
     return 1;
-  }
-
-  if ('}' != state->src[state->offset]) {
-    // we have at least one element as we definitely don't have
-    // an empty object {   }!
-    elements++;
   }
 
   // reset elements
@@ -576,17 +590,24 @@ static int json_parse_object(struct json_parse_state_s *state,
     struct json_string_s *string = 0;
     struct json_value_s *value = 0;
 
-    if (json_skip_whitespace(state)) {
-      // reached end of buffer before object was complete!
-      return 1;
-    }
+    if (!is_global_object) {
+      if (json_skip_whitespace(state)) {
+        // reached end of buffer before object was complete!
+        return 1;
+      }
 
-    if ('}' == state->src[state->offset]) {
-      // skip trailing '}'
-      state->offset++;
+      if ('}' == state->src[state->offset]) {
+        // skip trailing '}'
+        state->offset++;
 
-      // finished the object!
-      break;
+        // finished the object!
+        break;
+      }
+    } else {
+      if (json_skip_whitespace(state)) {
+        // global object ends when the file ends!
+        break;
+      }
     }
 
     // if we parsed at least one element previously, grok for a comma
@@ -650,7 +671,7 @@ static int json_parse_object(struct json_parse_state_s *state,
 
     element->value = value;
 
-    if (json_parse_value(state, value)) {
+    if (json_parse_value(state, /* is_global_object = */ 0, value)) {
       // value parsing failed!
       return 1;
     }
@@ -745,7 +766,7 @@ static int json_parse_array(struct json_parse_state_s *state,
 
     element->value = value;
 
-    if (json_parse_value(state, value)) {
+    if (json_parse_value(state, /* is_global_object = */ 0, value)) {
       // value parsing failed!
       return 1;
     }
@@ -814,76 +835,84 @@ json_parse_number_cleanup:
 }
 
 static int json_parse_value(struct json_parse_state_s *state,
-                            struct json_value_s *value) {
+                            int is_global_object, struct json_value_s *value) {
   if (json_skip_whitespace(state)) {
     // consumed the whole buffer when we expected a value!
     return 1;
   }
 
-  switch (state->src[state->offset]) {
-  case '"':
-    value->type = json_type_string;
-    value->payload = state->dom;
-    state->dom += sizeof(struct json_string_s);
-    return json_parse_string(state, value->payload);
-  case '{':
+  if (is_global_object) {
     value->type = json_type_object;
     value->payload = state->dom;
     state->dom += sizeof(struct json_object_s);
-    return json_parse_object(state, value->payload);
-  case '[':
-    value->type = json_type_array;
-    value->payload = state->dom;
-    state->dom += sizeof(struct json_array_s);
-    return json_parse_array(state, value->payload);
-  case '-':
-  case '0':
-  case '1':
-  case '2':
-  case '3':
-  case '4':
-  case '5':
-  case '6':
-  case '7':
-  case '8':
-  case '9':
-    value->type = json_type_number;
-    value->payload = state->dom;
-    state->dom += sizeof(struct json_number_s);
-    return json_parse_number(state, value->payload);
-  default:
-    if ((state->offset + 4) < state->size &&
-        't' == state->src[state->offset + 0] &&
-        'r' == state->src[state->offset + 1] &&
-        'u' == state->src[state->offset + 2] &&
-        'e' == state->src[state->offset + 3]) {
-      value->type = json_type_true;
-      value->payload = 0;
-      state->offset += 4;
-      return 0;
-    } else if ((state->offset + 5) < state->size &&
-               'f' == state->src[state->offset + 0] &&
-               'a' == state->src[state->offset + 1] &&
-               'l' == state->src[state->offset + 2] &&
-               's' == state->src[state->offset + 3] &&
-               'e' == state->src[state->offset + 4]) {
-      value->type = json_type_false;
-      value->payload = 0;
-      state->offset += 5;
-      return 0;
-    } else if ((state->offset + 4) < state->size &&
-               'n' == state->src[state->offset + 0] &&
-               'u' == state->src[state->offset + 1] &&
-               'l' == state->src[state->offset + 2] &&
-               'l' == state->src[state->offset + 3]) {
-      value->type = json_type_null;
-      value->payload = 0;
-      state->offset += 4;
-      return 0;
-    }
+    return json_parse_object(state, /* is_global_object = */ 1, value->payload);
+  } else {
+    switch (state->src[state->offset]) {
+    case '"':
+      value->type = json_type_string;
+      value->payload = state->dom;
+      state->dom += sizeof(struct json_string_s);
+      return json_parse_string(state, value->payload);
+    case '{':
+      value->type = json_type_object;
+      value->payload = state->dom;
+      state->dom += sizeof(struct json_object_s);
+      return json_parse_object(state, /* is_global_object = */ 0,
+                               value->payload);
+    case '[':
+      value->type = json_type_array;
+      value->payload = state->dom;
+      state->dom += sizeof(struct json_array_s);
+      return json_parse_array(state, value->payload);
+    case '-':
+    case '0':
+    case '1':
+    case '2':
+    case '3':
+    case '4':
+    case '5':
+    case '6':
+    case '7':
+    case '8':
+    case '9':
+      value->type = json_type_number;
+      value->payload = state->dom;
+      state->dom += sizeof(struct json_number_s);
+      return json_parse_number(state, value->payload);
+    default:
+      if ((state->offset + 4) < state->size &&
+          't' == state->src[state->offset + 0] &&
+          'r' == state->src[state->offset + 1] &&
+          'u' == state->src[state->offset + 2] &&
+          'e' == state->src[state->offset + 3]) {
+        value->type = json_type_true;
+        value->payload = 0;
+        state->offset += 4;
+        return 0;
+      } else if ((state->offset + 5) < state->size &&
+                 'f' == state->src[state->offset + 0] &&
+                 'a' == state->src[state->offset + 1] &&
+                 'l' == state->src[state->offset + 2] &&
+                 's' == state->src[state->offset + 3] &&
+                 'e' == state->src[state->offset + 4]) {
+        value->type = json_type_false;
+        value->payload = 0;
+        state->offset += 5;
+        return 0;
+      } else if ((state->offset + 4) < state->size &&
+                 'n' == state->src[state->offset + 0] &&
+                 'u' == state->src[state->offset + 1] &&
+                 'l' == state->src[state->offset + 2] &&
+                 'l' == state->src[state->offset + 3]) {
+        value->type = json_type_null;
+        value->payload = 0;
+        state->offset += 4;
+        return 0;
+      }
 
-    // invalid value!
-    return 1;
+      // invalid value!
+      return 1;
+    }
   }
 }
 
@@ -915,7 +944,9 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   state.data_size = 0;
   state.flags_bitset = flags_bitset;
 
-  if (json_get_value_size(&state)) {
+  if (json_get_value_size(
+          &state, /* is_global_object = */ (json_flag_allow_global_object &
+                                            state.flags_bitset))) {
     // parsing value's size failed (most likely an invalid JSON DOM!)
     if (result) {
       result->error = state.error;
@@ -944,7 +975,9 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
 
   state.dom += sizeof(struct json_value_s);
 
-  if (json_parse_value(&state, (struct json_value_s *)allocation)) {
+  if (json_parse_value(&state, /* is_global_object = */ (
+                           json_flag_allow_global_object & state.flags_bitset),
+                       (struct json_value_s *)allocation)) {
     // really bad chi here
     free(allocation);
     return 0;
