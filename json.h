@@ -47,9 +47,21 @@ struct json_parse_result_s;
 
 enum json_parse_flags_e {
   json_parse_flags_default = 0,
+
+  // allow trailing commas in objects and arrays. For example, both [true,] and
+  // {"a" : null,} would be allowed with this option on.
   json_parse_flags_allow_trailing_comma = 0x1,
+
+  // allow unquoted keys for objects. For example, {a : null} would be allowed
+  // with this option on.
   json_parse_flags_allow_unquoted_keys = 0x2,
+
+  // allow a global unbracketed object. For example, a : null, b : true, c : {}
+  // would be allowed with this option on.
   json_parse_flag_allow_global_object = 0x4,
+
+  // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
+  // of other parsing options.
   json_parse_flag_allow_simplified_json =
       (json_parse_flags_allow_trailing_comma |
        json_parse_flags_allow_unquoted_keys |
