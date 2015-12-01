@@ -30,14 +30,17 @@
 
 #include <stdlib.h>
 
+#if defined(__clang__)
+#pragma clang diagnostic push
+
 // we do one big allocation via malloc, then cast aligned slices of this for
 // our structures - we don't have a way to tell the compiler we know what we
 // are doing, so disable the warning instead!
-#if defined(__clang__)
-#pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wcast-align"
 #elif defined(_MSC_VER)
 #pragma warning(push)
+
+// disable 'function selected for inline expansion' warning
 #pragma warning(disable : 4711)
 #endif
 
