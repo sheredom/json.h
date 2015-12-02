@@ -25,6 +25,7 @@
 
 #include "json.h"
 
+#include <stdlib.h>
 #include <string.h>
 
 static int test_empty() {
@@ -350,6 +351,110 @@ int test_numbers() {
   return 0;
 }
 
+int test_trailing_commas_in_object() {
+  const char no_element[] = "{,}";
+  const char one_element[] = "{\"a\" : true,}";
+  const char few_element[] = "{\"a\" : true, \"b\" : false,}";
+
+  struct json_value_s* value = 0;
+
+  // negative test, should fail!
+  value = json_parse(no_element, strlen(no_element));
+  if (0 != value) {
+    return 1;
+  }
+
+  // negative test, should fail!
+  value = json_parse(one_element, strlen(one_element));
+  if (0 != value) {
+    return 2;
+  }
+
+  // negative test, should fail!
+  value = json_parse(few_element, strlen(few_element));
+  if (0 != value) {
+    return 3;
+  }
+
+  // negative test, should fail? At present an empty array/object, with a comma,
+  // is considered bad chi. Is this a special case we should allow or not?
+  value = json_parse_ex(no_element, strlen(no_element),
+    json_parse_flags_allow_trailing_comma, 0);
+  if (0 != value) {
+    return 4;
+  }
+
+  // negative test, should fail!
+  value = json_parse_ex(one_element, strlen(one_element),
+    json_parse_flags_allow_trailing_comma, 0);
+  if (0 == value) {
+    return 5;
+  }
+  free(value);
+
+  // negative test, should fail!
+  value = json_parse_ex(few_element, strlen(few_element),
+    json_parse_flags_allow_trailing_comma, 0);
+  if (0 == value) {
+    return 6;
+  }
+  free(value);
+
+  return 0;
+}
+
+int test_trailing_commas_in_array() {
+  const char no_element[] = "[,]";
+  const char one_element[] = "[true,]";
+  const char few_element[] = "[true, false,]";
+
+  struct json_value_s* value = 0;
+
+  // negative test, should fail!
+  value = json_parse(no_element, strlen(no_element));
+  if (0 != value) {
+    return 1;
+  }
+
+  // negative test, should fail!
+  value = json_parse(one_element, strlen(one_element));
+  if (0 != value) {
+    return 2;
+  }
+
+  // negative test, should fail!
+  value = json_parse(few_element, strlen(few_element));
+  if (0 != value) {
+    return 3;
+  }
+
+  // negative test, should fail? At present an empty array/object, with a comma,
+  // is considered bad chi. Is this a special case we should allow or not?
+  value = json_parse_ex(no_element, strlen(no_element),
+    json_parse_flags_allow_trailing_comma, 0);
+  if (0 != value) {
+    return 4;
+  }
+
+  // negative test, should fail!
+  value = json_parse_ex(one_element, strlen(one_element),
+    json_parse_flags_allow_trailing_comma, 0);
+  if (0 == value) {
+    return 5;
+  }
+  free(value);
+
+  // negative test, should fail!
+  value = json_parse_ex(few_element, strlen(few_element),
+    json_parse_flags_allow_trailing_comma, 0);
+  if (0 == value) {
+    return 6;
+  }
+  free(value);
+
+  return 0;
+}
+
 int main() {
   const int error_addition = 20;
   int result = test_empty();
@@ -380,6 +485,18 @@ int main() {
 
   if (0 != result) {
     return (4 * error_addition) + result;
+  }
+
+  result = test_trailing_commas_in_object();
+
+  if (0 != result) {
+    return (5 * error_addition) + result;
+  }
+
+  result = test_trailing_commas_in_array();
+
+  if (0 != result) {
+    return (6 * error_addition) + result;
   }
 
   return 0;
