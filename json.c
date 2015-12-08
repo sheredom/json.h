@@ -265,9 +265,17 @@ static int json_get_object_size(struct json_parse_state_s *state,
       return 1;
     }
 
-    if (':' != state->src[state->offset]) {
-      state->error = json_parse_error_expected_colon;
-      return 1;
+    if (json_parse_flag_allow_equals_in_object & state->flags_bitset) {
+      if ((':' != state->src[state->offset]) &&
+        ('=' != state->src[state->offset])) {
+        state->error = json_parse_error_expected_colon;
+        return 1;
+      }
+    } else {
+      if (':' != state->src[state->offset]) {
+        state->error = json_parse_error_expected_colon;
+        return 1;
+      }
     }
 
     // skip colon
@@ -658,9 +666,15 @@ static int json_parse_object(struct json_parse_state_s *state,
       return 1;
     }
 
-    if (':' != state->src[state->offset]) {
-      // colon seperating name/value pair was missing!
-      return 1;
+    if (json_parse_flag_allow_equals_in_object & state->flags_bitset) {
+      if ((':' != state->src[state->offset]) &&
+        ('=' != state->src[state->offset])) {
+        return 1;
+      }
+    } else {
+      if (':' != state->src[state->offset]) {
+        return 1;
+      }
     }
 
     // skip colon
