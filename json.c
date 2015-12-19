@@ -560,10 +560,10 @@ static int json_parse_key(struct json_parse_state_s *state,
       }
 
       // add null terminator to string
-      state->data[size++] = '\0';
+      state->data[size] = '\0';
 
       // record the size of the string
-      string->string_size = size;
+      string->string_size = size++;
 
       // move data along
       state->data += size;
