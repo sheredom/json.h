@@ -58,24 +58,24 @@ enum json_parse_flags_e {
 
   // allow a global unbracketed object. For example, a : null, b : true, c : {}
   // would be allowed with this option on.
-  json_parse_flag_allow_global_object = 0x4,
+  json_parse_flags_allow_global_object = 0x4,
 
   // allow objects to use '=' instead of ':' between key/value pairs. For
   // example, a = null, b : true would be allowed with this option on.
-  json_parse_flag_allow_equals_in_object = 0x8,
+  json_parse_flags_allow_equals_in_object = 0x8,
 
   // allow that objects don't have to have comma separators between key/value
   // pairs.
-  json_parse_flag_allow_no_commas = 0x10,
+  json_parse_flags_allow_no_commas = 0x10,
 
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
-  json_parse_flag_allow_simplified_json =
+  json_parse_flags_allow_simplified_json =
       (json_parse_flags_allow_trailing_comma |
        json_parse_flags_allow_unquoted_keys |
-       json_parse_flag_allow_global_object |
-       json_parse_flag_allow_equals_in_object |
-       json_parse_flag_allow_no_commas)
+       json_parse_flags_allow_global_object |
+       json_parse_flags_allow_equals_in_object |
+       json_parse_flags_allow_no_commas)
 };
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
