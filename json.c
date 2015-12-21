@@ -239,7 +239,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
         // skip comma
         state->offset++;
         allow_comma = 0;
-      } else if (!(json_parse_flag_allow_no_commas & state->flags_bitset)) {
+      } else if (!(json_parse_flags_allow_no_commas & state->flags_bitset)) {
         // if we are required to have a comma, and we found none, bail out!
         state->error = json_parse_error_expected_comma;
         return 1;
@@ -266,7 +266,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
       return 1;
     }
 
-    if (json_parse_flag_allow_equals_in_object & state->flags_bitset) {
+    if (json_parse_flags_allow_equals_in_object & state->flags_bitset) {
       if ((':' != state->src[state->offset]) &&
         ('=' != state->src[state->offset])) {
         state->error = json_parse_error_expected_colon;
@@ -339,7 +339,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
         // skip comma
         state->offset++;
         allow_comma = 0;
-      } else if (!(json_parse_flag_allow_no_commas & state->flags_bitset)) {
+      } else if (!(json_parse_flags_allow_no_commas & state->flags_bitset)) {
         state->error = json_parse_error_expected_comma;
         return 1;
       }
@@ -666,7 +666,7 @@ static int json_parse_object(struct json_parse_state_s *state,
       return 1;
     }
 
-    if (json_parse_flag_allow_equals_in_object & state->flags_bitset) {
+    if (json_parse_flags_allow_equals_in_object & state->flags_bitset) {
       if ((':' != state->src[state->offset]) &&
         ('=' != state->src[state->offset])) {
         return 1;
@@ -949,7 +949,7 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   if (0 == src) {
     // invalid src pointer was null!
     return 0;
-  } else if (!(json_parse_flag_allow_global_object & flags_bitset) && src_size < 2) {
+  } else if (!(json_parse_flags_allow_global_object & flags_bitset) && src_size < 2) {
     // absolute minimum valid json is either "{}" or "[]"
     return 0;
   }
@@ -966,7 +966,7 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
 
   if (json_get_value_size(
           &state, /* is_global_object = */ (
-              json_parse_flag_allow_global_object & state.flags_bitset))) {
+              json_parse_flags_allow_global_object & state.flags_bitset))) {
     // parsing value's size failed (most likely an invalid JSON DOM!)
     if (result) {
       result->error = state.error;
@@ -997,7 +997,7 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
 
   if (json_parse_value(
           &state, /* is_global_object = */ (
-              json_parse_flag_allow_global_object & state.flags_bitset),
+              json_parse_flags_allow_global_object & state.flags_bitset),
           (struct json_value_s *)allocation)) {
     // really bad chi here
     free(allocation);
