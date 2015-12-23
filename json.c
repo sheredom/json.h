@@ -1230,26 +1230,33 @@ static int json_write_pretty_get_array_size(const struct json_array_s *array,
   struct json_array_element_s *element;
 
   *size += 1;            // '['
-  *size += newline_size; // need a newline next
 
-  if (1 < array->length) {
-    *size += (array->length - 1); // ','s seperate each element
-  }
-
-  for (element = array->start; 0 != element; element = element->next) {
-    // each element gets an indent and newline
-    *size += (depth + 1) * indent_size;
+  if (0 < array->length) {
+    // if we have any elements we need to add a newline after our '['
     *size += newline_size;
-    if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size,
-                                         newline_size, size)) {
-      // value was malformed!
-      return 1;
+
+    *size += array->length - 1; // ','s seperate each element
+
+    for (element = array->start; 0 != element; element = element->next) {
+      // each element gets an indent
+      *size += (depth + 1) * indent_size;
+
+      if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size,
+                                           newline_size, size)) {
+        // value was malformed!
+        return 1;
+      }
+
+      // each element gets a newline too
+      *size += newline_size;
     }
+
+    // since we wrote out some elements, need to add a newline and indentation
+    // to the trailing ']'
+    *size += depth * indent_size;
   }
 
-  *size += depth * indent_size;
   *size += 1;            // ']'
-  *size += newline_size; // need a newline next
 
   return 0;
 }
@@ -1260,38 +1267,40 @@ static int json_write_pretty_get_object_size(const struct json_object_s *object,
                                              size_t *size) {
   struct json_object_element_s *element;
 
-  *size += 1;            // '{'
-  *size += newline_size; // need a newline next
+  *size += 1; // '{'
 
-  if (1 < object->length) {
-    *size += object->length - 1; // ','s seperate each element
-  }
-
-  for (element = object->start; 0 != element; element = element->next) {
-    // each element gets an indent and newline
-    *size += (depth + 1) * indent_size;
-    *size += newline_size;
-
-    if (json_write_pretty_get_string_size(element->name, size)) {
-      // string was malformed!
-      return 1;
-    }
-
-    *size += 3; // seperate each name/value pair with " : "
-
-    if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size,
-                                         newline_size, size)) {
-      // value was malformed!
-      return 1;
-    }
-  }
-
-  *size += depth * indent_size;
-  *size += 1; // '}'
-
-  if (0 != depth) {
+  if (0 < object->length) {
     *size += newline_size; // need a newline next
+
+    *size += object->length - 1; // ','s seperate each element
+
+    for (element = object->start; 0 != element; element = element->next) {
+      // each element gets an indent and newline
+      *size += (depth + 1) * indent_size;
+      *size += newline_size;
+
+      if (json_write_pretty_get_string_size(element->name, size)) {
+        // string was malformed!
+        return 1;
+      }
+
+      *size += 3; // seperate each name/value pair with " : "
+
+      if (json_write_pretty_get_value_size(element->value, depth + 1, indent_size,
+                                           newline_size, size)) {
+        // value was malformed!
+        return 1;
+      }
+    }
+
+    *size += depth * indent_size;
+
+    if (0 != depth) {
+      *size += newline_size; // need a newline next
+    }
   }
+
+  *size += 1; // '}'
 
   return 0;
 }
@@ -1367,41 +1376,43 @@ static char *json_write_pretty_array(const struct json_array_s *array,
 
   *data++ = '['; // open the array
 
-  for (k = 0; '\0' != newline[k]; k++) {
-    *data++ = newline[k];
-  }
+  if (0 < array->length) {
+    for (k = 0; '\0' != newline[k]; k++) {
+      *data++ = newline[k];
+    }
 
-  for (element = array->start; 0 != element; element = element->next) {
-    if (element != array->start) {
-      *data++ = ','; // ','s seperate each element
+    for (element = array->start; 0 != element; element = element->next) {
+      if (element != array->start) {
+        *data++ = ','; // ','s seperate each element
 
-      for (k = 0; '\0' != newline[k]; k++) {
-        *data++ = newline[k];
+        for (k = 0; '\0' != newline[k]; k++) {
+          *data++ = newline[k];
+        }
+      }
+
+      for (k = 0; k < depth + 1; k++) {
+        for (m = 0; '\0' != indent[m]; m++) {
+          *data++ = indent[m];
+        }
+      }
+
+      data = json_write_pretty_value(element->value, depth + 1, indent, newline,
+                                     data);
+
+      if (0 == data) {
+        // value was malformed!
+        return 0;
       }
     }
 
-    for (k = 0; k < depth + 1; k++) {
+    for (k = 0; '\0' != newline[k]; k++) {
+      *data++ = newline[k];
+    }
+
+    for (k = 0; k < depth; k++) {
       for (m = 0; '\0' != indent[m]; m++) {
         *data++ = indent[m];
       }
-    }
-
-    data = json_write_pretty_value(element->value, depth + 1, indent, newline,
-                                   data);
-
-    if (0 == data) {
-      // value was malformed!
-      return 0;
-    }
-  }
-
-  for (k = 0; '\0' != newline[k]; k++) {
-    *data++ = newline[k];
-  }
-
-  for (k = 0; k < depth; k++) {
-    for (m = 0; '\0' != indent[m]; m++) {
-      *data++ = indent[m];
     }
   }
 
@@ -1418,53 +1429,55 @@ static char *json_write_pretty_object(const struct json_object_s *object,
 
   *data++ = '{'; // open the object
 
-  for (k = 0; '\0' != newline[k]; k++) {
-    *data++ = newline[k];
-  }
+  if (0 < object->length) {
+    for (k = 0; '\0' != newline[k]; k++) {
+      *data++ = newline[k];
+    }
 
-  for (element = object->start; 0 != element; element = element->next) {
-    if (element != object->start) {
-      *data++ = ','; // ','s seperate each element
+    for (element = object->start; 0 != element; element = element->next) {
+      if (element != object->start) {
+        *data++ = ','; // ','s seperate each element
 
-      for (k = 0; '\0' != newline[k]; k++) {
-        *data++ = newline[k];
+        for (k = 0; '\0' != newline[k]; k++) {
+          *data++ = newline[k];
+        }
+      }
+
+      for (k = 0; k < depth + 1; k++) {
+        for (m = 0; '\0' != indent[m]; m++) {
+          *data++ = indent[m];
+        }
+      }
+
+      data = json_write_pretty_string(element->name, data);
+
+      if (0 == data) {
+        // string was malformed!
+        return 0;
+      }
+
+      // " : "s seperate each name/value pair
+      *data++ = ' ';
+      *data++ = ':';
+      *data++ = ' ';
+
+      data = json_write_pretty_value(element->value, depth + 1, indent, newline,
+                                     data);
+
+      if (0 == data) {
+        // value was malformed!
+        return 0;
       }
     }
 
-    for (k = 0; k < depth + 1; k++) {
+    for (k = 0; '\0' != newline[k]; k++) {
+      *data++ = newline[k];
+    }
+
+    for (k = 0; k < depth; k++) {
       for (m = 0; '\0' != indent[m]; m++) {
         *data++ = indent[m];
       }
-    }
-
-    data = json_write_pretty_string(element->name, data);
-
-    if (0 == data) {
-      // string was malformed!
-      return 0;
-    }
-
-    // " : "s seperate each name/value pair
-    *data++ = ' ';
-    *data++ = ':';
-    *data++ = ' ';
-
-    data = json_write_pretty_value(element->value, depth + 1, indent, newline,
-                                   data);
-
-    if (0 == data) {
-      // value was malformed!
-      return 0;
-    }
-  }
-
-  for (k = 0; '\0' != newline[k]; k++) {
-    *data++ = newline[k];
-  }
-
-  for (k = 0; k < depth; k++) {
-    for (m = 0; '\0' != indent[m]; m++) {
-      *data++ = indent[m];
     }
   }
 
