@@ -40,6 +40,7 @@ add_executable(json_test
   test.c
   test.cpp
   write_minified.cpp
+  write_pretty.cpp
 )
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
