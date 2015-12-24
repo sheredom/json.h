@@ -1059,7 +1059,7 @@ static char *json_write_minified_string(const struct json_string_s *string,
   *data++ = '"'; // open the string
 
   for (i = 0; i < string->string_size; i++) {
-    *data++ = ((char *)string->string)[i];
+    *data++ = string->string[i];
   }
 
   *data++ = '"'; // close the string
@@ -1360,7 +1360,7 @@ static char *json_write_pretty_string(const struct json_string_s *string,
   *data++ = '"'; // open the string
 
   for (i = 0; i < string->string_size; i++) {
-    *data++ = ((char *)string->string)[i];
+    *data++ = string->string[i];
   }
 
   *data++ = '"'; // close the string
