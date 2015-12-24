@@ -22,14 +22,12 @@ The json_parse function calls malloc once, and then slices up this single
 allocation to support all the weird and wonderful JSON structures you can
 imagine!
 
-The structure of the data is always the json structs first (which encode the
+The structure of the data is always the JSON structs first (which encode the
 structure of the original JSON), followed by the data.
 
 ## Todo ##
 
-- Add debug output to specify why either the parser or printer failed (as suggested by [@hugin84](https://twitter.com/hugin84) in https://twitter.com/hugin84/status/668506811595677696)
-- Add [Simplified JSON](http://bitsquid.blogspot.fr/2009/10/simplified-json-notation.html) support (as suggested by [@dougbinks](https://twitter.com/dougbinks) in https://twitter.com/dougbinks/status/633567020177575936)
-- Compare performance with [sajson](http://t.co/tIRNZUQimR) (as suggested by [@antumbral](https://twitter.com/antumbral) in https://twitter.com/antumbral/status/633567121134370816)
+- Add debug output to specify why the printer failed (as suggested by [@hugin84](https://twitter.com/hugin84) in https://twitter.com/hugin84/status/668506811595677696)
 
 ## License ##
 
