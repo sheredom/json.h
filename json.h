@@ -125,7 +125,7 @@ enum json_type_e {
 // A JSON string value
 struct json_string_s {
   // utf-8 string
-  void *string;
+  const char *string;
   // the size (in bytes) of the string
   size_t string_size;
 };
@@ -133,7 +133,7 @@ struct json_string_s {
 // a JSON number value
 struct json_number_s {
   // ASCII string containing representation of the number
-  char *number;
+  const char *number;
   // the size (in bytes) of the number
   size_t number_size;
 };
