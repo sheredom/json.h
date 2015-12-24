@@ -87,6 +87,96 @@ static int json_skip_whitespace(struct json_parse_state_s *state) {
   return 1;
 }
 
+static int json_skip_c_style_comments(struct json_parse_state_s *state) {
+  // do we have a comment?
+  if ('/' == state->src[state->offset]) {
+    // skip '/'
+    state->offset++;
+
+    if ('/' == state->src[state->offset]) {
+      // we had a comment in the form //
+
+      // skip second '/'
+      state->offset++;
+
+      while (state->offset < state->size) {
+        switch (state->src[state->offset]) {
+        default:
+          // skip the character in the comment
+          state->offset++;
+          break;
+        case '\n':
+          // if we have a newline, our comment has ended! Skip the newline
+          state->offset++;
+
+          // we entered a newline, so move our line info forward
+          state->line_no++;
+          state->line_offset = state->offset;
+          return 0;
+        }
+      }
+
+      // we reached the end of the JSON file!
+      return 0;
+    } else if ('*' == state->src[state->offset]) {
+      // we had a comment in the form /* */
+
+      // skip '*'
+      state->offset++;
+
+      while (state->offset + 1 < state->size) {
+        if (('*' == state->src[state->offset]) &&
+          ('/' == state->src[state->offset + 1])) {
+          // we reached the end of our comment!
+          state->offset += 2;
+          return 0;
+        } else if ('\n' == state->src[state->offset]) {
+          // we entered a newline, so move our line info forward
+          state->line_no++;
+          state->line_offset = state->offset;
+        }
+
+        // skip character within comment
+        state->offset++;
+      }
+
+      // a comment like /* has to end with a */. We reached the end of the file
+      // which is a failure!
+      return 1;
+    }
+  }
+
+  // we didn't have any comment, which is ok too!
+  return 0;
+}
+
+static int json_skip_all_skippables(struct json_parse_state_s *state) {
+  // skip all whitespace first
+  int result = json_skip_whitespace(state);
+  if (result) {
+    state->error = json_parse_error_premature_end_of_buffer;
+    return result;
+  }
+
+  // are we allowed to parse c style comments?
+  if (json_parse_flags_allow_c_style_comments & state->flags_bitset) {
+    // then skip all c style comments
+    result = json_skip_c_style_comments(state);
+
+    if (result) {
+      state->error = json_parse_error_premature_end_of_buffer;
+      return result;
+    }
+
+    // and skip any whitespace that happened after the comment. We don't check
+    // this skip whitespace because it could be the case that the c-style
+    // comment was at the end of the file which is totally ok!
+    json_skip_whitespace(state);
+  }
+
+  return 0;
+}
+
 static int json_get_value_size(struct json_parse_state_s *state,
                                int is_global_object);
 
@@ -214,7 +304,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
   while (state->offset < state->size) {
 
     if (!is_global_object) {
-      if (json_skip_whitespace(state)) {
+      if (json_skip_all_skippables(state)) {
         state->error = json_parse_error_premature_end_of_buffer;
         return 1;
       }
@@ -228,7 +318,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
     } else {
       // we don't require brackets, so that means the object ends when the input
       // stream ends!
-      if (json_skip_whitespace(state)) {
+      if (json_skip_all_skippables(state)) {
         break;
       }
     }
@@ -248,7 +338,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
       if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
         continue;
       } else {
-        if (json_skip_whitespace(state)) {
+        if (json_skip_all_skippables(state)) {
           state->error = json_parse_error_premature_end_of_buffer;
           return 1;
         }
@@ -261,7 +351,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
       return 1;
     }
 
-    if (json_skip_whitespace(state)) {
+    if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
@@ -282,7 +372,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
     // skip colon
     state->offset++;
 
-    if (json_skip_whitespace(state)) {
+    if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
@@ -320,7 +410,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
   state->dom_size += sizeof(struct json_array_s);
 
   while (state->offset < state->size) {
-    if (json_skip_whitespace(state)) {
+    if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
@@ -347,7 +437,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
         continue;
       } else {
-        if (json_skip_whitespace(state)) {
+        if (json_skip_all_skippables(state)) {
           state->error = json_parse_error_premature_end_of_buffer;
           return 1;
         }
@@ -447,7 +537,7 @@ static int json_get_value_size(struct json_parse_state_s *state,
   } else {
     state->dom_size += sizeof(struct json_value_s);
 
-    if (json_skip_whitespace(state)) {
+    if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
@@ -580,7 +670,7 @@ static void json_parse_object(struct json_parse_state_s *state,
     state->offset++;
   }
 
-  (void)json_skip_whitespace(state);
+  (void)json_skip_all_skippables(state);
 
   // reset elements
   elements = 0;
@@ -591,7 +681,7 @@ static void json_parse_object(struct json_parse_state_s *state,
     struct json_value_s *value = 0;
 
     if (!is_global_object) {
-      (void)json_skip_whitespace(state);
+      (void)json_skip_all_skippables(state);
 
       if ('}' == state->src[state->offset]) {
         // skip trailing '}'
@@ -601,7 +691,7 @@ static void json_parse_object(struct json_parse_state_s *state,
         break;
       }
     } else {
-      if (json_skip_whitespace(state)) {
+      if (json_skip_all_skippables(state)) {
         // global object ends when the file ends!
         break;
       }
@@ -638,12 +728,12 @@ static void json_parse_object(struct json_parse_state_s *state,
 
     (void)json_parse_key(state, string);
 
-    (void)json_skip_whitespace(state);
+    (void)json_skip_all_skippables(state);
 
     // skip colon or equals
     state->offset++;
 
-    (void)json_skip_whitespace(state);
+    (void)json_skip_all_skippables(state);
 
     value = (struct json_value_s *)state->dom;
 
@@ -679,7 +769,7 @@ static void json_parse_array(struct json_parse_state_s *state,
   // skip leading '['
   state->offset++;
 
-  (void)json_skip_whitespace(state);
+  (void)json_skip_all_skippables(state);
 
   // reset elements
   elements = 0;
@@ -688,7 +778,7 @@ static void json_parse_array(struct json_parse_state_s *state,
     struct json_array_element_s *element = 0;
     struct json_value_s *value = 0;
 
-    (void)json_skip_whitespace(state);
+    (void)json_skip_all_skippables(state);
 
     if (']' == state->src[state->offset]) {
       // skip trailing ']'
@@ -796,7 +886,7 @@ static void json_parse_value(struct json_parse_state_s *state,
     state->dom += sizeof(struct json_object_s);
     json_parse_object(state, /* is_global_object = */ 1, value->payload);
   } else {
-    (void)json_skip_whitespace(state);
+    (void)json_skip_all_skippables(state);
 
     switch (state->src[state->offset]) {
     case '"':
