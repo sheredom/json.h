@@ -181,7 +181,7 @@ static int json_get_value_size(struct json_parse_state_s *state,
                                int is_global_object);
 
 static int json_get_string_size(struct json_parse_state_s *state) {
-  const size_t initial_offset = state->offset;
+  size_t data_size = 0;
 
   state->dom_size += sizeof(struct json_string_s);
 
@@ -194,6 +194,9 @@ static int json_get_string_size(struct json_parse_state_s *state) {
   state->offset++;
 
   while (state->offset < state->size && '"' != state->src[state->offset]) {
+    // add space for the character
+    data_size++;
+
     if ('\\' == state->src[state->offset]) {
       // skip reverse solidus character
       state->offset++;
@@ -217,6 +220,12 @@ static int json_get_string_size(struct json_parse_state_s *state) {
       case 't':
         // all valid characters!
         state->offset++;
+
+        // if we have to preserve reverse solidus...
+        if (!(json_parse_flags_allow_string_simplification & state->flags_bitset)) {
+          // ... allocate enough space for it
+          data_size++;
+        }
         break;
       case 'u':
         if (state->offset + 5 < state->size) {
@@ -234,6 +243,9 @@ static int json_get_string_size(struct json_parse_state_s *state) {
 
         // valid sequence!
         state->offset += 5;
+
+        // add space for the 5 character sequence too
+        data_size += 5;
         break;
       }
     } else {
@@ -245,10 +257,11 @@ static int json_get_string_size(struct json_parse_state_s *state) {
   // skip trailing '"'
   state->offset++;
 
+  // add enough space to store the string
+  state->data_size += data_size;
+
   // one more byte for null terminator ending the string!
   state->data_size++;
-
-  state->data_size += state->offset - initial_offset;
 
   return 0;
 }
@@ -607,10 +620,50 @@ static void json_parse_string(struct json_parse_state_s *state,
 
   while (state->offset < state->size && '"' != state->src[state->offset]) {
     if ('\\' == state->src[state->offset]) {
-      // copy reverse solidus character
+      // can we simplify the string and skip outputting two characters?
+      if (json_parse_flags_allow_string_simplification & state->flags_bitset) {
+        // skip the reverse solidus
+        state->offset++;
+
+        switch (state->src[state->offset++]) {
+        default:
+          return; // we cannot every reach here
+        case '"':
+          state->data[size++] = '"';
+          break;
+        case '\\':
+          state->data[size++] = '\\';
+          break;
+        case '/':
+          state->data[size++] = '/';
+          break;
+        case 'b':
+          state->data[size++] = '\b';
+          break;
+        case 'f':
+          state->data[size++] = '\f';
+          break;
+        case 'n':
+          state->data[size++] = '\n';
+          break;
+        case 'r':
+          state->data[size++] = '\r';
+          break;
+        case 't':
+          state->data[size++] = '\t';
+          break;
+        }
+      } else {
+        // otherwise copy reverse solidus character
+        state->data[size++] = state->src[state->offset++];
+
+        // copy the escaped character
+        state->data[size++] = state->src[state->offset++];
+      }
+    } else {
+      // copy the character
       state->data[size++] = state->src[state->offset++];
     }
-    state->data[size++] = state->src[state->offset++];
   }
 
   // skip trailing '"'
