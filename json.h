@@ -71,6 +71,9 @@ enum json_parse_flags_e {
   // allow c-style comments (// or /* */) to be ignored in the input JSON file.
   json_parse_flags_allow_c_style_comments = 0x20,
 
+  // allow JSON parsing to optimize incoming strings where appropriate.
+  json_parse_flags_allow_string_simplification = 0x40,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
