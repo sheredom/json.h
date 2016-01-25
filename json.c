@@ -315,7 +315,6 @@ static int json_get_object_size(struct json_parse_state_s *state,
   state->dom_size += sizeof(struct json_object_s);
 
   while (state->offset < state->size) {
-
     if (!is_global_object) {
       if (json_skip_all_skippables(state)) {
         state->error = json_parse_error_premature_end_of_buffer;
@@ -342,8 +341,11 @@ static int json_get_object_size(struct json_parse_state_s *state,
         // skip comma
         state->offset++;
         allow_comma = 0;
-      } else if (!(json_parse_flags_allow_no_commas & state->flags_bitset)) {
-        // if we are required to have a comma, and we found none, bail out!
+      } else if (json_parse_flags_allow_no_commas & state->flags_bitset) {
+        // we don't require a comma, and we didn't find one, which is ok!
+        allow_comma = 0;
+      } else {
+        // otherwise we are required to have a comma, and we found none
         state->error = json_parse_error_expected_comma;
         return 1;
       }
