@@ -96,6 +96,7 @@ struct json_value_s *json_parse(const void *src, size_t src_size);
 // error, and the location in the input it occurred.
 struct json_value_s *json_parse_ex(const void *src, size_t src_size,
                                    size_t flags_bitset,
+                                   void*(*alloc_func_ptr)(size_t size),
                                    struct json_parse_result_s *result);
 
 // Write out a minified JSON utf-8 string. This string is an encoding of the
@@ -217,6 +218,9 @@ enum json_parse_error_e {
 
   // string was malformed!
   json_parse_error_invalid_string,
+
+  // a call to malloc, or a user provider allocator, failed
+  json_parse_error_allocator_failed,
 
   // catch-all error for everything else that exploded (real bad chi!)
   json_parse_error_unknown

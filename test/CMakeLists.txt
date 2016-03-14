@@ -31,6 +31,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 add_executable(json_test
   ../json.h
   ../json.c
+  allocator.cpp
   allow_c_style_comments.cpp
   allow_equals_in_object.c
   allow_global_object.c
