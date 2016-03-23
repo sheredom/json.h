@@ -30,7 +30,7 @@
 TESTCASE(allow_global_object, empty) {
   const char payload[] = "";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
 
   ASSERT_TRUE(value);
@@ -48,7 +48,7 @@ TESTCASE(allow_global_object, empty) {
 TESTCASE(allow_global_object, string) {
   const char payload[] = "\"foo\" : \"Heyo, gaia?\"";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
   struct json_string_s *string = 0;
@@ -90,7 +90,7 @@ TESTCASE(allow_global_object, string) {
 TESTCASE(allow_global_object, number) {
   const char payload[] = "\"foo\" : -0.123e-42";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
   struct json_number_s *number = 0;
@@ -132,7 +132,7 @@ TESTCASE(allow_global_object, number) {
 TESTCASE(allow_global_object, object) {
   const char payload[] = "\"foo\" : {}";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
   struct json_object_s *object2 = 0;
@@ -172,7 +172,7 @@ TESTCASE(allow_global_object, object) {
 TESTCASE(allow_global_object, array) {
   const char payload[] = "\"foo\" : []";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
   struct json_array_s *array = 0;
@@ -212,7 +212,7 @@ TESTCASE(allow_global_object, array) {
 TESTCASE(allow_global_object, true) {
   const char payload[] = "\"foo\" : true";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
 
@@ -246,7 +246,7 @@ TESTCASE(allow_global_object, true) {
 TESTCASE(allow_global_object, false) {
   const char payload[] = "\"foo\" : false";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
 
@@ -280,7 +280,7 @@ TESTCASE(allow_global_object, false) {
 TESTCASE(allow_global_object, null) {
   const char payload[] = "\"foo\" : null";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
 
@@ -314,7 +314,7 @@ TESTCASE(allow_global_object, null) {
 TESTCASE(allow_global_object, not_a_global_object_afterall) {
   const char payload[] = "{}";
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object, 0);
+      payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0);
   struct json_object_s *object = 0;
 
   ASSERT_TRUE(value);
