@@ -31,13 +31,13 @@
 
 TESTCASE(allocator, malloc) {
   struct _ {
-    static void* alloc(size_t size) {
+    static void* alloc(void*, size_t size) {
       return malloc(size);
     }
   };
 
   const char payload[] = "{}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, 0, 0);
   struct json_object_s* object = 0;
 
   ASSERT_TRUE(value);
@@ -53,14 +53,14 @@ TESTCASE(allocator, malloc) {
 
 TESTCASE(allocator, static_data) {
   struct _ {
-    static void* alloc(size_t size) {
+    static void* alloc(void*, size_t size) {
       static char data[256];
       return data;
     }
   };
 
   const char payload[] = "{}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, 0, 0);
   struct json_object_s* object = 0;
 
   ASSERT_TRUE(value);
@@ -74,14 +74,14 @@ TESTCASE(allocator, static_data) {
 
 TESTCASE(allocator, null) {
   struct _ {
-    static void* alloc(size_t size) {
+    static void* alloc(void*, size_t) {
       return 0;
     }
   };
 
   const char payload[] = "{}";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, &result);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, 0, &result);
   struct json_object_s* object = 0;
 
   ASSERT_FALSE(value);
@@ -90,4 +90,25 @@ TESTCASE(allocator, null) {
   ASSERT_EQ(0, result.error_offset);
   ASSERT_EQ(0, result.error_line_no);
   ASSERT_EQ(0, result.error_row_no);
+}
+
+TESTCASE(allocator, user_data) {
+  struct _ {
+    static void* alloc(void* user_data, size_t) {
+      return user_data;
+    }
+  };
+
+  char data[128];
+  const char payload[] = "{}";
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, &_::alloc, data, 0);
+  struct json_object_s* object = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_EQ(json_type_object, value->type);
+
+  object = (struct json_object_s* )value->payload;
+
+  ASSERT_FALSE(object->start);
+  ASSERT_EQ(0, object->length);
 }

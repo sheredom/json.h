@@ -30,7 +30,7 @@
 TESTCASE(allow_trailing_comma, object_no_element) {
   const char payload[] = "{,}";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, &result);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, &result);
 
   ASSERT_FALSE(value);
 
@@ -42,7 +42,7 @@ TESTCASE(allow_trailing_comma, object_no_element) {
 
 TESTCASE(allow_trailing_comma, object_one_element) {
   const char payload[] = "{\"foo\" : true, }";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_object_s* object = 0;
 
   ASSERT_TRUE(value);
@@ -69,7 +69,7 @@ TESTCASE(allow_trailing_comma, object_one_element) {
 
 TESTCASE(allow_trailing_comma, object_two_elements) {
   const char payload[] = "{\"foo\" : true, \"bar\" : false, }";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_object_s* object = 0;
   struct json_object_element_s* element = 0;
 
@@ -112,7 +112,7 @@ TESTCASE(allow_trailing_comma, object_two_elements) {
 TESTCASE(allow_trailing_comma, array_no_element) {
   const char payload[] = "[,]";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, &result);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, &result);
 
   ASSERT_FALSE(value);
 
@@ -124,7 +124,7 @@ TESTCASE(allow_trailing_comma, array_no_element) {
 
 TESTCASE(allow_trailing_comma, array_one_element) {
   const char payload[] = "[ true, ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_array_s* object = 0;
 
   ASSERT_TRUE(value);
@@ -146,7 +146,7 @@ TESTCASE(allow_trailing_comma, array_one_element) {
 
 TESTCASE(allow_trailing_comma, array_two_elements) {
   const char payload[] = "[ true, false, ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_array_s* object = 0;
   struct json_array_element_s* element = 0;
 
