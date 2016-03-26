@@ -29,7 +29,7 @@
 
 TESTCASE(allow_string_simplification, quotation) {
   const char payload[] = "[ \"\\\"\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -63,7 +63,7 @@ TESTCASE(allow_string_simplification, quotation) {
 
 TESTCASE(allow_string_simplification, reverse_solidus) {
   const char payload[] = "[ \"\\\\\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -97,7 +97,7 @@ TESTCASE(allow_string_simplification, reverse_solidus) {
 
 TESTCASE(allow_string_simplification, solidus) {
   const char payload[] = "[ \"\\/\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -131,7 +131,7 @@ TESTCASE(allow_string_simplification, solidus) {
 
 TESTCASE(allow_string_simplification, backspace) {
   const char payload[] = "[ \"\\b\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -165,7 +165,7 @@ TESTCASE(allow_string_simplification, backspace) {
 
 TESTCASE(allow_string_simplification, formfeed) {
   const char payload[] = "[ \"\\f\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -199,7 +199,7 @@ TESTCASE(allow_string_simplification, formfeed) {
 
 TESTCASE(allow_string_simplification, newline) {
   const char payload[] = "[ \"\\n\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -233,7 +233,7 @@ TESTCASE(allow_string_simplification, newline) {
 
 TESTCASE(allow_string_simplification, carriage_return) {
   const char payload[] = "[ \"\\r\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;
@@ -267,7 +267,7 @@ TESTCASE(allow_string_simplification, carriage_return) {
 
 TESTCASE(allow_string_simplification, horizontal_tab) {
   const char payload[] = "[ \"\\t\" ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_string_simplification, 0, 0, 0);
   struct json_array_s* array = 0;
   struct json_value_s* value2 = 0;
   struct json_string_s* string = 0;

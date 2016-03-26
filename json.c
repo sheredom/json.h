@@ -1028,20 +1028,18 @@ static void json_parse_value(struct json_parse_state_s *state,
 
 struct json_value_s *json_parse_ex(const void *src, size_t src_size,
                                    size_t flags_bitset,
-                                   void*(*alloc_func_ptr)(size_t size),
+                                   void*(*alloc_func_ptr)(void* user_data, size_t size),
+                                   void* user_data,
                                    struct json_parse_result_s *result) {
   struct json_parse_state_s state;
   void *allocation;
+  size_t total_size;
 
   if (result) {
     result->error = json_parse_error_none;
     result->error_offset = 0;
     result->error_line_no = 0;
     result->error_row_no = 0;
-  }
-
-  if (0 == alloc_func_ptr) {
-    alloc_func_ptr = malloc;
   }
 
   if (0 == src) {
@@ -1079,7 +1077,13 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   // our total allocation is the combination of the dom and data sizes (we
   // first encode the structure of the JSON, and then the data referenced by
   // the JSON values)
-  allocation = alloc_func_ptr(state.dom_size + state.data_size);
+  total_size = state.dom_size + state.data_size;
+
+  if (0 == alloc_func_ptr) {
+    allocation = malloc(total_size);
+  } else {
+    allocation = alloc_func_ptr(user_data, total_size);
+  }
 
   if (0 == allocation) {
     // malloc failed!
@@ -1110,7 +1114,7 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
 }
 
 struct json_value_s *json_parse(const void *src, size_t src_size) {
-  return json_parse_ex(src, src_size, json_parse_flags_default, NULL, NULL);
+  return json_parse_ex(src, src_size, json_parse_flags_default, 0, 0, 0);
 }
 
 static int json_write_minified_get_value_size(const struct json_value_s *value,

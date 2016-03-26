@@ -29,7 +29,7 @@
 
 TESTCASE(allow_unquoted_keys, one_key) {
   const char payload[] = "{foo : null}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
   struct json_object_s* object = 0;
   struct json_value_s* value2 = 0;
 
@@ -61,7 +61,7 @@ TESTCASE(allow_unquoted_keys, one_key) {
 
 TESTCASE(allow_unquoted_keys, mixed_keys) {
   const char payload[] = "{foo : true, \"heyo\" : false}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
   struct json_object_s* object = 0;
   struct json_object_element_s* element = 0;
   struct json_value_s* value2 = 0;
@@ -113,7 +113,7 @@ TESTCASE(allow_unquoted_keys, mixed_keys) {
 TESTCASE(allow_unquoted_keys, value_unquoted_fails) {
   const char payload[] = "{foo\n: heyo}";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, &result);
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, &result);
 
   ASSERT_FALSE(value);
 

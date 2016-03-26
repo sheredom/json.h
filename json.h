@@ -96,7 +96,8 @@ struct json_value_s *json_parse(const void *src, size_t src_size);
 // error, and the location in the input it occurred.
 struct json_value_s *json_parse_ex(const void *src, size_t src_size,
                                    size_t flags_bitset,
-                                   void*(*alloc_func_ptr)(size_t size),
+                                   void*(*alloc_func_ptr)(void *, size_t),
+                                   void *user_data,
                                    struct json_parse_result_s *result);
 
 // Write out a minified JSON utf-8 string. This string is an encoding of the
