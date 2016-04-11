@@ -493,6 +493,13 @@ static int json_get_number_size(struct json_parse_state_s *state) {
   if ((state->offset < state->size) && ('-' == state->src[state->offset])) {
     // skip valid leading '-'
     state->offset++;
+
+    if ((state->offset < state->size) && !('0' <= state->src[state->offset] &&
+                                          state->src[state->offset] <= '9')) {
+      // a leading '-' must be immediately followed by any digit!
+      state->error = json_parse_error_invalid_number_format;
+      return 1;
+    }
   }
 
   if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
@@ -501,7 +508,7 @@ static int json_get_number_size(struct json_parse_state_s *state) {
 
     if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
                                           state->src[state->offset] <= '9')) {
-      // a leading '0' must not be immediately followed by any digits!
+      // a leading '0' must not be immediately followed by any digit!
       state->error = json_parse_error_invalid_number_format;
       return 1;
     }
@@ -1044,10 +1051,6 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
 
   if (0 == src) {
     // invalid src pointer was null!
-    return 0;
-  } else if (!(json_parse_flags_allow_global_object & flags_bitset) &&
-             src_size < 2) {
-    // absolute minimum valid json is either "{}" or "[]"
     return 0;
   }
 

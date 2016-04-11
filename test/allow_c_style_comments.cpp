@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_c_style_comments, single_line) {
+UTEST(allow_c_style_comments, single_line) {
   const char payload[] = "// a \n { // b \n \"foo\" // c \n : // d \n null // e \n } // f";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_c_style_comments, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -59,7 +59,7 @@ TESTCASE(allow_c_style_comments, single_line) {
   free(value);
 }
 
-TESTCASE(allow_c_style_comments, multi_line) {
+UTEST(allow_c_style_comments, multi_line) {
   const char payload[] = "/* a */ { /* b */ \"foo\" /* c1 \n c2 */ : /* d */ null /* e1 \n e2 */ } /* f */";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_c_style_comments, 0, 0, 0);
   struct json_object_s* object = 0;
