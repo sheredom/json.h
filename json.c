@@ -920,13 +920,14 @@ static void json_parse_number(struct json_parse_state_s *state,
 
   number->number = state->data;
 
+  if ('-' == state->src[state->offset]) {
+    state->data[size++] = state->src[state->offset++];
+  }
+
   while (state->offset < state->size) {
     switch (state->src[state->offset]) {
     default:
-      // we've reached the end of all valid number characters!
-      goto json_parse_number_cleanup;
-    case '+':
-    case '-':
+      goto json_post_whole_number;
     case '0':
     case '1':
     case '2':
@@ -937,15 +938,66 @@ static void json_parse_number(struct json_parse_state_s *state,
     case '7':
     case '8':
     case '9':
-    case '.':
-    case 'e':
-    case 'E':
       state->data[size++] = state->src[state->offset++];
       break;
     }
   }
 
-json_parse_number_cleanup:
+json_post_whole_number:
+  if ('.' == state->src[state->offset]) {
+    state->data[size++] = state->src[state->offset++];
+
+    while (state->offset < state->size) {
+      switch (state->src[state->offset]) {
+      default:
+        goto json_post_decimal;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        state->data[size++] = state->src[state->offset++];
+        break;
+      }
+    }
+  }
+
+json_post_decimal:
+  if (('e' == state->src[state->offset]) ||
+    ('E' == state->src[state->offset])) {
+    state->data[size++] = state->src[state->offset++];
+
+    if (('+' == state->src[state->offset]) ||
+    ('-' == state->src[state->offset])) {
+      state->data[size++] = state->src[state->offset++];
+    }
+
+    while (state->offset < state->size) {
+      switch (state->src[state->offset]) {
+      default:
+        goto json_post_exponent;
+      case '0':
+      case '1':
+      case '2':
+      case '3':
+      case '4':
+      case '5':
+      case '6':
+      case '7':
+      case '8':
+      case '9':
+        state->data[size++] = state->src[state->offset++];
+        break;
+      }
+    }
+  }
+
+json_post_exponent:
   // record the size of the number
   number->number_size = size;
 
