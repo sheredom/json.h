@@ -40,6 +40,7 @@ add_executable(json_test
   allow_trailing_comma.cpp
   allow_unquoted_keys.c
   main.c
+  numbers.cpp
   test.c
   test.cpp
   write_minified.cpp
@@ -50,9 +51,17 @@ if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set_source_files_properties(../json.c test.c test.cpp PROPERTIES
     COMPILE_FLAGS "-Wall -Wextra -Werror"
   )
+
+  set_source_files_properties(numbers.cpp PROPERTIES
+    COMPILE_FLAGS "-std=c++11"
+  )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
   set_source_files_properties(../json.c test.c test.cpp PROPERTIES
     COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror"
+  )
+
+  set_source_files_properties(numbers.cpp PROPERTIES
+    COMPILE_FLAGS "-std=c++11"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
   set_source_files_properties(../json.c test.c test.cpp PROPERTIES

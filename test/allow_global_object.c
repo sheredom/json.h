@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_global_object, empty) {
+UTEST(allow_global_object, empty) {
   const char payload[] = "";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -45,7 +45,7 @@ TESTCASE(allow_global_object, empty) {
   free(value);
 }
 
-TESTCASE(allow_global_object, string) {
+UTEST(allow_global_object, string) {
   const char payload[] = "\"foo\" : \"Heyo, gaia?\"";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -87,7 +87,7 @@ TESTCASE(allow_global_object, string) {
   free(value);
 }
 
-TESTCASE(allow_global_object, number) {
+UTEST(allow_global_object, number) {
   const char payload[] = "\"foo\" : -0.123e-42";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -129,7 +129,7 @@ TESTCASE(allow_global_object, number) {
   free(value);
 }
 
-TESTCASE(allow_global_object, object) {
+UTEST(allow_global_object, object) {
   const char payload[] = "\"foo\" : {}";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -169,7 +169,7 @@ TESTCASE(allow_global_object, object) {
   free(value);
 }
 
-TESTCASE(allow_global_object, array) {
+UTEST(allow_global_object, array) {
   const char payload[] = "\"foo\" : []";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -209,7 +209,7 @@ TESTCASE(allow_global_object, array) {
   free(value);
 }
 
-TESTCASE(allow_global_object, true) {
+UTEST(allow_global_object, true) {
   const char payload[] = "\"foo\" : true";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -243,7 +243,7 @@ TESTCASE(allow_global_object, true) {
   free(value);
 }
 
-TESTCASE(allow_global_object, false) {
+UTEST(allow_global_object, false) {
   const char payload[] = "\"foo\" : false";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -277,7 +277,7 @@ TESTCASE(allow_global_object, false) {
   free(value);
 }
 
-TESTCASE(allow_global_object, null) {
+UTEST(allow_global_object, null) {
   const char payload[] = "\"foo\" : null";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);
@@ -311,7 +311,7 @@ TESTCASE(allow_global_object, null) {
   free(value);
 }
 
-TESTCASE(allow_global_object, not_a_global_object_afterall) {
+UTEST(allow_global_object, not_a_global_object_afterall) {
   const char payload[] = "{}";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_global_object, 0, 0, 0);

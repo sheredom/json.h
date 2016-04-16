@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_trailing_comma, object_no_element) {
+UTEST(allow_trailing_comma, object_no_element) {
   const char payload[] = "{,}";
   struct json_parse_result_s result;
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, &result);
@@ -40,7 +40,7 @@ TESTCASE(allow_trailing_comma, object_no_element) {
   ASSERT_EQ(1, result.error_row_no);
 }
 
-TESTCASE(allow_trailing_comma, object_one_element) {
+UTEST(allow_trailing_comma, object_one_element) {
   const char payload[] = "{\"foo\" : true, }";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -67,7 +67,7 @@ TESTCASE(allow_trailing_comma, object_one_element) {
   free(value);
 }
 
-TESTCASE(allow_trailing_comma, object_two_elements) {
+UTEST(allow_trailing_comma, object_two_elements) {
   const char payload[] = "{\"foo\" : true, \"bar\" : false, }";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -109,7 +109,7 @@ TESTCASE(allow_trailing_comma, object_two_elements) {
 }
 
 
-TESTCASE(allow_trailing_comma, array_no_element) {
+UTEST(allow_trailing_comma, array_no_element) {
   const char payload[] = "[,]";
   struct json_parse_result_s result;
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, &result);
@@ -122,7 +122,7 @@ TESTCASE(allow_trailing_comma, array_no_element) {
   ASSERT_EQ(1, result.error_row_no);
 }
 
-TESTCASE(allow_trailing_comma, array_one_element) {
+UTEST(allow_trailing_comma, array_one_element) {
   const char payload[] = "[ true, ]";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_array_s* object = 0;
@@ -144,7 +144,7 @@ TESTCASE(allow_trailing_comma, array_one_element) {
   free(value);
 }
 
-TESTCASE(allow_trailing_comma, array_two_elements) {
+UTEST(allow_trailing_comma, array_two_elements) {
   const char payload[] = "[ true, false, ]";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
   struct json_array_s* object = 0;
