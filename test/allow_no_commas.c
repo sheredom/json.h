@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_no_commas, one) {
+TESTCASE(allow_no_commas, object_one) {
   const char payload[] = "{\"foo\" : true \"bar\" : false}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -76,8 +76,7 @@ TESTCASE(allow_no_commas, one) {
   free(value);
 }
 
-
-TESTCASE(allow_no_commas, two) {
+TESTCASE(allow_no_commas, object_two) {
   const char payload[] = "{\"foo\" : \"yada\"\"bar\" : null}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -132,6 +131,41 @@ TESTCASE(allow_no_commas, two) {
 
   ASSERT_FALSE(value2->payload);
   ASSERT_EQ(json_type_null, value2->type);
+
+  free(value);
+}
+
+TESTCASE(allow_no_commas, array_one) {
+  const char payload[] = "[false true]";
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
+  struct json_array_s* array = 0;
+  struct json_array_element_s* element = 0;
+  struct json_value_s* value2 = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_array, value->type);
+
+  array = (struct json_array_s* )value->payload;
+
+  ASSERT_TRUE(array->start);
+  ASSERT_EQ(2, array->length);
+
+  element = array->start;
+
+  ASSERT_TRUE(element->value);
+  ASSERT_TRUE(element->next);
+
+  ASSERT_EQ(json_type_false, element->value->type);
+  ASSERT_FALSE(element->value->payload);
+
+  element = element->next;
+
+  ASSERT_TRUE(element->value);
+  ASSERT_FALSE(element->next);
+
+  ASSERT_EQ(json_type_true, element->value->type);
+  ASSERT_FALSE(element->value->payload);
 
   free(value);
 }

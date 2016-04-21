@@ -460,6 +460,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       }
 
       if (json_parse_flags_allow_trailing_comma & state->flags_bitset) {
+        allow_comma = 0;
         continue;
       } else {
         if (json_skip_all_skippables(state)) {
