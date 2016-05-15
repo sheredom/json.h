@@ -158,7 +158,7 @@ enum json_parse_flags_e {
 - `json_parse_flags_allow_no_commas` - allow that objects don't have to have comma separators between key/value pairs. For example, `{"a" : null "b" : true}` would be allowed with this option on.
 - `json_parse_flags_allow_c_style_comments` - allow c-style comments (// or /* */) to be ignored in the input JSON file.
 - `json_parse_flags_allow_string_simplification` - allow JSON parsing to optimize incoming strings where appropriate.
-- `json_parse_flags_allow_simplified_json` - allow simplified JSON to be parsed. Simplified JSON is an enabling of a set of other parsing options. [http://bitsquid.blogspot.com/2009/10/simplified-json-notation.html](See the Bitsquid blog introducing this here.)
+- `json_parse_flags_allow_simplified_json` - allow simplified JSON to be parsed. Simplified JSON is an enabling of a set of other parsing options. [See the Bitsquid blog introducing this here.](http://bitsquid.blogspot.com/2009/10/simplified-json-notation.html)
 
 ## Design ##
 
