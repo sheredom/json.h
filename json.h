@@ -152,15 +152,15 @@ struct json_object_element_s {
   struct json_string_s *name;
   // the value of this element
   struct json_value_s *value;
-  // the next array element (can be NULL if the last element in the object)
+  // the next object element (can be NULL if the last element in the object)
   struct json_object_element_s *next;
 };
 
 // a JSON object value
 struct json_object_s {
-  // a linked list of the elements in the array
+  // a linked list of the elements in the object
   struct json_object_element_s *start;
-  // the length of names and values (number of elements in the object)
+  // the number of elements in the object
   size_t length;
 };
 
