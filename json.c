@@ -48,8 +48,9 @@ struct json_parse_state_s {
   const char *src;
   size_t size;
   size_t offset;
-  size_t line_no;     // line counter for error reporting
-  size_t line_offset; // (offset-line_offset) is the character number (in bytes)
+  size_t line_no;       // line counter for error reporting
+  size_t line_offset;   // (offset-line_offset) is the character number (in bytes)
+  size_t *line_offsets; // points to a current item in the line offset buffer
   size_t error;
   char *dom;
   char *data;
@@ -63,6 +64,15 @@ static int json_is_hexadecimal_digit(const char c) {
           ('A' <= c && c <= 'F'));
 }
 
+static void json_new_line(struct json_parse_state_s *state, size_t offset) {
+  state->line_no++;
+  state->line_offset = offset;
+
+  if (state->line_offsets) {
+    *state->line_offsets++ = state->line_offset;
+  }
+}
+
 static int json_skip_whitespace(struct json_parse_state_s *state) {
   // the only valid whitespace according to ECMA-404 is ' ', '\n', '\r' and '\t'
   size_t offset = 0, size = 0;
@@ -73,8 +83,7 @@ static int json_skip_whitespace(struct json_parse_state_s *state) {
       state->offset = offset;
       return 0;
     case '\n':
-      state->line_no++;
-      state->line_offset = offset;
+      json_new_line(state, offset);
       break;
     case ' ':
     case '\r':
@@ -110,8 +119,8 @@ static int json_skip_c_style_comments(struct json_parse_state_s *state) {
           state->offset++;
 
           // we entered a newline, so move our line info forward
-          state->line_no++;
-          state->line_offset = state->offset;
+          json_new_line(state, state->offset);
+
           return 0;
         }
       }
@@ -132,8 +141,7 @@ static int json_skip_c_style_comments(struct json_parse_state_s *state) {
           return 0;
         } else if ('\n' == state->src[state->offset]) {
           // we entered a newline, so move our line info forward
-          state->line_no++;
-          state->line_offset = state->offset;
+          json_new_line(state, state->offset);
         }
 
         // skip character within comment
@@ -804,6 +812,7 @@ static void json_parse_object(struct json_parse_state_s *state,
     state->dom += sizeof(struct json_string_s);
 
     element->name = string;
+    element->offset = state->offset;
 
     (void)json_parse_key(state, string);
 
@@ -1013,6 +1022,8 @@ static void json_parse_value(struct json_parse_state_s *state,
                              int is_global_object, struct json_value_s *value) {
   (void)json_skip_all_skippables(state);
 
+  value->offset = state->offset;
+
   if (is_global_object) {
     value->type = json_type_object;
     value->payload = state->dom;
@@ -1100,6 +1111,8 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
     result->error_offset = 0;
     result->error_line_no = 0;
     result->error_row_no = 0;
+    result->line_offsets = NULL;
+    result->line_count = 0;
   }
 
   if (0 == src) {
@@ -1112,6 +1125,7 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   state.offset = 0;
   state.line_no = 1;
   state.line_offset = 0;
+  state.line_offsets = NULL;
   state.error = json_parse_error_none;
   state.dom_size = 0;
   state.data_size = 0;
@@ -1135,6 +1149,11 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   // the JSON values)
   total_size = state.dom_size + state.data_size;
 
+  // if requested also reserve space in the allocation for the line offset buffer.
+  if (json_parse_flags_save_line_offsets & state.flags_bitset) {
+    total_size += sizeof(size_t) * state.line_no;
+  }
+
   if (0 == alloc_func_ptr) {
     allocation = malloc(total_size);
   } else {
@@ -1153,11 +1172,23 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
     return 0;
   }
 
-  // reset offset so we can reuse it
+  // reset offsets so we can reuse it
   state.offset = 0;
+  state.line_no = 1;
+  state.line_offset = 0;
 
   state.dom = allocation;
   state.data = state.dom + state.dom_size;
+
+  if (json_parse_flags_save_line_offsets & state.flags_bitset) {
+    state.line_offsets = (size_t *)(state.data + state.data_size);
+
+    if (result) {
+      result->line_offsets = state.line_offsets;
+    }
+
+    *state.line_offsets++ = 0;
+  }
 
   state.dom += sizeof(struct json_value_s);
 
@@ -1165,6 +1196,10 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
       &state, /* is_global_object = */ (json_parse_flags_allow_global_object &
                                         state.flags_bitset),
       (struct json_value_s *)allocation);
+
+  if (result) {
+    result->line_count = state.line_no;
+  }
 
   return allocation;
 }
