@@ -705,4 +705,31 @@ TESTCASE(number, eminus) {
   free(value);
 }
 
+TESTCASE(value, offsets) {
+  const char payload[] = "{ \"foo\" : true, \"bar\" : false }";
+  struct json_value_s* root_value = json_parse(payload, strlen(payload));
+  struct json_object_s* root_object = 0;
+  struct json_object_element_s* foo_element = 0;
+  struct json_object_element_s* bar_element = 0;
+
+  ASSERT_TRUE(root_value);
+  ASSERT_EQ(json_type_object, root_value->type);
+  root_object = (struct json_object_s *)root_value->payload;
+  ASSERT_TRUE(root_object->start);
+  foo_element = root_object->start;
+  ASSERT_TRUE(root_object->start->next);
+  bar_element = root_object->start->next;
+
+  ASSERT_TRUE(foo_element->value);
+  ASSERT_TRUE(bar_element->value);
+
+  ASSERT_EQ(0, root_value->offset);
+  ASSERT_EQ(2, foo_element->offset);
+  ASSERT_EQ(10, foo_element->value->offset);
+  ASSERT_EQ(16, bar_element->offset);
+  ASSERT_EQ(24, bar_element->value->offset);
+
+  free(root_value);
+}
+
 UTEST_MAIN();

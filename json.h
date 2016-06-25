@@ -74,6 +74,10 @@ enum json_parse_flags_e {
   // allow JSON parsing to optimize incoming strings where appropriate.
   json_parse_flags_allow_string_simplification = 0x40,
 
+  // save line offsets in the JSON input to a separate buffer.
+  // a pointer to the buffer is returned in the json_parse_result_s struct.
+  json_parse_flags_save_line_offsets = 0x80,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
@@ -154,6 +158,8 @@ struct json_object_element_s {
   struct json_value_s *value;
   // the next object element (can be NULL if the last element in the object)
   struct json_object_element_s *next;
+  // the character offset of the element name in the JSON input
+  size_t offset;
 };
 
 // a JSON object value
@@ -189,6 +195,8 @@ struct json_value_s {
   // Must be one of json_type_e. If type is json_type_true, json_type_false, or
   // json_type_null, payload will be NULL
   size_t type;
+  // the character offset of this node in the JSON input
+  size_t offset;
 };
 
 // a parsing error code
@@ -227,7 +235,7 @@ enum json_parse_error_e {
   json_parse_error_unknown
 };
 
-// error report from json_parse_ex()
+// detailed result of json_parse_ex()
 struct json_parse_result_s {
   // the error code (one of json_parse_error_e)
   size_t error;
@@ -240,6 +248,12 @@ struct json_parse_result_s {
 
   // the row number for the error, in bytes
   size_t error_row_no;
+
+  // the buffer storing a character offset for each parsed line
+  size_t *line_offsets;
+
+  // the total number of parsed lines
+  size_t line_count;
 };
 
 #ifdef __cplusplus
