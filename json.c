@@ -412,8 +412,13 @@ static int json_get_object_size(struct json_parse_state_s *state,
     allow_comma = 1;
   }
 
-  state->dom_size += sizeof(struct json_string_s) * elements;
-  state->dom_size += sizeof(struct json_value_s) * elements;
+  if (json_parse_flags_allow_location_information & state->flags_bitset) {
+    state->dom_size += sizeof(struct json_string_ex_s) * elements;
+    state->dom_size += sizeof(struct json_value_ex_s) * elements;
+  } else {
+    state->dom_size += sizeof(struct json_string_s) * elements;
+    state->dom_size += sizeof(struct json_value_s) * elements;
+  }
   state->dom_size += sizeof(struct json_object_element_s) * elements;
 
   return 0;
@@ -480,7 +485,11 @@ static int json_get_array_size(struct json_parse_state_s *state) {
     allow_comma = 1;
   }
 
-  state->dom_size += sizeof(struct json_value_s) * elements;
+  if (json_parse_flags_allow_location_information & state->flags_bitset) {
+    state->dom_size += sizeof(struct json_value_ex_s) * elements;
+  } else {
+    state->dom_size += sizeof(struct json_value_s) * elements;
+  }
   state->dom_size += sizeof(struct json_array_element_s) * elements;
 
   return 0;
@@ -563,7 +572,11 @@ static int json_get_number_size(struct json_parse_state_s *state) {
 
 static int json_get_value_size(struct json_parse_state_s *state,
                                int is_global_object) {
-  state->dom_size += sizeof(struct json_value_s);
+  if (json_parse_flags_allow_location_information & state->flags_bitset) {
+    state->dom_size += sizeof(struct json_value_ex_s);
+  } else {
+    state->dom_size += sizeof(struct json_value_s);
+  }
 
   if (is_global_object) {
     return json_get_object_size(state, /* is_global_object = */ 1);
@@ -799,9 +812,19 @@ static void json_parse_object(struct json_parse_state_s *state,
 
     previous = element;
 
-    string = (struct json_string_s *)state->dom;
+    if (json_parse_flags_allow_location_information & state->flags_bitset) {
+      struct json_string_ex_s * string_ex = (struct json_string_ex_s *)state->dom;
+      state->dom += sizeof(struct json_string_ex_s);
 
-    state->dom += sizeof(struct json_string_s);
+      string_ex->offset = state->offset;
+      string_ex->line_no = state->line_no;
+      string_ex->row_no = state->offset - state->line_offset;
+
+      string = &(string_ex->string);
+    } else {
+      string = (struct json_string_s *)state->dom;
+      state->dom += sizeof(struct json_string_s);
+    }
 
     element->name = string;
 
@@ -814,9 +837,19 @@ static void json_parse_object(struct json_parse_state_s *state,
 
     (void)json_skip_all_skippables(state);
 
-    value = (struct json_value_s *)state->dom;
+    if (json_parse_flags_allow_location_information & state->flags_bitset) {
+      struct json_value_ex_s * value_ex = (struct json_value_ex_s *)state->dom;
+      state->dom += sizeof(struct json_value_ex_s);
 
-    state->dom += sizeof(struct json_value_s);
+      value_ex->offset = state->offset;
+      value_ex->line_no = state->line_no;
+      value_ex->row_no = state->offset - state->line_offset;
+
+      value = &(value_ex->value);
+    } else {
+      value = (struct json_value_s *)state->dom;
+      state->dom += sizeof(struct json_value_s);
+    }
 
     element->value = value;
 
@@ -890,9 +923,19 @@ static void json_parse_array(struct json_parse_state_s *state,
 
     previous = element;
 
-    value = (struct json_value_s *)state->dom;
+    if (json_parse_flags_allow_location_information & state->flags_bitset) {
+      struct json_value_ex_s * value_ex = (struct json_value_ex_s *)state->dom;
+      state->dom += sizeof(struct json_value_ex_s);
 
-    state->dom += sizeof(struct json_value_s);
+      value_ex->offset = state->offset;
+      value_ex->line_no = state->line_no;
+      value_ex->row_no = state->offset - state->line_offset;
+
+      value = &(value_ex->value);
+    } else {
+      value = (struct json_value_s *)state->dom;
+      state->dom += sizeof(struct json_value_s);
+    }
 
     element->value = value;
 
@@ -1093,6 +1136,7 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
                                    struct json_parse_result_s *result) {
   struct json_parse_state_s state;
   void *allocation;
+  struct json_value_s *value;
   size_t total_size;
 
   if (result) {
@@ -1156,15 +1200,31 @@ struct json_value_s *json_parse_ex(const void *src, size_t src_size,
   // reset offset so we can reuse it
   state.offset = 0;
 
+  // reset the line information so we can reuse it
+  state.offset = 0;
+  state.line_no = 1;
+  state.line_offset = 0;
+
   state.dom = allocation;
   state.data = state.dom + state.dom_size;
 
-  state.dom += sizeof(struct json_value_s);
+  if (json_parse_flags_allow_location_information & state.flags_bitset) {
+    struct json_value_ex_s * value_ex = (struct json_value_ex_s *)state.dom;
+    state.dom += sizeof(struct json_value_ex_s);
+
+    value_ex->offset = state.offset;
+    value_ex->line_no = state.line_no;
+    value_ex->row_no = state.offset - state.line_offset;
+
+    value = &(value_ex->value);
+  } else {
+    value = (struct json_value_s *)state.dom;
+    state.dom += sizeof(struct json_value_s);
+  }
 
   json_parse_value(
       &state, /* is_global_object = */ (json_parse_flags_allow_global_object &
-                                        state.flags_bitset),
-      (struct json_value_s *)allocation);
+                                        state.flags_bitset), value);
 
   return allocation;
 }

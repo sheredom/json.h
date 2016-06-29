@@ -74,6 +74,9 @@ enum json_parse_flags_e {
   // allow JSON parsing to optimize incoming strings where appropriate.
   json_parse_flags_allow_string_simplification = 0x40,
 
+  // record location information for each value.
+  json_parse_flags_allow_location_information = 0x80,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
@@ -138,6 +141,21 @@ struct json_string_s {
   size_t string_size;
 };
 
+// A JSON string value (extended)
+struct json_string_ex_s {
+  // the JSON string this extends.
+  struct json_string_s string;
+
+  // the character offset for the value in the JSON input
+  size_t offset;
+
+  // the line number for the value in the JSON input
+  size_t line_no;
+
+  // the row number for the value in the JSON input, in bytes
+  size_t row_no;
+};
+
 // a JSON number value
 struct json_number_s {
   // ASCII string containing representation of the number
@@ -186,9 +204,24 @@ struct json_value_s {
   // json_array_s. Should be cast to the appropriate struct type based on what
   // the type of this value is
   void *payload;
-  // Must be one of json_type_e. If type is json_type_true, json_type_false, or
+  // must be one of json_type_e. If type is json_type_true, json_type_false, or
   // json_type_null, payload will be NULL
   size_t type;
+};
+
+// a JSON value (extended)
+struct json_value_ex_s {
+  // the JSON value this extends.
+  struct json_value_s value;
+
+  // the character offset for the value in the JSON input
+  size_t offset;
+
+  // the line number for the value in the JSON input
+  size_t line_no;
+
+  // the row number for the value in the JSON input, in bytes
+  size_t row_no;
 };
 
 // a parsing error code
