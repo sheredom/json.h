@@ -35,6 +35,7 @@ add_executable(json_test
   allow_c_style_comments.cpp
   allow_equals_in_object.c
   allow_global_object.c
+  allow_location_information.c
   allow_no_commas.c
   allow_string_simplification.c
   allow_trailing_comma.cpp
