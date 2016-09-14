@@ -71,8 +71,8 @@ enum json_parse_flags_e {
   // allow c-style comments (// or /* */) to be ignored in the input JSON file.
   json_parse_flags_allow_c_style_comments = 0x20,
 
-  // allow JSON parsing to optimize incoming strings where appropriate.
-  json_parse_flags_allow_string_simplification = 0x40,
+  // deprecated flag, unused
+  json_parse_flags_deprecated = 0x40,
 
   // record location information for each value.
   json_parse_flags_allow_location_information = 0x80,
@@ -99,7 +99,7 @@ struct json_value_s *json_parse(const void *src, size_t src_size);
 // error, and the location in the input it occurred.
 struct json_value_s *json_parse_ex(const void *src, size_t src_size,
                                    size_t flags_bitset,
-                                   void*(*alloc_func_ptr)(void *, size_t),
+                                   void *(*alloc_func_ptr)(void *, size_t),
                                    void *user_data,
                                    struct json_parse_result_s *result);
 
@@ -255,6 +255,10 @@ enum json_parse_error_e {
 
   // a call to malloc, or a user provider allocator, failed
   json_parse_error_allocator_failed,
+
+  // the JSON input had unexpected trailing characters that weren't part of the
+  // JSON value
+  json_parse_error_unexpected_trailing_characters,
 
   // catch-all error for everything else that exploded (real bad chi!)
   json_parse_error_unknown
