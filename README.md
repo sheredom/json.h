@@ -140,7 +140,8 @@ enum json_parse_flags_e {
   json_parse_flags_allow_equals_in_object = 0x8,
   json_parse_flags_allow_no_commas = 0x10,
   json_parse_flags_allow_c_style_comments = 0x20,
-  json_parse_flags_allow_string_simplification = 0x40,
+  json_parse_flags_deprecated = 0x40,
+  json_parse_flags_allow_location_information = 0x80,
   json_parse_flags_allow_simplified_json =
       (json_parse_flags_allow_trailing_comma |
        json_parse_flags_allow_unquoted_keys |
@@ -157,7 +158,7 @@ enum json_parse_flags_e {
 - `json_parse_flags_allow_equals_in_object` - allow objects to use '=' as well as ':' between key/value pairs. For example, `{"a" = null, "b" : true}` would be allowed with this option on.
 - `json_parse_flags_allow_no_commas` - allow that objects don't have to have comma separators between key/value pairs. For example, `{"a" : null "b" : true}` would be allowed with this option on.
 - `json_parse_flags_allow_c_style_comments` - allow c-style comments (// or /* */) to be ignored in the input JSON file.
-- `json_parse_flags_allow_string_simplification` - allow JSON parsing to optimize incoming strings where appropriate.
+- `json_parse_flags_deprecated` - a deprecated option.
 - `json_parse_flags_allow_location_information` - allow location information to be tracked for where values are in the input JSON. Useful for alerting users to errors with precise location information pertaining to the original source. When this option is enabled, all `json_value_s*`'s can be casted to `json_value_ex_s*`, and the `json_string_s*` of `json_object_element_s*`'s name member can be casted to `json_string_ex_s*` to retrieve specific locations on all the values and keys. Note this option will increase the memory budget required for the DOM used to record the JSON.
 - `json_parse_flags_allow_simplified_json` - allow simplified JSON to be parsed. Simplified JSON is an enabling of a set of other parsing options. [See the Bitsquid blog introducing this here.](http://bitsquid.blogspot.com/2009/10/simplified-json-notation.html)
 
