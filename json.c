@@ -169,10 +169,13 @@ static int json_skip_all_skippables(struct json_parse_state_s *state) {
 static int json_get_value_size(struct json_parse_state_s *state,
                                int is_global_object);
 
-static int json_get_string_size(struct json_parse_state_s *state) {
+static int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
   size_t data_size = 0;
 
-  state->dom_size += sizeof(struct json_string_s);
+  if ((json_parse_flags_allow_location_information & state->flags_bitset) != 0 && is_key != 0)
+    state->dom_size += sizeof(struct json_string_ex_s);
+  else
+    state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
     state->error = json_parse_error_expected_opening_quote;
@@ -259,7 +262,7 @@ static int json_get_key_size(struct json_parse_state_s *state) {
     // if we are allowing unquoted keys, first grok for a comma...
     if ('"' == state->src[state->offset]) {
       // ... if we got a comma, just parse the key as a string as normal
-      return json_get_string_size(state);
+      return json_get_string_size(state, 1);
     } else {
       while ((state->offset < state->size) &&
              is_valid_unquoted_key_char(state->src[state->offset])) {
@@ -270,13 +273,16 @@ static int json_get_key_size(struct json_parse_state_s *state) {
       // one more byte for null terminator ending the string!
       state->data_size++;
 
-      state->dom_size += sizeof(struct json_string_s);
+      if (json_parse_flags_allow_location_information & state->flags_bitset)
+        state->dom_size += sizeof(struct json_string_ex_s);
+      else
+        state->dom_size += sizeof(struct json_string_s);
 
       return 0;
     }
   } else {
     // we are only allowed to have quoted keys, so just parse a string!
-    return json_get_string_size(state);
+    return json_get_string_size(state, 1);
   }
 }
 
@@ -394,13 +400,6 @@ static int json_get_object_size(struct json_parse_state_s *state,
     allow_comma = 1;
   }
 
-  if (json_parse_flags_allow_location_information & state->flags_bitset) {
-    state->dom_size += sizeof(struct json_string_ex_s) * elements;
-    state->dom_size += sizeof(struct json_value_ex_s) * elements;
-  } else {
-    state->dom_size += sizeof(struct json_string_s) * elements;
-    state->dom_size += sizeof(struct json_value_s) * elements;
-  }
   state->dom_size += sizeof(struct json_object_element_s) * elements;
 
   return 0;
@@ -572,7 +571,7 @@ static int json_get_value_size(struct json_parse_state_s *state,
     }
     switch (state->src[state->offset]) {
     case '"':
-      return json_get_string_size(state);
+      return json_get_string_size(state, 0);
     case '{':
       return json_get_object_size(state, /* is_global_object = */ 0);
     case '[':
