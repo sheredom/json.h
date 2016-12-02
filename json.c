@@ -430,11 +430,6 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       // skip trailing ']'
       state->offset++;
 
-      if (json_parse_flags_allow_location_information & state->flags_bitset) {
-        state->dom_size += sizeof(struct json_value_ex_s) * elements;
-      } else {
-        state->dom_size += sizeof(struct json_value_s) * elements;
-      }
       state->dom_size += sizeof(struct json_array_element_s) * elements;
 
       // finished the object!
