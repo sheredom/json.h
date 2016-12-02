@@ -932,10 +932,10 @@ static void json_parse_array(struct json_parse_state_s *state,
 static void json_parse_number(struct json_parse_state_s *state,
                               struct json_number_s *number) {
   size_t size = 0;
+  size_t end = 0;
 
   number->number = state->data;
 
-  size_t end = 0;
   while (state->offset < state->size && end == 0) {
     switch (state->src[state->offset]) {
     case '0':
