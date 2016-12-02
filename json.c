@@ -941,19 +941,9 @@ static void json_parse_number(struct json_parse_state_s *state,
 
   number->number = state->data;
 
-  while (state->offset < state->size) {
+  size_t end = 0;
+  while (state->offset < state->size && end == 0) {
     switch (state->src[state->offset]) {
-    default:
-      // record the size of the number
-      number->number_size = size;
-
-      // add null terminator to number string
-      state->data[size++] = '\0';
-
-      // move data along
-      state->data += size;
-
-      return;
     case '0':
     case '1':
     case '2':
@@ -971,8 +961,18 @@ static void json_parse_number(struct json_parse_state_s *state,
     case '-':
       state->data[size++] = state->src[state->offset++];
       break;
+    default:
+      end = 1;
+      break;
     }
   }
+
+  // record the size of the number
+  number->number_size = size;
+  // add null terminator to number string
+  state->data[size++] = '\0';
+  // move data along
+  state->data += size;
 }
 
 static void json_parse_value(struct json_parse_state_s *state,
