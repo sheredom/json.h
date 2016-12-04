@@ -169,10 +169,13 @@ static int json_skip_all_skippables(struct json_parse_state_s *state) {
 static int json_get_value_size(struct json_parse_state_s *state,
                                int is_global_object);
 
-static int json_get_string_size(struct json_parse_state_s *state) {
+static int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
   size_t data_size = 0;
 
-  state->dom_size += sizeof(struct json_string_s);
+  if ((json_parse_flags_allow_location_information & state->flags_bitset) != 0 && is_key != 0)
+    state->dom_size += sizeof(struct json_string_ex_s);
+  else
+    state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
     state->error = json_parse_error_expected_opening_quote;
@@ -259,7 +262,7 @@ static int json_get_key_size(struct json_parse_state_s *state) {
     // if we are allowing unquoted keys, first grok for a comma...
     if ('"' == state->src[state->offset]) {
       // ... if we got a comma, just parse the key as a string as normal
-      return json_get_string_size(state);
+      return json_get_string_size(state, 1);
     } else {
       while ((state->offset < state->size) &&
              is_valid_unquoted_key_char(state->src[state->offset])) {
@@ -270,13 +273,16 @@ static int json_get_key_size(struct json_parse_state_s *state) {
       // one more byte for null terminator ending the string!
       state->data_size++;
 
-      state->dom_size += sizeof(struct json_string_s);
+      if (json_parse_flags_allow_location_information & state->flags_bitset)
+        state->dom_size += sizeof(struct json_string_ex_s);
+      else
+        state->dom_size += sizeof(struct json_string_s);
 
       return 0;
     }
   } else {
     // we are only allowed to have quoted keys, so just parse a string!
-    return json_get_string_size(state);
+    return json_get_string_size(state, 1);
   }
 }
 
@@ -394,13 +400,6 @@ static int json_get_object_size(struct json_parse_state_s *state,
     allow_comma = 1;
   }
 
-  if (json_parse_flags_allow_location_information & state->flags_bitset) {
-    state->dom_size += sizeof(struct json_string_ex_s) * elements;
-    state->dom_size += sizeof(struct json_value_ex_s) * elements;
-  } else {
-    state->dom_size += sizeof(struct json_string_s) * elements;
-    state->dom_size += sizeof(struct json_value_s) * elements;
-  }
   state->dom_size += sizeof(struct json_object_element_s) * elements;
 
   return 0;
@@ -431,11 +430,6 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       // skip trailing ']'
       state->offset++;
 
-      if (json_parse_flags_allow_location_information & state->flags_bitset) {
-        state->dom_size += sizeof(struct json_value_ex_s) * elements;
-      } else {
-        state->dom_size += sizeof(struct json_value_s) * elements;
-      }
       state->dom_size += sizeof(struct json_array_element_s) * elements;
 
       // finished the object!
@@ -572,7 +566,7 @@ static int json_get_value_size(struct json_parse_state_s *state,
     }
     switch (state->src[state->offset]) {
     case '"':
-      return json_get_string_size(state);
+      return json_get_string_size(state, 0);
     case '{':
       return json_get_object_size(state, /* is_global_object = */ 0);
     case '[':
@@ -938,22 +932,12 @@ static void json_parse_array(struct json_parse_state_s *state,
 static void json_parse_number(struct json_parse_state_s *state,
                               struct json_number_s *number) {
   size_t size = 0;
+  size_t end = 0;
 
   number->number = state->data;
 
-  while (state->offset < state->size) {
+  while (state->offset < state->size && end == 0) {
     switch (state->src[state->offset]) {
-    default:
-      // record the size of the number
-      number->number_size = size;
-
-      // add null terminator to number string
-      state->data[size++] = '\0';
-
-      // move data along
-      state->data += size;
-
-      return;
     case '0':
     case '1':
     case '2':
@@ -971,8 +955,18 @@ static void json_parse_number(struct json_parse_state_s *state,
     case '-':
       state->data[size++] = state->src[state->offset++];
       break;
+    default:
+      end = 1;
+      break;
     }
   }
+
+  // record the size of the number
+  number->number_size = size;
+  // add null terminator to number string
+  state->data[size++] = '\0';
+  // move data along
+  state->data += size;
 }
 
 static void json_parse_value(struct json_parse_state_s *state,
