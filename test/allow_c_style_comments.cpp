@@ -90,3 +90,37 @@ TESTCASE(allow_c_style_comments, multi_line) {
 
   free(value);
 }
+
+TESTCASE(allow_c_style_comments, multiple) {
+  const char payload[] = "{/**/ /**/\"foo\" : null}";
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_c_style_comments, 0, 0, 0);
+  struct json_object_s* object = 0;
+  struct json_value_s* value2 = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_object, value->type);
+
+  object = (struct json_object_s* )value->payload;
+
+  ASSERT_TRUE(object->start);
+  ASSERT_EQ(1, object->length);
+
+  ASSERT_TRUE(object->start->name);
+  ASSERT_TRUE(object->start->value);
+  ASSERT_FALSE(object->start->next); // we have only one element
+
+  ASSERT_TRUE(object->start->name->string);
+  ASSERT_STREQ("foo", object->start->name->string);
+  ASSERT_EQ(strlen("foo"), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+
+  value2 = object->start->value;
+
+  ASSERT_FALSE(value2->payload);
+  ASSERT_EQ(json_type_null, value2->type);
+
+  free(value);
+}
+
+
