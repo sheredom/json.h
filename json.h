@@ -229,8 +229,9 @@ enum json_parse_error_e {
   // no error occurred (huzzah!)
   json_parse_error_none = 0,
 
-  // expected a comma where there was none!
-  json_parse_error_expected_comma,
+  // expected either a comma or a closing '}' or ']' to close an object or
+  // array!
+  json_parse_error_expected_comma_or_closing_bracket,
 
   // colon separating name/value pair was missing!
   json_parse_error_expected_colon,
