@@ -705,4 +705,36 @@ TESTCASE(number, eminus) {
   free(value);
 }
 
+TESTCASE(object, missing_closing_bracket) {
+  const char payload[] = "{\n  \"dps\":[1, 2, {\"a\" : true]\n}";
+
+  struct json_parse_result_s result;
+
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
+
+  ASSERT_FALSE(value);
+
+  ASSERT_EQ(json_parse_error_expected_comma_or_closing_bracket, result.error);
+  ASSERT_EQ(28, result.error_offset);
+  ASSERT_EQ(2, result.error_line_no);
+  ASSERT_EQ(27, result.error_row_no);
+}
+
+TESTCASE(array, missing_closing_bracket) {
+  const char payload[] = "{\n  \"dps\":[1, 2, 3\n}";
+
+  struct json_parse_result_s result;
+
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
+
+  ASSERT_FALSE(value);
+
+  ASSERT_EQ(json_parse_error_expected_comma_or_closing_bracket, result.error);
+  ASSERT_EQ(19, result.error_offset);
+  ASSERT_EQ(3, result.error_line_no);
+  ASSERT_EQ(1, result.error_row_no);
+}
+
 UTEST_MAIN();

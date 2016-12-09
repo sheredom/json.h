@@ -344,7 +344,7 @@ static int json_get_object_size(struct json_parse_state_s *state,
         allow_comma = 0;
       } else {
         // otherwise we are required to have a comma, and we found none
-        state->error = json_parse_error_expected_comma;
+        state->error = json_parse_error_expected_comma_or_closing_bracket;
         return 1;
       }
 
@@ -443,7 +443,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
         state->offset++;
         allow_comma = 0;
       } else if (!(json_parse_flags_allow_no_commas & state->flags_bitset)) {
-        state->error = json_parse_error_expected_comma;
+        state->error = json_parse_error_expected_comma_or_closing_bracket;
         return 1;
       }
 
