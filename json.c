@@ -65,14 +65,28 @@ static int json_is_hexadecimal_digit(const char c) {
 
 static int json_skip_whitespace(struct json_parse_state_s *state) {
   // the only valid whitespace according to ECMA-404 is ' ', '\n', '\r' and '\t'
-  for (; state->offset < state->size; state->offset++) {
-    const char c = state->src[state->offset];
+  switch (state->src[state->offset]) {
+  default:
+    return 0;
+  case ' ':
+  case '\r':
+  case '\t':
+  case '\n':
+    break;
+  }
 
-    if ('\n' == c) {
+  for (; state->offset < state->size; state->offset++) {
+    switch (state->src[state->offset]) {
+    default:
+      return 1;
+    case ' ':
+    case '\r':
+    case '\t':
+      break;
+    case '\n':
       state->line_no++;
       state->line_offset = state->offset;
-    } else if ((' ' != c) && ('\r' != c) && ('\t' != c)) {
-      return 0;
+      break;
     }
   }
 
@@ -104,12 +118,12 @@ static int json_skip_c_style_comments(struct json_parse_state_s *state) {
           // we entered a newline, so move our line info forward
           state->line_no++;
           state->line_offset = state->offset;
-          return 0;
+          return 1;
         }
       }
 
       // we reached the end of the JSON file!
-      return 0;
+      return 1;
     } else if ('*' == state->src[state->offset]) {
       // we had a comment in the form /* */
 
@@ -121,7 +135,7 @@ static int json_skip_c_style_comments(struct json_parse_state_s *state) {
             ('/' == state->src[state->offset + 1])) {
           // we reached the end of our comment!
           state->offset += 2;
-          return 0;
+          return 1;
         } else if ('\n' == state->src[state->offset]) {
           // we entered a newline, so move our line info forward
           state->line_no++;
@@ -143,24 +157,33 @@ static int json_skip_c_style_comments(struct json_parse_state_s *state) {
 }
 
 static int json_skip_all_skippables(struct json_parse_state_s *state) {
-  // skip all whitespace first
-  if (json_skip_whitespace(state)) {
-    state->error = json_parse_error_premature_end_of_buffer;
-    return 1;
-  }
+  // skip all whitespace and other skippables until there are none left
+  // note that the previous version suffered from read past errors should
+  // the stream end on json_skip_c_style_comments eg. '{"a" ' with comments flag
 
-  // are we allowed to parse c style comments?
-  if (json_parse_flags_allow_c_style_comments & state->flags_bitset) {
-    // then skip all c style comments
-    if (json_skip_c_style_comments(state)) {
+  int did_consume = 0;
+  do {
+    if (state->offset == state-> size) {
       state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
 
-    // and skip any whitespace that happened after the comment. We don't check
-    // this skip whitespace because it could be the case that the c-style
-    // comment was at the end of the file which is totally ok!
-    json_skip_whitespace(state);
+    did_consume = json_skip_whitespace(state);
+
+    if (json_parse_flags_allow_c_style_comments & state->flags_bitset) {
+      //This shoud really be checked on access, not in front of every call
+      if (state->offset == state-> size) {
+	state->error = json_parse_error_premature_end_of_buffer;
+        return 1;
+      }
+
+      did_consume |= json_skip_c_style_comments(state);
+    }
+  } while (0 != did_consume);
+
+  if (state->offset == state-> size) {
+    state->error = json_parse_error_premature_end_of_buffer;
+    return 1;
   }
 
   return 0;
