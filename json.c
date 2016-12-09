@@ -65,18 +65,28 @@ static int json_is_hexadecimal_digit(const char c) {
 
 static int json_skip_whitespace(struct json_parse_state_s *state) {
   // the only valid whitespace according to ECMA-404 is ' ', '\n', '\r' and '\t'
-  const char s = state->src[state->offset];
-  if (s != '\n' && s != ' ' && s != '\r' && s != '\t')
+  switch (state->src[state->offset]) {
+  default:
     return 0;
+  case ' ':
+  case '\r':
+  case '\t':
+  case '\n':
+    break;
+  }
 
   for (; state->offset < state->size; state->offset++) {
-    const char c = state->src[state->offset];
-
-    if (c == '\n') {
+    switch (state->src[state->offset]) {
+    default:
+      return 1;
+    case ' ':
+    case '\r':
+    case '\t':
+      break;
+    case '\n':
       state->line_no++;
       state->line_offset = state->offset;
-    } else if (c != ' ' && c != '\r' && c != '\t') {
-      return 1;
+      break;
     }
   }
 
@@ -151,7 +161,7 @@ static int json_skip_all_skippables(struct json_parse_state_s *state) {
   // note that the previous version suffered from read past errors should
   // the stream end on json_skip_c_style_comments eg. '{"a" ' with comments flag
 
-  size_t did_consume = 0;
+  int did_consume = 0;
   do {
     if (state->offset == state-> size) {
       state->error = json_parse_error_premature_end_of_buffer;
@@ -169,7 +179,7 @@ static int json_skip_all_skippables(struct json_parse_state_s *state) {
 
       did_consume |= json_skip_c_style_comments(state);
     }
-  } while (did_consume != 0);
+  } while (0 != did_consume);
 
   if (state->offset == state-> size) {
     state->error = json_parse_error_premature_end_of_buffer;
