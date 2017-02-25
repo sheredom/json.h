@@ -80,6 +80,9 @@ enum json_parse_flags_e {
   // allow strings to be 'single quoted'
   json_parse_flags_allow_single_quoted_strings = 0x100,
 
+  // allow numbers to be hexadecimal
+  json_parse_flags_allow_hexadecimal_numbers = 0x200,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
@@ -87,7 +90,15 @@ enum json_parse_flags_e {
        json_parse_flags_allow_unquoted_keys |
        json_parse_flags_allow_global_object |
        json_parse_flags_allow_equals_in_object |
-       json_parse_flags_allow_no_commas)
+       json_parse_flags_allow_no_commas),
+
+  // allow JSON5 to be parsed. JSON5 is an enabling of a set of other parsing options.
+  json_parse_flags_allow_json5 =
+    (json_parse_flags_allow_trailing_comma |
+     json_parse_flags_allow_unquoted_keys |
+     json_parse_flags_allow_c_style_comments |
+     json_parse_flags_allow_single_quoted_strings |
+     json_parse_flags_allow_hexadecimal_numbers)
 };
 
 // Parse a JSON text file, returning a pointer to the root of the JSON

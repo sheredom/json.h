@@ -508,66 +508,104 @@ static int json_get_number_size(struct json_parse_state_s *state) {
 
   state->dom_size += sizeof(struct json_number_s);
 
-  if ((state->offset < state->size) && ('-' == state->src[state->offset])) {
-    // skip valid leading '-'
-    state->offset++;
+  if ((json_parse_flags_allow_hexadecimal_numbers & state->flags_bitset) &&
+    (state->offset + 1 < state->size) &&
+    ('0' == state->src[state->offset]) &&
+    ('x' == state->src[state->offset + 1])) {
+    // skip the leading 0x that identifies a hexadecimal number
+    state->offset += 2;
+
+    // consume hexadecimal digits
+    while ((state->offset < state->size) &&
+           (('0' <= state->src[state->offset] &&
+            state->src[state->offset] <= '9') ||
+           ('a' <= state->src[state->offset] &&
+            state->src[state->offset] <= 'f') ||
+          ('A' <= state->src[state->offset] &&
+            state->src[state->offset] <= 'F'))) {
+      state->offset++;
+    }
+  } else {
+    if ((state->offset < state->size) && ('-' == state->src[state->offset])) {
+      // skip valid leading '-'
+      state->offset++;
+
+      if ((state->offset < state->size) &&
+          !('0' <= state->src[state->offset] &&
+            state->src[state->offset] <= '9')) {
+        // a leading '-' must be immediately followed by any digit!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
+    }
+
+    if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
+      // skip valid '0'
+      state->offset++;
+      if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
+                                            state->src[state->offset] <= '9')) {
+        // a leading '0' must not be immediately followed by any digit!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
+    }
+
+    // the main digits of our number next
+    while ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
+                                             state->src[state->offset] <= '9')) {
+      state->offset++;
+    }
+
+    if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
+      state->offset++;
+
+      // a decimal point can be followed by more digits of course!
+      while ((state->offset < state->size) &&
+             ('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9')) {
+        state->offset++;
+      }
+    }
 
     if ((state->offset < state->size) &&
-        !('0' <= state->src[state->offset] &&
-          state->src[state->offset] <= '9')) {
-      // a leading '-' must be immediately followed by any digit!
+        ('e' == state->src[state->offset] || 'E' == state->src[state->offset])) {
+      // our number has an exponent!
+      // skip 'e' or 'E'
+      state->offset++;
+
+      if ((state->offset < state->size) && ('-' == state->src[state->offset] ||
+                                            '+' == state->src[state->offset])) {
+        // skip optional '-' or '+'
+        state->offset++;
+      }
+
+      // consume exponent digits
+      while ((state->offset < state->size) &&
+             ('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9')) {
+        state->offset++;
+      }
+    }
+  }
+
+  if (state->offset < state->size) {
+    switch (state->src[state->offset]) {
+    case ' ':
+    case '\t':
+    case '\r':
+    case '\n':
+    case '}':
+    case ',':
+    case ']':  
+      // all of the above are ok
+      break;
+    case '=':
+      if (json_parse_flags_allow_equals_in_object & state->flags_bitset) {
+        break;
+      }
+    default:
       state->error = json_parse_error_invalid_number_format;
       return 1;
-    }
-  }
-
-  if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
-    // skip valid '0'
-    state->offset++;
-
-    if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
-                                          state->src[state->offset] <= '9')) {
-      // a leading '0' must not be immediately followed by any digit!
-      state->error = json_parse_error_invalid_number_format;
-      return 1;
-    }
-  }
-
-  // the main digits of our number next
-  while ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
-                                           state->src[state->offset] <= '9')) {
-    state->offset++;
-  }
-
-  if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
-    state->offset++;
-
-    // a decimal point can be followed by more digits of course!
-    while ((state->offset < state->size) &&
-           ('0' <= state->src[state->offset] &&
-            state->src[state->offset] <= '9')) {
-      state->offset++;
-    }
-  }
-
-  if ((state->offset < state->size) &&
-      ('e' == state->src[state->offset] || 'E' == state->src[state->offset])) {
-    // our number has an exponent!
-
-    // skip 'e' or 'E'
-    state->offset++;
-
-    if ((state->offset < state->size) && ('-' == state->src[state->offset] ||
-                                          '+' == state->src[state->offset])) {
-      // skip optional '-' or '+'
-      state->offset++;
-    }
-
-    // consume exponent digits
-    while ((state->offset < state->size) &&
-           ('0' <= state->src[state->offset] &&
-            state->src[state->offset] <= '9')) {
-      state->offset++;
     }
   }
 
@@ -974,6 +1012,22 @@ static void json_parse_number(struct json_parse_state_s *state,
   size_t end = 0;
 
   number->number = state->data;
+
+  if (json_parse_flags_allow_hexadecimal_numbers & state->flags_bitset) {
+    if (('0' == state->src[state->offset]) && ('x' == state->src[state->offset + 1])) {
+      // consume hexadecimal digits
+      while ((state->offset < state->size) &&
+             (('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9') ||
+             ('a' <= state->src[state->offset] &&
+              state->src[state->offset] <= 'f') ||
+            ('A' <= state->src[state->offset] &&
+              state->src[state->offset] <= 'F') ||
+            ('x' == state->src[state->offset]))) {
+        state->data[size++] = state->src[state->offset++];
+      }
+    }
+  }
 
   while (state->offset < state->size && end == 0) {
     switch (state->src[state->offset]) {
