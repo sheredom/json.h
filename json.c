@@ -194,6 +194,7 @@ static int json_get_value_size(struct json_parse_state_s *state,
 
 static int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
   size_t data_size = 0;
+  int is_single_quote = '\'' == state->src[state->offset];
 
   if ((json_parse_flags_allow_location_information & state->flags_bitset) != 0 && is_key != 0)
     state->dom_size += sizeof(struct json_string_ex_s);
@@ -201,14 +202,17 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
     state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
-    state->error = json_parse_error_expected_opening_quote;
-    return 1;
+    // if we are allowed single quoted strings check for that too
+    if (!((json_parse_flags_allow_single_quoted_strings == state->flags_bitset) && is_single_quote)) {
+      state->error = json_parse_error_expected_opening_quote;
+      return 1;
+    }
   }
 
-  // skip leading '"'
+  // skip leading '"' or '\''
   state->offset++;
 
-  while (state->offset < state->size && '"' != state->src[state->offset]) {
+  while (state->offset < state->size && (is_single_quote ? '\'' : '"') != state->src[state->offset]) {
     // add space for the character
     data_size++;
 
@@ -263,7 +267,7 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
     }
   }
 
-  // skip trailing '"'
+  // skip trailing '"' or '\''
   state->offset++;
 
   // add enough space to store the string
@@ -284,6 +288,9 @@ static int json_get_key_size(struct json_parse_state_s *state) {
   if (json_parse_flags_allow_unquoted_keys & state->flags_bitset) {
     // if we are allowing unquoted keys, first grok for a comma...
     if ('"' == state->src[state->offset]) {
+      // ... if we got a comma, just parse the key as a string as normal
+      return json_get_string_size(state, 1);
+    } else if ((json_parse_flags_allow_single_quoted_strings & state->flags_bitset) && ('\'' == state->src[state->offset])) {
       // ... if we got a comma, just parse the key as a string as normal
       return json_get_string_size(state, 1);
     } else {
@@ -590,6 +597,14 @@ static int json_get_value_size(struct json_parse_state_s *state,
     switch (state->src[state->offset]) {
     case '"':
       return json_get_string_size(state, 0);
+	case '\'':
+		if (json_parse_flags_allow_single_quoted_strings == state->flags_bitset) {
+			return json_get_string_size(state, 0);
+		} else {
+			// invalid value!
+			state->error = json_parse_error_invalid_value;
+			return 1;
+		}
     case '{':
       return json_get_object_size(state, /* is_global_object = */ 0);
     case '[':
@@ -644,13 +659,14 @@ static void json_parse_value(struct json_parse_state_s *state,
 static void json_parse_string(struct json_parse_state_s *state,
                               struct json_string_s *string) {
   size_t size = 0;
+  int is_single_quote = '\'' == state->src[state->offset];
 
   string->string = state->data;
 
-  // skip leading '"'
+  // skip leading '"' or '\''
   state->offset++;
 
-  while (state->offset < state->size && '"' != state->src[state->offset]) {
+  while (state->offset < state->size && (is_single_quote ? '\'' : '"') != state->src[state->offset]) {
     if ('\\' == state->src[state->offset]) {
       // skip the reverse solidus
       state->offset++;
@@ -689,7 +705,7 @@ static void json_parse_string(struct json_parse_state_s *state,
     }
   }
 
-  // skip trailing '"'
+  // skip trailing '"' or '\''
   state->offset++;
 
   // record the size of the string
@@ -706,8 +722,8 @@ static void json_parse_key(struct json_parse_state_s *state,
                            struct json_string_s *string) {
   if (json_parse_flags_allow_unquoted_keys & state->flags_bitset) {
     // if we are allowing unquoted keys, check for quoted anyway...
-    if ('"' == state->src[state->offset]) {
-      // ... if we got a comma, just parse the key as a string as normal
+    if (('"' == state->src[state->offset]) || ('\'' == state->src[state->offset])) {
+      // ... if we got a quote, just parse the key as a string as normal
       json_parse_string(state, string);
     } else {
       size_t size = 0;
@@ -1004,6 +1020,7 @@ static void json_parse_value(struct json_parse_state_s *state,
   } else {
     switch (state->src[state->offset]) {
     case '"':
+	case '\'':
       value->type = json_type_string;
       value->payload = state->dom;
       state->dom += sizeof(struct json_string_s);
@@ -1153,7 +1170,6 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   state.offset = 0;
 
   // reset the line information so we can reuse it
-  state.offset = 0;
   state.line_no = 1;
   state.line_offset = 0;
 

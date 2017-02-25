@@ -77,6 +77,9 @@ enum json_parse_flags_e {
   // record location information for each value.
   json_parse_flags_allow_location_information = 0x80,
 
+  // allow strings to be 'single quoted'
+  json_parse_flags_allow_single_quoted_strings = 0x100,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
