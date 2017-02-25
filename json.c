@@ -526,8 +526,11 @@ static int json_get_number_size(struct json_parse_state_s *state) {
       state->offset++;
     }
   } else {
-    if ((state->offset < state->size) && ('-' == state->src[state->offset])) {
-      // skip valid leading '-'
+    if ((state->offset < state->size) && (
+      ('-' == state->src[state->offset]) ||
+      ((json_parse_flags_allow_leading_plus_sign & state->flags_bitset) &&
+      ('+' == state->src[state->offset])))) {
+      // skip valid leading '-' or '+'
       state->offset++;
 
       if ((state->offset < state->size) &&
@@ -659,6 +662,14 @@ static int json_get_value_size(struct json_parse_state_s *state,
     case '8':
     case '9':
       return json_get_number_size(state);
+    case '+':
+      if (json_parse_flags_allow_leading_plus_sign & state->flags_bitset) {
+        return json_get_number_size(state);
+      } else {
+        // invalid value!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
     default:
       if ((state->offset + 4) <= state->size &&
           't' == state->src[state->offset + 0] &&
@@ -1093,6 +1104,7 @@ static void json_parse_value(struct json_parse_state_s *state,
       json_parse_array(state, (struct json_array_s*)value->payload);
       break;
     case '-':
+    case '+':
     case '0':
     case '1':
     case '2':
