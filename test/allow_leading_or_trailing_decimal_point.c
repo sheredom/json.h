@@ -27,11 +27,12 @@
 
 #include "json.h"
 
-UTEST(allow_c_style_comments, single_line) {
-  const char payload[] = "// a \n { // b \n \"foo\" // c \n : // d \n null // e \n } // f";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_c_style_comments, 0, 0, 0);
+UTEST(allow_leading_or_trailing_decimal_point, leading) {
+  const char payload[] = "{\"foo\" : .0}";
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_leading_or_trailing_decimal_point, 0, 0, 0);
   struct json_object_s* object = 0;
   struct json_value_s* value2 = 0;
+  struct json_number_s* number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -53,17 +54,25 @@ UTEST(allow_c_style_comments, single_line) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s* )value2->payload;
+
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ(".0", number->number);
+  ASSERT_EQ(strlen(".0"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_c_style_comments, multi_line) {
-  const char payload[] = "/* a */ { /* b */ \"foo\" /* c1 \n c2 */ : /* d */ null /* e1 \n e2 */ } /* f */";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_c_style_comments, 0, 0, 0);
+UTEST(allow_leading_or_trailing_decimal_point, trailing) {
+  const char payload[] = "{\"foo\" : 0.}";
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_leading_or_trailing_decimal_point, 0, 0, 0);
   struct json_object_s* object = 0;
   struct json_value_s* value2 = 0;
+  struct json_number_s* number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -85,17 +94,25 @@ UTEST(allow_c_style_comments, multi_line) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s* )value2->payload;
+
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("0.", number->number);
+  ASSERT_EQ(strlen("0."), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_c_style_comments, multiple) {
-  const char payload[] = "{/**/ /**/\"foo\" : null}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_c_style_comments, 0, 0, 0);
+UTEST(allow_leading_or_trailing_decimal_point, sign_before_leading) {
+  const char payload[] = "{\"foo\" : -.0}";
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_leading_or_trailing_decimal_point, 0, 0, 0);
   struct json_object_s* object = 0;
   struct json_value_s* value2 = 0;
+  struct json_number_s* number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -117,10 +134,48 @@ UTEST(allow_c_style_comments, multiple) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s* )value2->payload;
+
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("-.0", number->number);
+  ASSERT_EQ(strlen("-.0"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
+UTEST(allow_leading_or_trailing_decimal_point, forgot_to_specify_flag_leading) {
+  const char payload[] = "{\"foo\" : .0}";
+  struct json_parse_result_s result;
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  ASSERT_EQ(9, result.error_offset);
+  ASSERT_EQ(1, result.error_line_no);
+  ASSERT_EQ(9, result.error_row_no);
+}
 
+UTEST(allow_leading_or_trailing_decimal_point, forgot_to_specify_flag_trailing) {
+  const char payload[] = "{\"foo\" : 0.}";
+  struct json_parse_result_s result;
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  ASSERT_EQ(11, result.error_offset);
+  ASSERT_EQ(1, result.error_line_no);
+  ASSERT_EQ(11, result.error_row_no);
+}
+
+UTEST(allow_leading_or_trailing_decimal_point, only_decimal_point) {
+  const char payload[] = "{\"foo\" : .}";
+  struct json_parse_result_s result;
+  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_leading_or_trailing_decimal_point, 0, 0, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  ASSERT_EQ(10, result.error_offset);
+  ASSERT_EQ(1, result.error_line_no);
+  ASSERT_EQ(10, result.error_row_no);
+}

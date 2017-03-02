@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_leading_plus_sign, lowercase_x_all_possible_digits) {
+UTEST(allow_leading_plus_sign, lowercase_x_all_possible_digits) {
   const char payload[] = "{\"foo\" : +0}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_leading_plus_sign, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -67,7 +67,7 @@ TESTCASE(allow_leading_plus_sign, lowercase_x_all_possible_digits) {
   free(value);
 }
 
-TESTCASE(allow_leading_plus_sign, forgot_to_specify_flag) {
+UTEST(allow_leading_plus_sign, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : +0}";
   struct json_parse_result_s result;
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);

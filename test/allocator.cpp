@@ -29,7 +29,7 @@
 
 #include "json.h"
 
-TESTCASE(allocator, malloc) {
+UTEST(allocator, malloc) {
   struct _ {
     static void* alloc(void*, size_t size) {
       return malloc(size);
@@ -51,7 +51,7 @@ TESTCASE(allocator, malloc) {
   free(value);
 }
 
-TESTCASE(allocator, static_data) {
+UTEST(allocator, static_data) {
   struct _ {
     static void* alloc(void*, size_t size) {
       static char data[256];
@@ -72,7 +72,7 @@ TESTCASE(allocator, static_data) {
   ASSERT_EQ(0, object->length);
 }
 
-TESTCASE(allocator, null) {
+UTEST(allocator, null) {
   struct _ {
     static void* alloc(void*, size_t) {
       return 0;
@@ -92,7 +92,7 @@ TESTCASE(allocator, null) {
   ASSERT_EQ(0, result.error_row_no);
 }
 
-TESTCASE(allocator, user_data) {
+UTEST(allocator, user_data) {
   struct _ {
     static void* alloc(void* user_data, size_t) {
       return user_data;

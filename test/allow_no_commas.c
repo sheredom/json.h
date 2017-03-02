@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_no_commas, object_one) {
+UTEST(allow_no_commas, object_one) {
   const char payload[] = "{\"foo\" : true \"bar\" : false}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -76,7 +76,7 @@ TESTCASE(allow_no_commas, object_one) {
   free(value);
 }
 
-TESTCASE(allow_no_commas, object_two) {
+UTEST(allow_no_commas, object_two) {
   const char payload[] = "{\"foo\" : \"yada\"\"bar\" : null}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -135,7 +135,7 @@ TESTCASE(allow_no_commas, object_two) {
   free(value);
 }
 
-TESTCASE(allow_no_commas, array_one) {
+UTEST(allow_no_commas, array_one) {
   const char payload[] = "[false true]";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
   struct json_array_s* array = 0;

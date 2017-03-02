@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_equals_in_object, string) {
+UTEST(allow_equals_in_object, string) {
   const char payload[] = "{\"foo\" = \"Heyo, gaia?\"}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -67,7 +67,7 @@ TESTCASE(allow_equals_in_object, string) {
   free(value);
 }
 
-TESTCASE(allow_equals_in_object, number) {
+UTEST(allow_equals_in_object, number) {
   const char payload[] = "{\"foo\" = -0.123e-42}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -107,7 +107,7 @@ TESTCASE(allow_equals_in_object, number) {
   free(value);
 }
 
-TESTCASE(allow_equals_in_object, object) {
+UTEST(allow_equals_in_object, object) {
   const char payload[] = "{\"foo\" = {}}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -145,7 +145,7 @@ TESTCASE(allow_equals_in_object, object) {
   free(value);
 }
 
-TESTCASE(allow_equals_in_object, array) {
+UTEST(allow_equals_in_object, array) {
   const char payload[] = "{\"foo\" = []}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -183,7 +183,7 @@ TESTCASE(allow_equals_in_object, array) {
   free(value);
 }
 
-TESTCASE(allow_equals_in_object, true) {
+UTEST(allow_equals_in_object, true) {
   const char payload[] = "{\"foo\" = true}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -215,7 +215,7 @@ TESTCASE(allow_equals_in_object, true) {
   free(value);
 }
 
-TESTCASE(allow_equals_in_object, false) {
+UTEST(allow_equals_in_object, false) {
   const char payload[] = "{\"foo\" = false}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -247,7 +247,7 @@ TESTCASE(allow_equals_in_object, false) {
   free(value);
 }
 
-TESTCASE(allow_equals_in_object, null) {
+UTEST(allow_equals_in_object, null) {
   const char payload[] = "{\"foo\" = null}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_equals_in_object, 0, 0, 0);
   struct json_object_s* object = 0;

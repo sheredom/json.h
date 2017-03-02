@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(object, empty) {
+UTEST(object, empty) {
   const char payload[] = "{}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -44,7 +44,7 @@ TESTCASE(object, empty) {
   free(value);
 }
 
-TESTCASE(object, string) {
+UTEST(object, string) {
   const char payload[] = "{\"foo\" : \"Heyo, gaia?\"}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -84,7 +84,7 @@ TESTCASE(object, string) {
   free(value);
 }
 
-TESTCASE(object, number) {
+UTEST(object, number) {
   const char payload[] = "{\"foo\" : -0.123e-42}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -124,7 +124,7 @@ TESTCASE(object, number) {
   free(value);
 }
 
-TESTCASE(object, object) {
+UTEST(object, object) {
   const char payload[] = "{\"foo\" : {}}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -162,7 +162,7 @@ TESTCASE(object, object) {
   free(value);
 }
 
-TESTCASE(object, array) {
+UTEST(object, array) {
   const char payload[] = "{\"foo\" : []}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -200,7 +200,7 @@ TESTCASE(object, array) {
   free(value);
 }
 
-TESTCASE(object, true) {
+UTEST(object, true) {
   const char payload[] = "{\"foo\" : true}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -232,7 +232,7 @@ TESTCASE(object, true) {
   free(value);
 }
 
-TESTCASE(object, false) {
+UTEST(object, false) {
   const char payload[] = "{\"foo\" : false}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -264,7 +264,7 @@ TESTCASE(object, false) {
   free(value);
 }
 
-TESTCASE(object, null) {
+UTEST(object, null) {
   const char payload[] = "{\"foo\" : null}";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_object_s* object = 0;
@@ -296,7 +296,7 @@ TESTCASE(object, null) {
   free(value);
 }
 
-TESTCASE(array, empty) {
+UTEST(array, empty) {
   const char payload[] = "[]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -313,7 +313,7 @@ TESTCASE(array, empty) {
   free(value);
 }
 
-TESTCASE(array, string) {
+UTEST(array, string) {
   const char payload[] = "[\"Heyo, gaia?\"]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -347,7 +347,7 @@ TESTCASE(array, string) {
   free(value);
 }
 
-TESTCASE(array, number) {
+UTEST(array, number) {
   const char payload[] = "[-0.123e-42]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -381,7 +381,7 @@ TESTCASE(array, number) {
   free(value);
 }
 
-TESTCASE(array, true) {
+UTEST(array, true) {
   const char payload[] = "[true]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -407,7 +407,7 @@ TESTCASE(array, true) {
   free(value);
 }
 
-TESTCASE(array, false) {
+UTEST(array, false) {
   const char payload[] = "[false]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -433,7 +433,7 @@ TESTCASE(array, false) {
   free(value);
 }
 
-TESTCASE(array, null) {
+UTEST(array, null) {
   const char payload[] = "[null]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -459,13 +459,13 @@ TESTCASE(array, null) {
   free(value);
 }
 
-TESTCASE(no_global_object, empty) {
+UTEST(no_global_object, empty) {
   const char payload[] = "";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   ASSERT_FALSE(value);
 }
 
-TESTCASE(number, zero) {
+UTEST(number, zero) {
   const char payload[] = "[0]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -495,7 +495,7 @@ TESTCASE(number, zero) {
   free(value);
 }
 
-TESTCASE(number, positive) {
+UTEST(number, positive) {
   const char payload[] = "[42]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -525,7 +525,7 @@ TESTCASE(number, positive) {
   free(value);
 }
 
-TESTCASE(number, minus) {
+UTEST(number, minus) {
   const char payload[] = "[-0]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -555,7 +555,7 @@ TESTCASE(number, minus) {
   free(value);
 }
 
-TESTCASE(number, decimal) {
+UTEST(number, decimal) {
   const char payload[] = "[0.4]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -585,7 +585,7 @@ TESTCASE(number, decimal) {
   free(value);
 }
 
-TESTCASE(number, smalle) {
+UTEST(number, smalle) {
   const char payload[] = "[1e4]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -615,7 +615,7 @@ TESTCASE(number, smalle) {
   free(value);
 }
 
-TESTCASE(number, bige) {
+UTEST(number, bige) {
   const char payload[] = "[1E4]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -645,7 +645,7 @@ TESTCASE(number, bige) {
   free(value);
 }
 
-TESTCASE(number, eplus) {
+UTEST(number, eplus) {
   const char payload[] = "[1e+4]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -675,7 +675,7 @@ TESTCASE(number, eplus) {
   free(value);
 }
 
-TESTCASE(number, eminus) {
+UTEST(number, eminus) {
   const char payload[] = "[1e-4]";
   struct json_value_s* value = json_parse(payload, strlen(payload));
   struct json_array_s* array = 0;
@@ -705,7 +705,7 @@ TESTCASE(number, eminus) {
   free(value);
 }
 
-TESTCASE(object, missing_closing_bracket) {
+UTEST(object, missing_closing_bracket) {
   const char payload[] = "{\n  \"dps\":[1, 2, {\"a\" : true]\n}";
 
   struct json_parse_result_s result;
@@ -721,7 +721,7 @@ TESTCASE(object, missing_closing_bracket) {
   ASSERT_EQ(27, result.error_row_no);
 }
 
-TESTCASE(array, missing_closing_bracket) {
+UTEST(array, missing_closing_bracket) {
   const char payload[] = "{\n  \"dps\":[1, 2, 3\n}";
 
   struct json_parse_result_s result;

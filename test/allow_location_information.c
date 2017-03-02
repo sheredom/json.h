@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_location_information, object_one) {
+UTEST(allow_location_information, object_one) {
   const char payload[] = "{\"foo\" : true,\n\"bar\" : false}";
   struct json_value_ex_s* value_ex = (struct json_value_ex_s *)json_parse_ex(payload, strlen(payload), json_parse_flags_allow_location_information, 0, 0, 0);
   struct json_object_s* object = 0;

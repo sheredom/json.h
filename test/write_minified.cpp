@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(write_minified, object_empty) {
+UTEST(write_minified, object_empty) {
   struct json_object_s object = {0, 0};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
@@ -40,7 +40,7 @@ TESTCASE(write_minified, object_empty) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_string) {
+UTEST(write_minified, object_string) {
   struct json_string_s sub = {"yaba daba", strlen("yaba daba")};
   struct json_value_s sub_value = {&sub, json_type_string};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -57,7 +57,7 @@ TESTCASE(write_minified, object_string) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_number) {
+UTEST(write_minified, object_number) {
   struct json_number_s sub = {"-0.234e+42", strlen("-0.234e+42")};
   struct json_value_s sub_value = {&sub, json_type_number};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -74,7 +74,7 @@ TESTCASE(write_minified, object_number) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_object) {
+UTEST(write_minified, object_object) {
   struct json_object_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -91,7 +91,7 @@ TESTCASE(write_minified, object_object) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_array) {
+UTEST(write_minified, object_array) {
   struct json_array_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -108,7 +108,7 @@ TESTCASE(write_minified, object_array) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_true) {
+UTEST(write_minified, object_true) {
   struct json_value_s sub_value = {0, json_type_true};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
@@ -124,7 +124,7 @@ TESTCASE(write_minified, object_true) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_false) {
+UTEST(write_minified, object_false) {
   struct json_value_s sub_value = {0, json_type_false};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
@@ -140,7 +140,7 @@ TESTCASE(write_minified, object_false) {
   free(minified);
 }
 
-TESTCASE(write_minified, object_null) {
+UTEST(write_minified, object_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
@@ -156,7 +156,7 @@ TESTCASE(write_minified, object_null) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_empty) {
+UTEST(write_minified, array_empty) {
   struct json_array_s array = {0, 0};
   struct json_value_s value = {&array, json_type_array};
   size_t size = 0;
@@ -169,7 +169,7 @@ TESTCASE(write_minified, array_empty) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_string) {
+UTEST(write_minified, array_string) {
   struct json_string_s sub = {"yaba daba", strlen("yaba daba")};
   struct json_value_s sub_value = {&sub, json_type_string};
   struct json_array_element_s element = {&sub_value, 0};
@@ -185,7 +185,7 @@ TESTCASE(write_minified, array_string) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_number) {
+UTEST(write_minified, array_number) {
   struct json_number_s sub = {"-0.234e+42", strlen("-0.234e+42")};
   struct json_value_s sub_value = {&sub, json_type_number};
   struct json_array_element_s element = {&sub_value, 0};
@@ -201,7 +201,7 @@ TESTCASE(write_minified, array_number) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_object) {
+UTEST(write_minified, array_object) {
   struct json_object_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_array_element_s element = {&sub_value, 0};
@@ -217,7 +217,7 @@ TESTCASE(write_minified, array_object) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_array) {
+UTEST(write_minified, array_array) {
   struct json_array_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_array_element_s element = {&sub_value, 0};
@@ -233,7 +233,7 @@ TESTCASE(write_minified, array_array) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_true) {
+UTEST(write_minified, array_true) {
   struct json_value_s sub_value = {0, json_type_true};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
@@ -248,7 +248,7 @@ TESTCASE(write_minified, array_true) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_false) {
+UTEST(write_minified, array_false) {
   struct json_value_s sub_value = {0, json_type_false};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
@@ -263,7 +263,7 @@ TESTCASE(write_minified, array_false) {
   free(minified);
 }
 
-TESTCASE(write_minified, array_null) {
+UTEST(write_minified, array_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};

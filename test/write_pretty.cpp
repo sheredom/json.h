@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(write_pretty, object_empty) {
+UTEST(write_pretty, object_empty) {
   struct json_object_s object = {0, 0};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
@@ -40,7 +40,7 @@ TESTCASE(write_pretty, object_empty) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_string) {
+UTEST(write_pretty, object_string) {
   struct json_string_s sub = {"yaba daba", strlen("yaba daba")};
   struct json_value_s sub_value = {&sub, json_type_string};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -60,7 +60,7 @@ TESTCASE(write_pretty, object_string) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_number) {
+UTEST(write_pretty, object_number) {
   struct json_number_s sub = {"-0.234e+42", strlen("-0.234e+42")};
   struct json_value_s sub_value = {&sub, json_type_number};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -80,7 +80,7 @@ TESTCASE(write_pretty, object_number) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_object) {
+UTEST(write_pretty, object_object) {
   struct json_object_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -100,7 +100,7 @@ TESTCASE(write_pretty, object_object) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_array) {
+UTEST(write_pretty, object_array) {
   struct json_array_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -120,7 +120,7 @@ TESTCASE(write_pretty, object_array) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_true) {
+UTEST(write_pretty, object_true) {
   struct json_value_s sub_value = {0, json_type_true};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
@@ -139,7 +139,7 @@ TESTCASE(write_pretty, object_true) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_false) {
+UTEST(write_pretty, object_false) {
   struct json_value_s sub_value = {0, json_type_false};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
@@ -158,7 +158,7 @@ TESTCASE(write_pretty, object_false) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_null) {
+UTEST(write_pretty, object_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
@@ -177,7 +177,7 @@ TESTCASE(write_pretty, object_null) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_empty) {
+UTEST(write_pretty, array_empty) {
   struct json_array_s array = {0, 0};
   struct json_value_s value = {&array, json_type_array};
   size_t size = 0;
@@ -190,7 +190,7 @@ TESTCASE(write_pretty, array_empty) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_string) {
+UTEST(write_pretty, array_string) {
   struct json_string_s sub = {"yaba daba", strlen("yaba daba")};
   struct json_value_s sub_value = {&sub, json_type_string};
   struct json_array_element_s element = {&sub_value, 0};
@@ -209,7 +209,7 @@ TESTCASE(write_pretty, array_string) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_number) {
+UTEST(write_pretty, array_number) {
   struct json_number_s sub = {"-0.234e+42", strlen("-0.234e+42")};
   struct json_value_s sub_value = {&sub, json_type_number};
   struct json_array_element_s element = {&sub_value, 0};
@@ -228,7 +228,7 @@ TESTCASE(write_pretty, array_number) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_object) {
+UTEST(write_pretty, array_object) {
   struct json_object_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_array_element_s element = {&sub_value, 0};
@@ -247,7 +247,7 @@ TESTCASE(write_pretty, array_object) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_array) {
+UTEST(write_pretty, array_array) {
   struct json_array_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_array_element_s element = {&sub_value, 0};
@@ -266,7 +266,7 @@ TESTCASE(write_pretty, array_array) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_true) {
+UTEST(write_pretty, array_true) {
   struct json_value_s sub_value = {0, json_type_true};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
@@ -284,7 +284,7 @@ TESTCASE(write_pretty, array_true) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_false) {
+UTEST(write_pretty, array_false) {
   struct json_value_s sub_value = {0, json_type_false};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
@@ -302,7 +302,7 @@ TESTCASE(write_pretty, array_false) {
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_null) {
+UTEST(write_pretty, array_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};

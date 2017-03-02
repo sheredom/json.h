@@ -505,6 +505,7 @@ static int json_get_array_size(struct json_parse_state_s *state) {
 
 static int json_get_number_size(struct json_parse_state_s *state) {
   size_t initial_offset = state->offset;
+  int had_leading_digits = 0;
 
   state->dom_size += sizeof(struct json_number_s);
 
@@ -536,15 +537,23 @@ static int json_get_number_size(struct json_parse_state_s *state) {
       if ((state->offset < state->size) &&
           !('0' <= state->src[state->offset] &&
             state->src[state->offset] <= '9')) {
-        // a leading '-' must be immediately followed by any digit!
-        state->error = json_parse_error_invalid_number_format;
-        return 1;
+        // check if we are allowing leading '.'
+        if (!(json_parse_flags_allow_leading_or_trailing_decimal_point & state->flags_bitset) ||
+          ('.' != state->src[state->offset])) {
+          // a leading '-' must be immediately followed by any digit!
+          state->error = json_parse_error_invalid_number_format;
+          return 1;
+        }
       }
     }
 
     if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
       // skip valid '0'
       state->offset++;
+
+	  // we need to record whether we had any leading digits for checks later
+	  had_leading_digits = 1;
+
       if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
                                             state->src[state->offset] <= '9')) {
         // a leading '0' must not be immediately followed by any digit!
@@ -557,10 +566,23 @@ static int json_get_number_size(struct json_parse_state_s *state) {
     while ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
                                              state->src[state->offset] <= '9')) {
       state->offset++;
+
+      // we need to record whether we had any leading digits for checks later
+      had_leading_digits = 1;
     }
 
     if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
       state->offset++;
+
+      if (!('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9')) {
+        if (!(json_parse_flags_allow_leading_or_trailing_decimal_point & state->flags_bitset) ||
+          !had_leading_digits) {
+          // a decimal point must be followed by at least one digit
+          state->error = json_parse_error_invalid_number_format;
+          return 1;
+        }
+      }
 
       // a decimal point can be followed by more digits of course!
       while ((state->offset < state->size) &&
@@ -664,6 +686,14 @@ static int json_get_value_size(struct json_parse_state_s *state,
       return json_get_number_size(state);
     case '+':
       if (json_parse_flags_allow_leading_plus_sign & state->flags_bitset) {
+        return json_get_number_size(state);
+      } else {
+        // invalid value!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
+    case '.':
+      if (json_parse_flags_allow_leading_or_trailing_decimal_point & state->flags_bitset) {
         return json_get_number_size(state);
       } else {
         // invalid value!
@@ -1115,6 +1145,7 @@ static void json_parse_value(struct json_parse_state_s *state,
     case '7':
     case '8':
     case '9':
+	case '.':
       value->type = json_type_number;
       value->payload = state->dom;
       state->dom += sizeof(struct json_number_s);

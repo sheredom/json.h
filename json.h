@@ -83,7 +83,11 @@ enum json_parse_flags_e {
   // allow numbers to be hexadecimal
   json_parse_flags_allow_hexadecimal_numbers = 0x200,
 
+  // allow numbers like +123 to be parsed
   json_parse_flags_allow_leading_plus_sign = 0x400,
+
+  // allow numbers like .0123 or 123. to be parsed
+  json_parse_flags_allow_leading_or_trailing_decimal_point = 0x800,
 
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.

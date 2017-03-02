@@ -27,7 +27,7 @@
 
 #include "json.h"
 
-TESTCASE(allow_single_quoted_strings, quoted_key) {
+UTEST(allow_single_quoted_strings, quoted_key) {
   const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -67,7 +67,7 @@ TESTCASE(allow_single_quoted_strings, quoted_key) {
   free(value);
 }
 
-TESTCASE(allow_single_quoted_strings, quoted_value) {
+UTEST(allow_single_quoted_strings, quoted_value) {
   const char payload[] = "{\"foo\" : 'Heyo, gaia?'}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -107,7 +107,7 @@ TESTCASE(allow_single_quoted_strings, quoted_value) {
   free(value);
 }
 
-TESTCASE(allow_single_quoted_strings, quoted_key_and_value) {
+UTEST(allow_single_quoted_strings, quoted_key_and_value) {
   const char payload[] = "{'foo' : 'Heyo, gaia?'}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -147,7 +147,7 @@ TESTCASE(allow_single_quoted_strings, quoted_key_and_value) {
   free(value);
 }
 
-TESTCASE(allow_single_quoted_strings, double_quote_in_string) {
+UTEST(allow_single_quoted_strings, double_quote_in_string) {
   const char payload[] = "{\"foo\" : 'Heyo, \" gaia?'}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -187,7 +187,7 @@ TESTCASE(allow_single_quoted_strings, double_quote_in_string) {
   free(value);
 }
 
-TESTCASE(allow_single_quoted_strings, single_quote_in_string) {
+UTEST(allow_single_quoted_strings, single_quote_in_string) {
   const char payload[] = "{\"foo\" : \"Heyo, ' gaia?\"}";
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
   struct json_object_s* object = 0;
@@ -227,7 +227,7 @@ TESTCASE(allow_single_quoted_strings, single_quote_in_string) {
   free(value);
 }
 
-TESTCASE(allow_single_quoted_strings, forgot_to_specify_flag) {
+UTEST(allow_single_quoted_strings, forgot_to_specify_flag) {
   const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
   struct json_parse_result_s result;
   struct json_value_s* value = json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
