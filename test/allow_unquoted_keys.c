@@ -29,15 +29,16 @@
 
 UTEST(allow_unquoted_keys, one_key) {
   const char payload[] = "{foo : null}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -49,7 +50,8 @@ UTEST(allow_unquoted_keys, one_key) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
@@ -61,16 +63,17 @@ UTEST(allow_unquoted_keys, one_key) {
 
 UTEST(allow_unquoted_keys, mixed_keys) {
   const char payload[] = "{foo : true, \"heyo\" : false}";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
-  struct json_object_s* object = 0;
-  struct json_object_element_s* element = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
+  struct json_object_s *object = 0;
+  struct json_object_element_s *element = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(2, object->length);
@@ -113,7 +116,9 @@ UTEST(allow_unquoted_keys, mixed_keys) {
 UTEST(allow_unquoted_keys, value_unquoted_fails) {
   const char payload[] = "{foo\n: heyo}";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, &result);
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_unquoted_keys, 0, 0, &result);
 
   ASSERT_FALSE(value);
 

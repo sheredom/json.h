@@ -27,14 +27,13 @@
 
 #include "json.h"
 
-UTEST(allow_single_quoted_strings, quoted_key) {
-  const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
-  struct json_value_s *value =
-      json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
+UTEST(allow_inf_and_nan, Infinity) {
+  const char payload[] = "{\"foo\" : Infinity}";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_inf_and_nan, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -58,26 +57,25 @@ UTEST(allow_single_quoted_strings, quoted_key) {
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
-  ASSERT_EQ(json_type_string, value2->type);
+  ASSERT_EQ(json_type_number, value2->type);
 
-  string = (struct json_string_s *)value2->payload;
+  number = (struct json_number_s *)value2->payload;
 
-  ASSERT_TRUE(string->string);
-  ASSERT_STREQ("Heyo, gaia?", string->string);
-  ASSERT_EQ(strlen("Heyo, gaia?"), string->string_size);
-  ASSERT_EQ(strlen(string->string), string->string_size);
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("Infinity", number->number);
+  ASSERT_EQ(strlen("Infinity"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_single_quoted_strings, quoted_value) {
-  const char payload[] = "{\"foo\" : 'Heyo, gaia?'}";
-  struct json_value_s *value =
-      json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
+UTEST(allow_inf_and_nan, InfinityWithLeadingSign) {
+  const char payload[] = "{\"foo\" : -Infinity}";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_inf_and_nan, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -101,26 +99,25 @@ UTEST(allow_single_quoted_strings, quoted_value) {
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
-  ASSERT_EQ(json_type_string, value2->type);
+  ASSERT_EQ(json_type_number, value2->type);
 
-  string = (struct json_string_s *)value2->payload;
+  number = (struct json_number_s *)value2->payload;
 
-  ASSERT_TRUE(string->string);
-  ASSERT_STREQ("Heyo, gaia?", string->string);
-  ASSERT_EQ(strlen("Heyo, gaia?"), string->string_size);
-  ASSERT_EQ(strlen(string->string), string->string_size);
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("-Infinity", number->number);
+  ASSERT_EQ(strlen("-Infinity"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_single_quoted_strings, quoted_key_and_value) {
-  const char payload[] = "{'foo' : 'Heyo, gaia?'}";
-  struct json_value_s *value =
-      json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
+UTEST(allow_inf_and_nan, NaN) {
+  const char payload[] = "{\"foo\" : NaN}";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_inf_and_nan, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -144,26 +141,25 @@ UTEST(allow_single_quoted_strings, quoted_key_and_value) {
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
-  ASSERT_EQ(json_type_string, value2->type);
+  ASSERT_EQ(json_type_number, value2->type);
 
-  string = (struct json_string_s *)value2->payload;
+  number = (struct json_number_s *)value2->payload;
 
-  ASSERT_TRUE(string->string);
-  ASSERT_STREQ("Heyo, gaia?", string->string);
-  ASSERT_EQ(strlen("Heyo, gaia?"), string->string_size);
-  ASSERT_EQ(strlen(string->string), string->string_size);
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("NaN", number->number);
+  ASSERT_EQ(strlen("NaN"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_single_quoted_strings, double_quote_in_string) {
-  const char payload[] = "{\"foo\" : 'Heyo, \" gaia?'}";
-  struct json_value_s *value =
-      json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
+UTEST(allow_inf_and_nan, NaNWithLeadingSign) {
+  const char payload[] = "{\"foo\" : -NaN}";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_inf_and_nan, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -187,69 +183,26 @@ UTEST(allow_single_quoted_strings, double_quote_in_string) {
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
-  ASSERT_EQ(json_type_string, value2->type);
+  ASSERT_EQ(json_type_number, value2->type);
 
-  string = (struct json_string_s *)value2->payload;
+  number = (struct json_number_s *)value2->payload;
 
-  ASSERT_TRUE(string->string);
-  ASSERT_STREQ("Heyo, \" gaia?", string->string);
-  ASSERT_EQ(strlen("Heyo, \" gaia?"), string->string_size);
-  ASSERT_EQ(strlen(string->string), string->string_size);
-
-  free(value);
-}
-
-UTEST(allow_single_quoted_strings, single_quote_in_string) {
-  const char payload[] = "{\"foo\" : \"Heyo, ' gaia?\"}";
-  struct json_value_s *value =
-      json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_single_quoted_strings, 0, 0, 0);
-  struct json_object_s *object = 0;
-  struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
-
-  ASSERT_TRUE(value);
-  ASSERT_TRUE(value->payload);
-  ASSERT_EQ(json_type_object, value->type);
-
-  object = (struct json_object_s *)value->payload;
-
-  ASSERT_TRUE(object->start);
-  ASSERT_EQ(1, object->length);
-
-  ASSERT_TRUE(object->start->name);
-  ASSERT_TRUE(object->start->value);
-  ASSERT_FALSE(object->start->next); // we have only one element
-
-  ASSERT_TRUE(object->start->name->string);
-  ASSERT_STREQ("foo", object->start->name->string);
-  ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string),
-            object->start->name->string_size);
-
-  value2 = object->start->value;
-
-  ASSERT_TRUE(value2->payload);
-  ASSERT_EQ(json_type_string, value2->type);
-
-  string = (struct json_string_s *)value2->payload;
-
-  ASSERT_TRUE(string->string);
-  ASSERT_STREQ("Heyo, ' gaia?", string->string);
-  ASSERT_EQ(strlen("Heyo, ' gaia?"), string->string_size);
-  ASSERT_EQ(strlen(string->string), string->string_size);
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("-NaN", number->number);
+  ASSERT_EQ(strlen("-NaN"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_single_quoted_strings, forgot_to_specify_flag) {
-  const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
+UTEST(allow_inf_and_nan, forgot_to_specify_flag_Infinity) {
+  const char payload[] = "{\"foo\" : Infinity}";
   struct json_parse_result_s result;
   struct json_value_s *value =
       json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
   ASSERT_FALSE(value);
-  ASSERT_EQ(json_parse_error_invalid_string, result.error);
-  ASSERT_EQ(1, result.error_offset);
+  ASSERT_EQ(json_parse_error_invalid_value, result.error);
+  ASSERT_EQ(9, result.error_offset);
   ASSERT_EQ(1, result.error_line_no);
-  ASSERT_EQ(1, result.error_row_no);
+  ASSERT_EQ(9, result.error_row_no);
 }

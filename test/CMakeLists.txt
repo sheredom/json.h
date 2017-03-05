@@ -36,6 +36,7 @@ add_executable(json_test
   allow_equals_in_object.c
   allow_global_object.c
   allow_hexadecimal_numbers.c
+  allow_inf_and_nan.c
   allow_leading_or_trailing_decimal_point.c
   allow_leading_plus_sign.c
   allow_location_information.c

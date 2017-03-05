@@ -527,6 +527,9 @@ static int json_get_number_size(struct json_parse_state_s *state) {
       state->offset++;
     }
   } else {
+    int found_sign = 0;
+    int inf_or_nan = 0;
+
     if ((state->offset < state->size) && (
       ('-' == state->src[state->offset]) ||
       ((json_parse_flags_allow_leading_plus_sign & state->flags_bitset) &&
@@ -534,16 +537,60 @@ static int json_get_number_size(struct json_parse_state_s *state) {
       // skip valid leading '-' or '+'
       state->offset++;
 
-      if ((state->offset < state->size) &&
-          !('0' <= state->src[state->offset] &&
-            state->src[state->offset] <= '9')) {
-        // check if we are allowing leading '.'
-        if (!(json_parse_flags_allow_leading_or_trailing_decimal_point & state->flags_bitset) ||
-          ('.' != state->src[state->offset])) {
-          // a leading '-' must be immediately followed by any digit!
-          state->error = json_parse_error_invalid_number_format;
-          return 1;
+      found_sign = 1;
+    }
+
+    if (json_parse_flags_allow_inf_and_nan & state->flags_bitset) {
+      const char inf[9] = "Infinity";
+      const size_t inf_strlen = sizeof(inf) - 1;
+      const char nan[4] = "NaN";
+      const size_t nan_strlen = sizeof(nan) - 1;
+
+      if (state->offset + inf_strlen < state->size) {
+        int found = 1;
+        for (unsigned i = 0; i < inf_strlen; i++) {
+          if (inf[i] != state->src[state->offset + i]) {
+            found = 0;
+            break;
+          }
         }
+
+        if (found) {
+          // We found our special 'Infinity' keyword!
+          state->offset += inf_strlen;
+
+          inf_or_nan = 1;
+        }
+      }
+
+      if (state->offset + nan_strlen < state->size) {
+        int found = 1;
+        for (unsigned i = 0; i < nan_strlen; i++) {
+          if (nan[i] != state->src[state->offset + i]) {
+            found = 0;
+            break;
+          }
+        }
+
+        if (found) {
+          // We found our special 'NaN' keyword!
+          state->offset += nan_strlen;
+
+          inf_or_nan = 1;
+        }
+      }
+    }
+
+    if (found_sign && !inf_or_nan && (state->offset < state->size) &&
+        !('0' <= state->src[state->offset] &&
+          state->src[state->offset] <= '9')) {
+      // check if we are allowing leading '.'
+      if (!(json_parse_flags_allow_leading_or_trailing_decimal_point &
+            state->flags_bitset) ||
+          ('.' != state->src[state->offset])) {
+        // a leading '-' must be immediately followed by any digit!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
       }
     }
 
@@ -723,6 +770,23 @@ static int json_get_value_size(struct json_parse_state_s *state,
                  'l' == state->src[state->offset + 3]) {
         state->offset += 4;
         return 0;
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 3) <= state->size &&
+                 'N' == state->src[state->offset + 0] &&
+                 'a' == state->src[state->offset + 1] &&
+                 'N' == state->src[state->offset + 2]) {
+        return json_get_number_size(state);
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 8) <= state->size &&
+                 'I' == state->src[state->offset + 0] &&
+                 'n' == state->src[state->offset + 1] &&
+                 'f' == state->src[state->offset + 2] &&
+                 'i' == state->src[state->offset + 3] &&
+                 'n' == state->src[state->offset + 4] &&
+                 'i' == state->src[state->offset + 5] &&
+                 't' == state->src[state->offset + 6] &&
+                 'y' == state->src[state->offset + 7]) {
+        return json_get_number_size(state);
       }
 
       // invalid value!
@@ -1095,6 +1159,31 @@ static void json_parse_number(struct json_parse_state_s *state,
     }
   }
 
+  if (json_parse_flags_allow_inf_and_nan & state->flags_bitset) {
+    const char inf[9] = "Infinity";
+    const size_t inf_strlen = sizeof(inf) - 1;
+    const char nan[4] = "NaN";
+    const size_t nan_strlen = sizeof(nan) - 1;
+
+    if (state->offset + inf_strlen < state->size) {
+      if ('I' == state->src[state->offset]) {
+        // We found our special 'Infinity' keyword!
+        for (unsigned i = 0; i < inf_strlen; i++) {
+          state->data[size++] = state->src[state->offset++];
+        }
+      }
+    }
+
+    if (state->offset + nan_strlen < state->size) {
+      if ('N' == state->src[state->offset]) {
+        // We found our special 'NaN' keyword!
+        for (unsigned i = 0; i < nan_strlen; i++) {
+          state->data[size++] = state->src[state->offset++];
+        }
+      }
+    }
+  }
+
   // record the size of the number
   number->number_size = size;
   // add null terminator to number string
@@ -1177,6 +1266,29 @@ static void json_parse_value(struct json_parse_state_s *state,
         value->type = json_type_null;
         value->payload = 0;
         state->offset += 4;
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 3) <= state->size &&
+                 'N' == state->src[state->offset + 0] &&
+                 'a' == state->src[state->offset + 1] &&
+                 'N' == state->src[state->offset + 2]) {
+        value->type = json_type_number;
+        value->payload = state->dom;
+        state->dom += sizeof(struct json_number_s);
+        json_parse_number(state, (struct json_number_s *)value->payload);
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 8) <= state->size &&
+                 'I' == state->src[state->offset + 0] &&
+                 'n' == state->src[state->offset + 1] &&
+                 'f' == state->src[state->offset + 2] &&
+                 'i' == state->src[state->offset + 3] &&
+                 'n' == state->src[state->offset + 4] &&
+                 'i' == state->src[state->offset + 5] &&
+                 't' == state->src[state->offset + 6] &&
+                 'y' == state->src[state->offset + 7]) {
+        value->type = json_type_number;
+        value->payload = state->dom;
+        state->dom += sizeof(struct json_number_s);
+        json_parse_number(state, (struct json_number_s *)value->payload);
       }
       break;
     }

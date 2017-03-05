@@ -89,6 +89,9 @@ enum json_parse_flags_e {
   // allow numbers like .0123 or 123. to be parsed
   json_parse_flags_allow_leading_or_trailing_decimal_point = 0x800,
 
+  // allow Infinity, -Infinity, NaN, -NaN
+  json_parse_flags_allow_inf_and_nan = 0x1000,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
@@ -98,14 +101,17 @@ enum json_parse_flags_e {
        json_parse_flags_allow_equals_in_object |
        json_parse_flags_allow_no_commas),
 
-  // allow JSON5 to be parsed. JSON5 is an enabling of a set of other parsing options.
+  // allow JSON5 to be parsed. JSON5 is an enabling of a set of other parsing
+  // options.
   json_parse_flags_allow_json5 =
-    (json_parse_flags_allow_trailing_comma |
-     json_parse_flags_allow_unquoted_keys |
-     json_parse_flags_allow_c_style_comments |
-     json_parse_flags_allow_single_quoted_strings |
-     json_parse_flags_allow_hexadecimal_numbers |
-     json_parse_flags_allow_leading_plus_sign)
+      (json_parse_flags_allow_trailing_comma |
+       json_parse_flags_allow_unquoted_keys |
+       json_parse_flags_allow_c_style_comments |
+       json_parse_flags_allow_single_quoted_strings |
+       json_parse_flags_allow_hexadecimal_numbers |
+       json_parse_flags_allow_leading_plus_sign |
+       json_parse_flags_allow_leading_or_trailing_decimal_point |
+       json_parse_flags_allow_inf_and_nan)
 };
 
 // Parse a JSON text file, returning a pointer to the root of the JSON

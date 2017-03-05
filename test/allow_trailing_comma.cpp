@@ -30,7 +30,9 @@
 UTEST(allow_trailing_comma, object_no_element) {
   const char payload[] = "{,}";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, &result);
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_trailing_comma, 0, 0, &result);
 
   ASSERT_FALSE(value);
 
@@ -42,21 +44,23 @@ UTEST(allow_trailing_comma, object_no_element) {
 
 UTEST(allow_trailing_comma, object_one_element) {
   const char payload[] = "{\"foo\" : true, }";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
-  struct json_object_s* object = 0;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
+  struct json_object_s *object = 0;
 
   ASSERT_TRUE(value);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
 
   ASSERT_TRUE(object->start->name->string);
-  ASSERT_STREQ("foo", (char* )object->start->name->string);
+  ASSERT_STREQ("foo", (char *)object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen((char* )object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen((char *)object->start->name->string),
+            object->start->name->string_size);
 
   ASSERT_TRUE(object->start->value);
   ASSERT_FALSE(object->start->value->payload);
@@ -69,14 +73,15 @@ UTEST(allow_trailing_comma, object_one_element) {
 
 UTEST(allow_trailing_comma, object_two_elements) {
   const char payload[] = "{\"foo\" : true, \"bar\" : false, }";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
-  struct json_object_s* object = 0;
-  struct json_object_element_s* element = 0;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
+  struct json_object_s *object = 0;
+  struct json_object_element_s *element = 0;
 
   ASSERT_TRUE(value);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(2, object->length);
@@ -84,9 +89,9 @@ UTEST(allow_trailing_comma, object_two_elements) {
   element = object->start;
 
   ASSERT_TRUE(element->name->string);
-  ASSERT_STREQ("foo", (char* )element->name->string);
+  ASSERT_STREQ("foo", (char *)element->name->string);
   ASSERT_EQ(strlen("foo"), element->name->string_size);
-  ASSERT_EQ(strlen((char* )element->name->string), element->name->string_size);
+  ASSERT_EQ(strlen((char *)element->name->string), element->name->string_size);
 
   ASSERT_TRUE(element->value);
   ASSERT_FALSE(element->value->payload);
@@ -95,9 +100,9 @@ UTEST(allow_trailing_comma, object_two_elements) {
   element = element->next;
 
   ASSERT_TRUE(element->name->string);
-  ASSERT_STREQ("bar", (char* )element->name->string);
+  ASSERT_STREQ("bar", (char *)element->name->string);
   ASSERT_EQ(strlen("bar"), element->name->string_size);
-  ASSERT_EQ(strlen((char* )element->name->string), element->name->string_size);
+  ASSERT_EQ(strlen((char *)element->name->string), element->name->string_size);
 
   ASSERT_TRUE(element->value);
   ASSERT_FALSE(element->value->payload);
@@ -108,11 +113,12 @@ UTEST(allow_trailing_comma, object_two_elements) {
   free(value);
 }
 
-
 UTEST(allow_trailing_comma, array_no_element) {
   const char payload[] = "[,]";
   struct json_parse_result_s result;
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, &result);
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_trailing_comma, 0, 0, &result);
 
   ASSERT_FALSE(value);
 
@@ -124,13 +130,14 @@ UTEST(allow_trailing_comma, array_no_element) {
 
 UTEST(allow_trailing_comma, array_one_element) {
   const char payload[] = "[ true, ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
-  struct json_array_s* object = 0;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
+  struct json_array_s *object = 0;
 
   ASSERT_TRUE(value);
   ASSERT_EQ(json_type_array, value->type);
 
-  object = (struct json_array_s* )value->payload;
+  object = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -146,14 +153,15 @@ UTEST(allow_trailing_comma, array_one_element) {
 
 UTEST(allow_trailing_comma, array_two_elements) {
   const char payload[] = "[ true, false, ]";
-  struct json_value_s* value = json_parse_ex(payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
-  struct json_array_s* object = 0;
-  struct json_array_element_s* element = 0;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
+  struct json_array_s *object = 0;
+  struct json_array_element_s *element = 0;
 
   ASSERT_TRUE(value);
   ASSERT_EQ(json_type_array, value->type);
 
-  object = (struct json_array_s* )value->payload;
+  object = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(2, object->length);
