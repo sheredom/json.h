@@ -37,9 +37,11 @@ add_executable(json_test
   allow_global_object.c
   allow_hexadecimal_numbers.c
   allow_inf_and_nan.c
+  allow_json5.c
   allow_leading_or_trailing_decimal_point.c
   allow_leading_plus_sign.c
   allow_location_information.c
+  allow_multi_line_strings.c
   allow_no_commas.c
   allow_single_quoted_strings.c
   allow_trailing_comma.cpp

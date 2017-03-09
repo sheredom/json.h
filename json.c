@@ -203,7 +203,9 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
 
   if ('"' != state->src[state->offset]) {
     // if we are allowed single quoted strings check for that too
-    if (!((json_parse_flags_allow_single_quoted_strings == state->flags_bitset) && is_single_quote)) {
+    if (!((json_parse_flags_allow_single_quoted_strings &
+           state->flags_bitset) &&
+          is_single_quote)) {
       state->error = json_parse_error_expected_opening_quote;
       return 1;
     }
@@ -259,6 +261,32 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
 
         // add space for the 5 character sequence too
         data_size += 5;
+        break;
+      case '\r':
+        if (!(json_parse_flags_allow_multi_line_strings &
+              state->flags_bitset)) {
+          // invalid escaped unicode sequence!
+          state->error = json_parse_error_invalid_string_escape_sequence;
+          return 1;
+        }
+
+        // check if we have a "\r\n" sequence
+        if ('\n' == state->src[state->offset + 1]) {
+          state->offset++;
+          data_size++;
+        }
+
+        state->offset++;
+        break;
+      case '\n':
+        if (!(json_parse_flags_allow_multi_line_strings &
+              state->flags_bitset)) {
+          // invalid escaped unicode sequence!
+          state->error = json_parse_error_invalid_string_escape_sequence;
+          return 1;
+        }
+
+        state->offset++;
         break;
       }
     } else {
@@ -708,8 +736,9 @@ static int json_get_value_size(struct json_parse_state_s *state,
     case '"':
       return json_get_string_size(state, 0);
 	case '\'':
-		if (json_parse_flags_allow_single_quoted_strings == state->flags_bitset) {
-			return json_get_string_size(state, 0);
+          if (json_parse_flags_allow_single_quoted_strings &
+              state->flags_bitset) {
+            return json_get_string_size(state, 0);
 		} else {
 			// invalid value!
 			state->error = json_parse_error_invalid_value;
@@ -840,6 +869,19 @@ static void json_parse_string(struct json_parse_state_s *state,
         break;
       case 't':
         state->data[size++] = '\t';
+        break;
+      case '\r':
+        state->data[size++] = '\r';
+
+        // check if we have a "\r\n" sequence
+        if ('\n' == state->src[state->offset]) {
+          state->data[size++] = '\n';
+          state->offset++;
+        }
+
+        break;
+      case '\n':
+        state->data[size++] = '\n';
         break;
       }
     } else {
@@ -1331,7 +1373,9 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
       &state, /* is_global_object = */ (json_parse_flags_allow_global_object &
                                         state.flags_bitset));
 
-  json_skip_all_skippables(&state);
+  if (0 == input_error) {
+    json_skip_all_skippables(&state);
+  }
 
   if ((0 == input_error) && (state.offset != state.size)) {
     /* our parsing didn't have an error, but there are characters remaining in

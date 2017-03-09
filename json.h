@@ -92,6 +92,9 @@ enum json_parse_flags_e {
   // allow Infinity, -Infinity, NaN, -NaN
   json_parse_flags_allow_inf_and_nan = 0x1000,
 
+  // allow multi line string values
+  json_parse_flags_allow_multi_line_strings = 0x2000,
+
   // allow simplified JSON to be parsed. Simplified JSON is an enabling of a set
   // of other parsing options.
   json_parse_flags_allow_simplified_json =
@@ -111,7 +114,8 @@ enum json_parse_flags_e {
        json_parse_flags_allow_hexadecimal_numbers |
        json_parse_flags_allow_leading_plus_sign |
        json_parse_flags_allow_leading_or_trailing_decimal_point |
-       json_parse_flags_allow_inf_and_nan)
+       json_parse_flags_allow_inf_and_nan |
+       json_parse_flags_allow_multi_line_strings)
 };
 
 // Parse a JSON text file, returning a pointer to the root of the JSON
