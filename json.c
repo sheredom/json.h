@@ -576,7 +576,8 @@ static int json_get_number_size(struct json_parse_state_s *state) {
 
       if (state->offset + inf_strlen < state->size) {
         int found = 1;
-        for (unsigned i = 0; i < inf_strlen; i++) {
+        size_t i;
+        for (i = 0; i < inf_strlen; i++) {
           if (inf[i] != state->src[state->offset + i]) {
             found = 0;
             break;
@@ -593,7 +594,8 @@ static int json_get_number_size(struct json_parse_state_s *state) {
 
       if (state->offset + nan_strlen < state->size) {
         int found = 1;
-        for (unsigned i = 0; i < nan_strlen; i++) {
+        size_t i;
+        for (i = 0; i < nan_strlen; i++) {
           if (nan[i] != state->src[state->offset + i]) {
             found = 0;
             break;
@@ -1209,8 +1211,9 @@ static void json_parse_number(struct json_parse_state_s *state,
 
     if (state->offset + inf_strlen < state->size) {
       if ('I' == state->src[state->offset]) {
+        size_t i;
         // We found our special 'Infinity' keyword!
-        for (unsigned i = 0; i < inf_strlen; i++) {
+        for (i = 0; i < inf_strlen; i++) {
           state->data[size++] = state->src[state->offset++];
         }
       }
@@ -1218,8 +1221,9 @@ static void json_parse_number(struct json_parse_state_s *state,
 
     if (state->offset + nan_strlen < state->size) {
       if ('N' == state->src[state->offset]) {
+        size_t i;
         // We found our special 'NaN' keyword!
-        for (unsigned i = 0; i < nan_strlen; i++) {
+        for (i = 0; i < nan_strlen; i++) {
           state->data[size++] = state->src[state->offset++];
         }
       }
