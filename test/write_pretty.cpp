@@ -27,20 +27,20 @@
 
 #include "json.h"
 
-TESTCASE(write_pretty, object_empty) {
+UTEST(write_pretty, object_empty) {
   struct json_object_s object = {0, 0};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ("{}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{}", static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_string) {
+UTEST(write_pretty, object_string) {
   struct json_string_s sub = {"yaba daba", strlen("yaba daba")};
   struct json_value_s sub_value = {&sub, json_type_string};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -48,19 +48,19 @@ TESTCASE(write_pretty, object_string) {
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : \"yaba daba\"\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : \"yaba daba\"\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_number) {
+UTEST(write_pretty, object_number) {
   struct json_number_s sub = {"-0.234e+42", strlen("-0.234e+42")};
   struct json_value_s sub_value = {&sub, json_type_number};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -68,19 +68,19 @@ TESTCASE(write_pretty, object_number) {
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : -0.234e+42\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : -0.234e+42\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_object) {
+UTEST(write_pretty, object_object) {
   struct json_object_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -88,19 +88,19 @@ TESTCASE(write_pretty, object_object) {
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : {}\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : {}\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_array) {
+UTEST(write_pretty, object_array) {
   struct json_array_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_string_s sub_string = {"sub", strlen("sub")};
@@ -108,214 +108,214 @@ TESTCASE(write_pretty, object_array) {
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : []\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : []\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_true) {
+UTEST(write_pretty, object_true) {
   struct json_value_s sub_value = {0, json_type_true};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : true\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : true\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_false) {
+UTEST(write_pretty, object_false) {
   struct json_value_s sub_value = {0, json_type_false};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : false\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : false\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, object_null) {
+UTEST(write_pretty, object_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, 0};
   struct json_object_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "{\n"
-    "  \"sub\" : null\n"
-    "}", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("{\n"
+               "  \"sub\" : null\n"
+               "}",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_empty) {
+UTEST(write_pretty, array_empty) {
   struct json_array_s array = {0, 0};
   struct json_value_s value = {&array, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ("[]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[]", static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_string) {
+UTEST(write_pretty, array_string) {
   struct json_string_s sub = {"yaba daba", strlen("yaba daba")};
   struct json_value_s sub_value = {&sub, json_type_string};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  \"yaba daba\"\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  \"yaba daba\"\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_number) {
+UTEST(write_pretty, array_number) {
   struct json_number_s sub = {"-0.234e+42", strlen("-0.234e+42")};
   struct json_value_s sub_value = {&sub, json_type_number};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  -0.234e+42\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  -0.234e+42\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_object) {
+UTEST(write_pretty, array_object) {
   struct json_object_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  {}\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  {}\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_array) {
+UTEST(write_pretty, array_array) {
   struct json_array_s sub = {0, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  []\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  []\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_true) {
+UTEST(write_pretty, array_true) {
   struct json_value_s sub_value = {0, json_type_true};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  true\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  true\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_false) {
+UTEST(write_pretty, array_false) {
   struct json_value_s sub_value = {0, json_type_false};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  false\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  false\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }
 
-TESTCASE(write_pretty, array_null) {
+UTEST(write_pretty, array_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_array_element_s element = {&sub_value, 0};
   struct json_array_s object = {&element, 1};
   struct json_value_s value = {&object, json_type_array};
   size_t size = 0;
-  void* pretty = json_write_pretty(&value, 0, 0, &size);
+  void *pretty = json_write_pretty(&value, 0, 0, &size);
 
   ASSERT_TRUE(pretty);
-  ASSERT_EQ(strlen(static_cast<char*>(pretty)) + 1, size);
-  ASSERT_STREQ(
-    "[\n"
-    "  null\n"
-    "]", static_cast<char*>(pretty));
+  ASSERT_EQ(strlen(static_cast<char *>(pretty)) + 1, size);
+  ASSERT_STREQ("[\n"
+               "  null\n"
+               "]",
+               static_cast<char *>(pretty));
 
   free(pretty);
 }

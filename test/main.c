@@ -27,16 +27,16 @@
 
 #include "json.h"
 
-TESTCASE(object, empty) {
+UTEST(object, empty) {
   const char payload[] = "{}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_FALSE(object->start);
   ASSERT_EQ(0, object->length);
@@ -44,18 +44,18 @@ TESTCASE(object, empty) {
   free(value);
 }
 
-TESTCASE(object, string) {
+UTEST(object, string) {
   const char payload[] = "{\"foo\" : \"Heyo, gaia?\"}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
-  struct json_string_s* string = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -67,14 +67,15 @@ TESTCASE(object, string) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
   ASSERT_EQ(json_type_string, value2->type);
 
-  string = (struct json_string_s* )value2->payload;
+  string = (struct json_string_s *)value2->payload;
 
   ASSERT_TRUE(string->string);
   ASSERT_STREQ("Heyo, gaia?", string->string);
@@ -84,18 +85,18 @@ TESTCASE(object, string) {
   free(value);
 }
 
-TESTCASE(object, number) {
+UTEST(object, number) {
   const char payload[] = "{\"foo\" : -0.123e-42}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -107,14 +108,15 @@ TESTCASE(object, number) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
   ASSERT_EQ(json_type_number, value2->type);
 
-  number = (struct json_number_s* )value2->payload;
+  number = (struct json_number_s *)value2->payload;
 
   ASSERT_TRUE(number->number);
   ASSERT_STREQ("-0.123e-42", number->number);
@@ -124,18 +126,18 @@ TESTCASE(object, number) {
   free(value);
 }
 
-TESTCASE(object, object) {
+UTEST(object, object) {
   const char payload[] = "{\"foo\" : {}}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
-  struct json_object_s* object2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
+  struct json_object_s *object2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -147,14 +149,15 @@ TESTCASE(object, object) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
   ASSERT_EQ(json_type_object, value2->type);
 
-  object2 = (struct json_object_s* )value2->payload;
+  object2 = (struct json_object_s *)value2->payload;
 
   ASSERT_FALSE(object2->start);
   ASSERT_EQ(0, object2->length);
@@ -162,18 +165,18 @@ TESTCASE(object, object) {
   free(value);
 }
 
-TESTCASE(object, array) {
+UTEST(object, array) {
   const char payload[] = "{\"foo\" : []}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
-  struct json_array_s* array = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
+  struct json_array_s *array = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -185,14 +188,15 @@ TESTCASE(object, array) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
   ASSERT_TRUE(value2->payload);
   ASSERT_EQ(json_type_array, value2->type);
 
-  array = (struct json_array_s* )value2->payload;
+  array = (struct json_array_s *)value2->payload;
 
   ASSERT_FALSE(array->start);
   ASSERT_EQ(0, array->length);
@@ -200,17 +204,17 @@ TESTCASE(object, array) {
   free(value);
 }
 
-TESTCASE(object, true) {
+UTEST(object, true) {
   const char payload[] = "{\"foo\" : true}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -222,7 +226,8 @@ TESTCASE(object, true) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
@@ -232,17 +237,17 @@ TESTCASE(object, true) {
   free(value);
 }
 
-TESTCASE(object, false) {
+UTEST(object, false) {
   const char payload[] = "{\"foo\" : false}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -254,7 +259,8 @@ TESTCASE(object, false) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
@@ -264,17 +270,17 @@ TESTCASE(object, false) {
   free(value);
 }
 
-TESTCASE(object, null) {
+UTEST(object, null) {
   const char payload[] = "{\"foo\" : null}";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_object_s* object = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_object, value->type);
 
-  object = (struct json_object_s* )value->payload;
+  object = (struct json_object_s *)value->payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(1, object->length);
@@ -286,7 +292,8 @@ TESTCASE(object, null) {
   ASSERT_TRUE(object->start->name->string);
   ASSERT_STREQ("foo", object->start->name->string);
   ASSERT_EQ(strlen("foo"), object->start->name->string_size);
-  ASSERT_EQ(strlen(object->start->name->string), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
 
   value2 = object->start->value;
 
@@ -296,16 +303,16 @@ TESTCASE(object, null) {
   free(value);
 }
 
-TESTCASE(array, empty) {
+UTEST(array, empty) {
   const char payload[] = "[]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_FALSE(array->start);
   ASSERT_EQ(0, array->length);
@@ -313,18 +320,18 @@ TESTCASE(array, empty) {
   free(value);
 }
 
-TESTCASE(array, string) {
+UTEST(array, string) {
   const char payload[] = "[\"Heyo, gaia?\"]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_value_s* value2 = 0;
-  struct json_string_s* string = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -337,7 +344,7 @@ TESTCASE(array, string) {
   ASSERT_TRUE(value2->payload);
   ASSERT_EQ(json_type_string, value2->type);
 
-  string = (struct json_string_s* )value2->payload;
+  string = (struct json_string_s *)value2->payload;
 
   ASSERT_TRUE(string->string);
   ASSERT_STREQ("Heyo, gaia?", string->string);
@@ -347,18 +354,18 @@ TESTCASE(array, string) {
   free(value);
 }
 
-TESTCASE(array, number) {
+UTEST(array, number) {
   const char payload[] = "[-0.123e-42]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_value_s* value2 = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_value_s *value2 = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -371,7 +378,7 @@ TESTCASE(array, number) {
   ASSERT_TRUE(value2->payload);
   ASSERT_EQ(json_type_number, value2->type);
 
-  number = (struct json_number_s* )value2->payload;
+  number = (struct json_number_s *)value2->payload;
 
   ASSERT_TRUE(number->number);
   ASSERT_STREQ("-0.123e-42", number->number);
@@ -381,17 +388,17 @@ TESTCASE(array, number) {
   free(value);
 }
 
-TESTCASE(array, true) {
+UTEST(array, true) {
   const char payload[] = "[true]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -407,17 +414,17 @@ TESTCASE(array, true) {
   free(value);
 }
 
-TESTCASE(array, false) {
+UTEST(array, false) {
   const char payload[] = "[false]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -433,17 +440,17 @@ TESTCASE(array, false) {
   free(value);
 }
 
-TESTCASE(array, null) {
+UTEST(array, null) {
   const char payload[] = "[null]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_value_s* value2 = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -459,23 +466,23 @@ TESTCASE(array, null) {
   free(value);
 }
 
-TESTCASE(no_global_object, empty) {
+UTEST(no_global_object, empty) {
   const char payload[] = "";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
+  struct json_value_s *value = json_parse(payload, strlen(payload));
   ASSERT_FALSE(value);
 }
 
-TESTCASE(number, zero) {
+UTEST(number, zero) {
   const char payload[] = "[0]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -484,7 +491,7 @@ TESTCASE(number, zero) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -495,17 +502,17 @@ TESTCASE(number, zero) {
   free(value);
 }
 
-TESTCASE(number, positive) {
+UTEST(number, positive) {
   const char payload[] = "[42]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -514,7 +521,7 @@ TESTCASE(number, positive) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -525,17 +532,17 @@ TESTCASE(number, positive) {
   free(value);
 }
 
-TESTCASE(number, minus) {
+UTEST(number, minus) {
   const char payload[] = "[-0]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -544,7 +551,7 @@ TESTCASE(number, minus) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -555,17 +562,17 @@ TESTCASE(number, minus) {
   free(value);
 }
 
-TESTCASE(number, decimal) {
+UTEST(number, decimal) {
   const char payload[] = "[0.4]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -574,7 +581,7 @@ TESTCASE(number, decimal) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -585,17 +592,17 @@ TESTCASE(number, decimal) {
   free(value);
 }
 
-TESTCASE(number, smalle) {
+UTEST(number, smalle) {
   const char payload[] = "[1e4]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -604,7 +611,7 @@ TESTCASE(number, smalle) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -615,17 +622,17 @@ TESTCASE(number, smalle) {
   free(value);
 }
 
-TESTCASE(number, bige) {
+UTEST(number, bige) {
   const char payload[] = "[1E4]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -634,7 +641,7 @@ TESTCASE(number, bige) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -645,17 +652,17 @@ TESTCASE(number, bige) {
   free(value);
 }
 
-TESTCASE(number, eplus) {
+UTEST(number, eplus) {
   const char payload[] = "[1e+4]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -664,7 +671,7 @@ TESTCASE(number, eplus) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -675,17 +682,17 @@ TESTCASE(number, eplus) {
   free(value);
 }
 
-TESTCASE(number, eminus) {
+UTEST(number, eminus) {
   const char payload[] = "[1e-4]";
-  struct json_value_s* value = json_parse(payload, strlen(payload));
-  struct json_array_s* array = 0;
-  struct json_number_s* number = 0;
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
   ASSERT_EQ(json_type_array, value->type);
 
-  array = (struct json_array_s* )value->payload;
+  array = (struct json_array_s *)value->payload;
 
   ASSERT_TRUE(array->start);
   ASSERT_EQ(1, array->length);
@@ -694,7 +701,7 @@ TESTCASE(number, eminus) {
   ASSERT_TRUE(array->start->value->payload);
   ASSERT_EQ(json_type_number, array->start->value->type);
 
-  number = (struct json_number_s* )array->start->value->payload;
+  number = (struct json_number_s *)array->start->value->payload;
 
   ASSERT_TRUE(number->number);
 
@@ -705,7 +712,7 @@ TESTCASE(number, eminus) {
   free(value);
 }
 
-TESTCASE(object, missing_closing_bracket) {
+UTEST(object, missing_closing_bracket) {
   const char payload[] = "{\n  \"dps\":[1, 2, {\"a\" : true]\n}";
 
   struct json_parse_result_s result;
@@ -721,7 +728,7 @@ TESTCASE(object, missing_closing_bracket) {
   ASSERT_EQ(27, result.error_row_no);
 }
 
-TESTCASE(array, missing_closing_bracket) {
+UTEST(array, missing_closing_bracket) {
   const char payload[] = "{\n  \"dps\":[1, 2, 3\n}";
 
   struct json_parse_result_s result;

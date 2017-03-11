@@ -194,6 +194,7 @@ static int json_get_value_size(struct json_parse_state_s *state,
 
 static int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
   size_t data_size = 0;
+  int is_single_quote = '\'' == state->src[state->offset];
 
   if ((json_parse_flags_allow_location_information & state->flags_bitset) != 0 && is_key != 0)
     state->dom_size += sizeof(struct json_string_ex_s);
@@ -201,14 +202,19 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
     state->dom_size += sizeof(struct json_string_s);
 
   if ('"' != state->src[state->offset]) {
-    state->error = json_parse_error_expected_opening_quote;
-    return 1;
+    // if we are allowed single quoted strings check for that too
+    if (!((json_parse_flags_allow_single_quoted_strings &
+           state->flags_bitset) &&
+          is_single_quote)) {
+      state->error = json_parse_error_expected_opening_quote;
+      return 1;
+    }
   }
 
-  // skip leading '"'
+  // skip leading '"' or '\''
   state->offset++;
 
-  while (state->offset < state->size && '"' != state->src[state->offset]) {
+  while (state->offset < state->size && (is_single_quote ? '\'' : '"') != state->src[state->offset]) {
     // add space for the character
     data_size++;
 
@@ -256,6 +262,32 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
         // add space for the 5 character sequence too
         data_size += 5;
         break;
+      case '\r':
+        if (!(json_parse_flags_allow_multi_line_strings &
+              state->flags_bitset)) {
+          // invalid escaped unicode sequence!
+          state->error = json_parse_error_invalid_string_escape_sequence;
+          return 1;
+        }
+
+        // check if we have a "\r\n" sequence
+        if ('\n' == state->src[state->offset + 1]) {
+          state->offset++;
+          data_size++;
+        }
+
+        state->offset++;
+        break;
+      case '\n':
+        if (!(json_parse_flags_allow_multi_line_strings &
+              state->flags_bitset)) {
+          // invalid escaped unicode sequence!
+          state->error = json_parse_error_invalid_string_escape_sequence;
+          return 1;
+        }
+
+        state->offset++;
+        break;
       }
     } else {
       // skip character (valid part of sequence)
@@ -263,7 +295,7 @@ static int json_get_string_size(struct json_parse_state_s *state, size_t is_key)
     }
   }
 
-  // skip trailing '"'
+  // skip trailing '"' or '\''
   state->offset++;
 
   // add enough space to store the string
@@ -284,6 +316,9 @@ static int json_get_key_size(struct json_parse_state_s *state) {
   if (json_parse_flags_allow_unquoted_keys & state->flags_bitset) {
     // if we are allowing unquoted keys, first grok for a comma...
     if ('"' == state->src[state->offset]) {
+      // ... if we got a comma, just parse the key as a string as normal
+      return json_get_string_size(state, 1);
+    } else if ((json_parse_flags_allow_single_quoted_strings & state->flags_bitset) && ('\'' == state->src[state->offset])) {
       // ... if we got a comma, just parse the key as a string as normal
       return json_get_string_size(state, 1);
     } else {
@@ -498,69 +533,181 @@ static int json_get_array_size(struct json_parse_state_s *state) {
 
 static int json_get_number_size(struct json_parse_state_s *state) {
   size_t initial_offset = state->offset;
+  int had_leading_digits = 0;
 
   state->dom_size += sizeof(struct json_number_s);
 
-  if ((state->offset < state->size) && ('-' == state->src[state->offset])) {
-    // skip valid leading '-'
-    state->offset++;
+  if ((json_parse_flags_allow_hexadecimal_numbers & state->flags_bitset) &&
+    (state->offset + 1 < state->size) &&
+    ('0' == state->src[state->offset]) &&
+    ('x' == state->src[state->offset + 1])) {
+    // skip the leading 0x that identifies a hexadecimal number
+    state->offset += 2;
 
-    if ((state->offset < state->size) &&
+    // consume hexadecimal digits
+    while ((state->offset < state->size) &&
+           (('0' <= state->src[state->offset] &&
+            state->src[state->offset] <= '9') ||
+           ('a' <= state->src[state->offset] &&
+            state->src[state->offset] <= 'f') ||
+          ('A' <= state->src[state->offset] &&
+            state->src[state->offset] <= 'F'))) {
+      state->offset++;
+    }
+  } else {
+    int found_sign = 0;
+    int inf_or_nan = 0;
+
+    if ((state->offset < state->size) && (
+      ('-' == state->src[state->offset]) ||
+      ((json_parse_flags_allow_leading_plus_sign & state->flags_bitset) &&
+      ('+' == state->src[state->offset])))) {
+      // skip valid leading '-' or '+'
+      state->offset++;
+
+      found_sign = 1;
+    }
+
+    if (json_parse_flags_allow_inf_and_nan & state->flags_bitset) {
+      const char inf[9] = "Infinity";
+      const size_t inf_strlen = sizeof(inf) - 1;
+      const char nan[4] = "NaN";
+      const size_t nan_strlen = sizeof(nan) - 1;
+
+      if (state->offset + inf_strlen < state->size) {
+        int found = 1;
+        size_t i;
+        for (i = 0; i < inf_strlen; i++) {
+          if (inf[i] != state->src[state->offset + i]) {
+            found = 0;
+            break;
+          }
+        }
+
+        if (found) {
+          // We found our special 'Infinity' keyword!
+          state->offset += inf_strlen;
+
+          inf_or_nan = 1;
+        }
+      }
+
+      if (state->offset + nan_strlen < state->size) {
+        int found = 1;
+        size_t i;
+        for (i = 0; i < nan_strlen; i++) {
+          if (nan[i] != state->src[state->offset + i]) {
+            found = 0;
+            break;
+          }
+        }
+
+        if (found) {
+          // We found our special 'NaN' keyword!
+          state->offset += nan_strlen;
+
+          inf_or_nan = 1;
+        }
+      }
+    }
+
+    if (found_sign && !inf_or_nan && (state->offset < state->size) &&
         !('0' <= state->src[state->offset] &&
           state->src[state->offset] <= '9')) {
-      // a leading '-' must be immediately followed by any digit!
+      // check if we are allowing leading '.'
+      if (!(json_parse_flags_allow_leading_or_trailing_decimal_point &
+            state->flags_bitset) ||
+          ('.' != state->src[state->offset])) {
+        // a leading '-' must be immediately followed by any digit!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
+    }
+
+    if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
+      // skip valid '0'
+      state->offset++;
+
+	  // we need to record whether we had any leading digits for checks later
+	  had_leading_digits = 1;
+
+      if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
+                                            state->src[state->offset] <= '9')) {
+        // a leading '0' must not be immediately followed by any digit!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
+    }
+
+    // the main digits of our number next
+    while ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
+                                             state->src[state->offset] <= '9')) {
+      state->offset++;
+
+      // we need to record whether we had any leading digits for checks later
+      had_leading_digits = 1;
+    }
+
+    if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
+      state->offset++;
+
+      if (!('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9')) {
+        if (!(json_parse_flags_allow_leading_or_trailing_decimal_point & state->flags_bitset) ||
+          !had_leading_digits) {
+          // a decimal point must be followed by at least one digit
+          state->error = json_parse_error_invalid_number_format;
+          return 1;
+        }
+      }
+
+      // a decimal point can be followed by more digits of course!
+      while ((state->offset < state->size) &&
+             ('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9')) {
+        state->offset++;
+      }
+    }
+
+    if ((state->offset < state->size) &&
+        ('e' == state->src[state->offset] || 'E' == state->src[state->offset])) {
+      // our number has an exponent!
+      // skip 'e' or 'E'
+      state->offset++;
+
+      if ((state->offset < state->size) && ('-' == state->src[state->offset] ||
+                                            '+' == state->src[state->offset])) {
+        // skip optional '-' or '+'
+        state->offset++;
+      }
+
+      // consume exponent digits
+      while ((state->offset < state->size) &&
+             ('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9')) {
+        state->offset++;
+      }
+    }
+  }
+
+  if (state->offset < state->size) {
+    switch (state->src[state->offset]) {
+    case ' ':
+    case '\t':
+    case '\r':
+    case '\n':
+    case '}':
+    case ',':
+    case ']':  
+      // all of the above are ok
+      break;
+    case '=':
+      if (json_parse_flags_allow_equals_in_object & state->flags_bitset) {
+        break;
+      }
+    default:
       state->error = json_parse_error_invalid_number_format;
       return 1;
-    }
-  }
-
-  if ((state->offset < state->size) && ('0' == state->src[state->offset])) {
-    // skip valid '0'
-    state->offset++;
-
-    if ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
-                                          state->src[state->offset] <= '9')) {
-      // a leading '0' must not be immediately followed by any digit!
-      state->error = json_parse_error_invalid_number_format;
-      return 1;
-    }
-  }
-
-  // the main digits of our number next
-  while ((state->offset < state->size) && ('0' <= state->src[state->offset] &&
-                                           state->src[state->offset] <= '9')) {
-    state->offset++;
-  }
-
-  if ((state->offset < state->size) && ('.' == state->src[state->offset])) {
-    state->offset++;
-
-    // a decimal point can be followed by more digits of course!
-    while ((state->offset < state->size) &&
-           ('0' <= state->src[state->offset] &&
-            state->src[state->offset] <= '9')) {
-      state->offset++;
-    }
-  }
-
-  if ((state->offset < state->size) &&
-      ('e' == state->src[state->offset] || 'E' == state->src[state->offset])) {
-    // our number has an exponent!
-
-    // skip 'e' or 'E'
-    state->offset++;
-
-    if ((state->offset < state->size) && ('-' == state->src[state->offset] ||
-                                          '+' == state->src[state->offset])) {
-      // skip optional '-' or '+'
-      state->offset++;
-    }
-
-    // consume exponent digits
-    while ((state->offset < state->size) &&
-           ('0' <= state->src[state->offset] &&
-            state->src[state->offset] <= '9')) {
-      state->offset++;
     }
   }
 
@@ -590,6 +737,15 @@ static int json_get_value_size(struct json_parse_state_s *state,
     switch (state->src[state->offset]) {
     case '"':
       return json_get_string_size(state, 0);
+	case '\'':
+          if (json_parse_flags_allow_single_quoted_strings &
+              state->flags_bitset) {
+            return json_get_string_size(state, 0);
+		} else {
+			// invalid value!
+			state->error = json_parse_error_invalid_value;
+			return 1;
+		}
     case '{':
       return json_get_object_size(state, /* is_global_object = */ 0);
     case '[':
@@ -606,6 +762,22 @@ static int json_get_value_size(struct json_parse_state_s *state,
     case '8':
     case '9':
       return json_get_number_size(state);
+    case '+':
+      if (json_parse_flags_allow_leading_plus_sign & state->flags_bitset) {
+        return json_get_number_size(state);
+      } else {
+        // invalid value!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
+    case '.':
+      if (json_parse_flags_allow_leading_or_trailing_decimal_point & state->flags_bitset) {
+        return json_get_number_size(state);
+      } else {
+        // invalid value!
+        state->error = json_parse_error_invalid_number_format;
+        return 1;
+      }
     default:
       if ((state->offset + 4) <= state->size &&
           't' == state->src[state->offset + 0] &&
@@ -629,6 +801,23 @@ static int json_get_value_size(struct json_parse_state_s *state,
                  'l' == state->src[state->offset + 3]) {
         state->offset += 4;
         return 0;
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 3) <= state->size &&
+                 'N' == state->src[state->offset + 0] &&
+                 'a' == state->src[state->offset + 1] &&
+                 'N' == state->src[state->offset + 2]) {
+        return json_get_number_size(state);
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 8) <= state->size &&
+                 'I' == state->src[state->offset + 0] &&
+                 'n' == state->src[state->offset + 1] &&
+                 'f' == state->src[state->offset + 2] &&
+                 'i' == state->src[state->offset + 3] &&
+                 'n' == state->src[state->offset + 4] &&
+                 'i' == state->src[state->offset + 5] &&
+                 't' == state->src[state->offset + 6] &&
+                 'y' == state->src[state->offset + 7]) {
+        return json_get_number_size(state);
       }
 
       // invalid value!
@@ -644,13 +833,14 @@ static void json_parse_value(struct json_parse_state_s *state,
 static void json_parse_string(struct json_parse_state_s *state,
                               struct json_string_s *string) {
   size_t size = 0;
+  int is_single_quote = '\'' == state->src[state->offset];
 
   string->string = state->data;
 
-  // skip leading '"'
+  // skip leading '"' or '\''
   state->offset++;
 
-  while (state->offset < state->size && '"' != state->src[state->offset]) {
+  while (state->offset < state->size && (is_single_quote ? '\'' : '"') != state->src[state->offset]) {
     if ('\\' == state->src[state->offset]) {
       // skip the reverse solidus
       state->offset++;
@@ -682,6 +872,19 @@ static void json_parse_string(struct json_parse_state_s *state,
       case 't':
         state->data[size++] = '\t';
         break;
+      case '\r':
+        state->data[size++] = '\r';
+
+        // check if we have a "\r\n" sequence
+        if ('\n' == state->src[state->offset]) {
+          state->data[size++] = '\n';
+          state->offset++;
+        }
+
+        break;
+      case '\n':
+        state->data[size++] = '\n';
+        break;
       }
     } else {
       // copy the character
@@ -689,7 +892,7 @@ static void json_parse_string(struct json_parse_state_s *state,
     }
   }
 
-  // skip trailing '"'
+  // skip trailing '"' or '\''
   state->offset++;
 
   // record the size of the string
@@ -706,8 +909,8 @@ static void json_parse_key(struct json_parse_state_s *state,
                            struct json_string_s *string) {
   if (json_parse_flags_allow_unquoted_keys & state->flags_bitset) {
     // if we are allowing unquoted keys, check for quoted anyway...
-    if ('"' == state->src[state->offset]) {
-      // ... if we got a comma, just parse the key as a string as normal
+    if (('"' == state->src[state->offset]) || ('\'' == state->src[state->offset])) {
+      // ... if we got a quote, just parse the key as a string as normal
       json_parse_string(state, string);
     } else {
       size_t size = 0;
@@ -959,6 +1162,22 @@ static void json_parse_number(struct json_parse_state_s *state,
 
   number->number = state->data;
 
+  if (json_parse_flags_allow_hexadecimal_numbers & state->flags_bitset) {
+    if (('0' == state->src[state->offset]) && ('x' == state->src[state->offset + 1])) {
+      // consume hexadecimal digits
+      while ((state->offset < state->size) &&
+             (('0' <= state->src[state->offset] &&
+              state->src[state->offset] <= '9') ||
+             ('a' <= state->src[state->offset] &&
+              state->src[state->offset] <= 'f') ||
+            ('A' <= state->src[state->offset] &&
+              state->src[state->offset] <= 'F') ||
+            ('x' == state->src[state->offset]))) {
+        state->data[size++] = state->src[state->offset++];
+      }
+    }
+  }
+
   while (state->offset < state->size && end == 0) {
     switch (state->src[state->offset]) {
     case '0':
@@ -984,6 +1203,33 @@ static void json_parse_number(struct json_parse_state_s *state,
     }
   }
 
+  if (json_parse_flags_allow_inf_and_nan & state->flags_bitset) {
+    const char inf[9] = "Infinity";
+    const size_t inf_strlen = sizeof(inf) - 1;
+    const char nan[4] = "NaN";
+    const size_t nan_strlen = sizeof(nan) - 1;
+
+    if (state->offset + inf_strlen < state->size) {
+      if ('I' == state->src[state->offset]) {
+        size_t i;
+        // We found our special 'Infinity' keyword!
+        for (i = 0; i < inf_strlen; i++) {
+          state->data[size++] = state->src[state->offset++];
+        }
+      }
+    }
+
+    if (state->offset + nan_strlen < state->size) {
+      if ('N' == state->src[state->offset]) {
+        size_t i;
+        // We found our special 'NaN' keyword!
+        for (i = 0; i < nan_strlen; i++) {
+          state->data[size++] = state->src[state->offset++];
+        }
+      }
+    }
+  }
+
   // record the size of the number
   number->number_size = size;
   // add null terminator to number string
@@ -1004,6 +1250,7 @@ static void json_parse_value(struct json_parse_state_s *state,
   } else {
     switch (state->src[state->offset]) {
     case '"':
+	case '\'':
       value->type = json_type_string;
       value->payload = state->dom;
       state->dom += sizeof(struct json_string_s);
@@ -1022,6 +1269,7 @@ static void json_parse_value(struct json_parse_state_s *state,
       json_parse_array(state, (struct json_array_s*)value->payload);
       break;
     case '-':
+    case '+':
     case '0':
     case '1':
     case '2':
@@ -1032,6 +1280,7 @@ static void json_parse_value(struct json_parse_state_s *state,
     case '7':
     case '8':
     case '9':
+	case '.':
       value->type = json_type_number;
       value->payload = state->dom;
       state->dom += sizeof(struct json_number_s);
@@ -1063,6 +1312,29 @@ static void json_parse_value(struct json_parse_state_s *state,
         value->type = json_type_null;
         value->payload = 0;
         state->offset += 4;
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 3) <= state->size &&
+                 'N' == state->src[state->offset + 0] &&
+                 'a' == state->src[state->offset + 1] &&
+                 'N' == state->src[state->offset + 2]) {
+        value->type = json_type_number;
+        value->payload = state->dom;
+        state->dom += sizeof(struct json_number_s);
+        json_parse_number(state, (struct json_number_s *)value->payload);
+      } else if ((json_parse_flags_allow_inf_and_nan & state->flags_bitset) &&
+                 (state->offset + 8) <= state->size &&
+                 'I' == state->src[state->offset + 0] &&
+                 'n' == state->src[state->offset + 1] &&
+                 'f' == state->src[state->offset + 2] &&
+                 'i' == state->src[state->offset + 3] &&
+                 'n' == state->src[state->offset + 4] &&
+                 'i' == state->src[state->offset + 5] &&
+                 't' == state->src[state->offset + 6] &&
+                 'y' == state->src[state->offset + 7]) {
+        value->type = json_type_number;
+        value->payload = state->dom;
+        state->dom += sizeof(struct json_number_s);
+        json_parse_number(state, (struct json_number_s *)value->payload);
       }
       break;
     }
@@ -1105,7 +1377,9 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
       &state, /* is_global_object = */ (json_parse_flags_allow_global_object &
                                         state.flags_bitset));
 
-  json_skip_all_skippables(&state);
+  if (0 == input_error) {
+    json_skip_all_skippables(&state);
+  }
 
   if ((0 == input_error) && (state.offset != state.size)) {
     /* our parsing didn't have an error, but there are characters remaining in
@@ -1153,7 +1427,6 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   state.offset = 0;
 
   // reset the line information so we can reuse it
-  state.offset = 0;
   state.line_no = 1;
   state.line_offset = 0;
 

@@ -27,14 +27,14 @@
 
 #include "json.h"
 
-UTEST(allow_c_style_comments, single_line) {
-  const char payload[] =
-      "// a \n { // b \n \"foo\" // c \n : // d \n null // e \n } // f";
+UTEST(allow_multi_line_strings, linux_line_endings) {
+  const char payload[] = "{\"foo\" : \"Hello, \\\nWorld!\"}";
   struct json_value_s *value =
       json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_c_style_comments, 0, 0, 0);
+                    json_parse_flags_allow_multi_line_strings, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -57,20 +57,27 @@ UTEST(allow_c_style_comments, single_line) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_string, value2->type);
+
+  string = (struct json_string_s *)value2->payload;
+
+  ASSERT_TRUE(string->string);
+  ASSERT_STREQ("Hello, \nWorld!", string->string);
+  ASSERT_EQ(strlen("Hello, \nWorld!"), string->string_size);
+  ASSERT_EQ(strlen(string->string), string->string_size);
 
   free(value);
 }
 
-UTEST(allow_c_style_comments, multi_line) {
-  const char payload[] = "/* a */ { /* b */ \"foo\" /* c1 \n c2 */ : /* d */ "
-                         "null /* e1 \n e2 */ } /* f */";
+UTEST(allow_multi_line_strings, windows_line_endings) {
+  const char payload[] = "{\"foo\" : \"Hello, \\\r\nWorld!\"}";
   struct json_value_s *value =
       json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_c_style_comments, 0, 0, 0);
+                    json_parse_flags_allow_multi_line_strings, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -93,19 +100,27 @@ UTEST(allow_c_style_comments, multi_line) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_string, value2->type);
+
+  string = (struct json_string_s *)value2->payload;
+
+  ASSERT_TRUE(string->string);
+  ASSERT_STREQ("Hello, \r\nWorld!", string->string);
+  ASSERT_EQ(strlen("Hello, \r\nWorld!"), string->string_size);
+  ASSERT_EQ(strlen(string->string), string->string_size);
 
   free(value);
 }
 
-UTEST(allow_c_style_comments, multiple) {
-  const char payload[] = "{/**/ /**/\"foo\" : null}";
+UTEST(allow_multi_line_strings, old_macosx_line_endings) {
+  const char payload[] = "{\"foo\" : \"Hello, \\\rWorld!\"}";
   struct json_value_s *value =
       json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_c_style_comments, 0, 0, 0);
+                    json_parse_flags_allow_multi_line_strings, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -128,8 +143,27 @@ UTEST(allow_c_style_comments, multiple) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_string, value2->type);
+
+  string = (struct json_string_s *)value2->payload;
+
+  ASSERT_TRUE(string->string);
+  ASSERT_STREQ("Hello, \rWorld!", string->string);
+  ASSERT_EQ(strlen("Hello, \rWorld!"), string->string_size);
+  ASSERT_EQ(strlen(string->string), string->string_size);
 
   free(value);
+}
+
+UTEST(allow_multi_line_strings, forgot_to_specify_flag) {
+  const char payload[] = "{\"foo\" : \"Hello, \\\nWorld!\"}";
+  struct json_parse_result_s result;
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_string_escape_sequence, result.error);
+  ASSERT_EQ(18, result.error_offset);
+  ASSERT_EQ(1, result.error_line_no);
+  ASSERT_EQ(18, result.error_row_no);
 }

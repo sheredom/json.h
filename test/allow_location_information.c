@@ -27,13 +27,15 @@
 
 #include "json.h"
 
-TESTCASE(allow_location_information, object_one) {
+UTEST(allow_location_information, object_one) {
   const char payload[] = "{\"foo\" : true,\n\"bar\" : false}";
-  struct json_value_ex_s* value_ex = (struct json_value_ex_s *)json_parse_ex(payload, strlen(payload), json_parse_flags_allow_location_information, 0, 0, 0);
-  struct json_object_s* object = 0;
-  struct json_object_element_s* element = 0;
-  struct json_string_ex_s* string_ex = 0;
-  struct json_value_ex_s* value_ex2 = 0;
+  struct json_value_ex_s *value_ex = (struct json_value_ex_s *)json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_location_information, 0,
+      0, 0);
+  struct json_object_s *object = 0;
+  struct json_object_element_s *element = 0;
+  struct json_string_ex_s *string_ex = 0;
+  struct json_value_ex_s *value_ex2 = 0;
 
   ASSERT_TRUE(value_ex);
 
@@ -41,7 +43,7 @@ TESTCASE(allow_location_information, object_one) {
   ASSERT_EQ(1, value_ex->line_no);
   ASSERT_EQ(0, value_ex->row_no);
 
-  object = (struct json_object_s* )value_ex->value.payload;
+  object = (struct json_object_s *)value_ex->value.payload;
 
   ASSERT_TRUE(object->start);
   ASSERT_EQ(2, object->length);
@@ -52,7 +54,7 @@ TESTCASE(allow_location_information, object_one) {
   ASSERT_TRUE(element->value);
   ASSERT_TRUE(element->next);
 
-  string_ex = (struct json_string_ex_s*)element->name;
+  string_ex = (struct json_string_ex_s *)element->name;
 
   ASSERT_TRUE(string_ex->string.string);
   ASSERT_STREQ("foo", string_ex->string.string);
@@ -76,7 +78,7 @@ TESTCASE(allow_location_information, object_one) {
 
   ASSERT_FALSE(element->next);
 
-  string_ex = (struct json_string_ex_s*)element->name;
+  string_ex = (struct json_string_ex_s *)element->name;
 
   ASSERT_TRUE(string_ex->string.string);
   ASSERT_STREQ("bar", string_ex->string.string);

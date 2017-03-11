@@ -27,12 +27,14 @@
 
 #include "json.h"
 
-UTEST(allow_unquoted_keys, one_key) {
-  const char payload[] = "{foo : null}";
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
+UTEST(allow_leading_plus_sign, lowercase_x_all_possible_digits) {
+  const char payload[] = "{\"foo\" : +0}";
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_leading_plus_sign, 0, 0, 0);
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
+  struct json_number_s *number = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -55,75 +57,27 @@ UTEST(allow_unquoted_keys, one_key) {
 
   value2 = object->start->value;
 
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_null, value2->type);
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s *)value2->payload;
+
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("+0", number->number);
+  ASSERT_EQ(strlen("+0"), number->number_size);
+  ASSERT_EQ(strlen(number->number), number->number_size);
 
   free(value);
 }
 
-UTEST(allow_unquoted_keys, mixed_keys) {
-  const char payload[] = "{foo : true, \"heyo\" : false}";
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
-  struct json_object_s *object = 0;
-  struct json_object_element_s *element = 0;
-  struct json_value_s *value2 = 0;
-
-  ASSERT_TRUE(value);
-  ASSERT_TRUE(value->payload);
-  ASSERT_EQ(json_type_object, value->type);
-
-  object = (struct json_object_s *)value->payload;
-
-  ASSERT_TRUE(object->start);
-  ASSERT_EQ(2, object->length);
-
-  element = object->start;
-
-  ASSERT_TRUE(element->name);
-  ASSERT_TRUE(element->value);
-  ASSERT_TRUE(element->next);
-
-  ASSERT_TRUE(element->name->string);
-  ASSERT_STREQ("foo", element->name->string);
-  ASSERT_EQ(strlen("foo"), element->name->string_size);
-  ASSERT_EQ(strlen(element->name->string), element->name->string_size);
-
-  value2 = element->value;
-
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_true, value2->type);
-
-  element = element->next;
-
-  ASSERT_TRUE(element->name);
-  ASSERT_TRUE(element->value);
-  ASSERT_FALSE(element->next);
-
-  ASSERT_TRUE(element->name->string);
-  ASSERT_STREQ("heyo", element->name->string);
-  ASSERT_EQ(strlen("heyo"), element->name->string_size);
-  ASSERT_EQ(strlen(element->name->string), element->name->string_size);
-
-  value2 = element->value;
-
-  ASSERT_FALSE(value2->payload);
-  ASSERT_EQ(json_type_false, value2->type);
-
-  free(value);
-}
-
-UTEST(allow_unquoted_keys, value_unquoted_fails) {
-  const char payload[] = "{foo\n: heyo}";
+UTEST(allow_leading_plus_sign, forgot_to_specify_flag) {
+  const char payload[] = "{\"foo\" : +0}";
   struct json_parse_result_s result;
   struct json_value_s *value =
-      json_parse_ex(payload, strlen(payload),
-                    json_parse_flags_allow_unquoted_keys, 0, 0, &result);
-
+      json_parse_ex(payload, strlen(payload), 0, 0, 0, &result);
   ASSERT_FALSE(value);
-
-  ASSERT_EQ(json_parse_error_invalid_value, result.error);
-  ASSERT_EQ(7, result.error_offset);
-  ASSERT_EQ(3, result.error_row_no);
-  ASSERT_EQ(2, result.error_line_no);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  ASSERT_EQ(9, result.error_offset);
+  ASSERT_EQ(1, result.error_line_no);
+  ASSERT_EQ(9, result.error_row_no);
 }
