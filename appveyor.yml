@@ -6,9 +6,10 @@ install: []
 
 environment:
   matrix:
-    - VSVERSION: Visual Studio 11
-    - VSVERSION: Visual Studio 12
-    - VSVERSION: Visual Studio 14
+    - VSVERSION: Visual Studio 10 2010
+    - VSVERSION: Visual Studio 11 2012
+    - VSVERSION: Visual Studio 12 2013
+    - VSVERSION: Visual Studio 14 2015
 
 platform:
   - Win32
@@ -16,6 +17,8 @@ platform:
 
 configuration:
   - Debug
+  - RelWithDebInfo
+  - MinSizeRel
   - Release
 
 build_script:
@@ -24,3 +27,7 @@ build_script:
   - if "%PLATFORM%"=="x64" cmake -G "%VSVERSION% Win64" ../test
   - if "%PLATFORM%"=="Win32" cmake -G "%VSVERSION%" ../test
   - msbuild /m /p:Configuration="%CONFIGURATION%" /p:Platform="%PLATFORM%" json.sln
+  - copy %CONFIGURATION%\json_test.exe json_test.exe
+
+test_script:
+  - json_test.exe
