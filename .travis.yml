@@ -10,6 +10,8 @@ compiler:
 
 env:
   - CONFIGURATION=Debug
+  - CONFIGURATION=RelWithDebInfo
+  - CONFIGURATION=MinSizeRel
   - CONFIGURATION=Release
 
 script:
@@ -17,3 +19,5 @@ script:
   - cd build
   - cmake -DCMAKE_BUILD_TYPE=$CONFIGURATION ../test
   - make
+  - ./json_test
+

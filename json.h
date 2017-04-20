@@ -29,14 +29,14 @@
 #ifndef SHEREDOM_JSON_H_INCLUDED
 #define SHEREDOM_JSON_H_INCLUDED
 
-#include <stddef.h>
-
 #if defined(_MSC_VER)
 #pragma warning(push)
 
 // disable 'bytes padding added after construct' warning
 #pragma warning(disable : 4820)
 #endif
+
+#include <stddef.h>
 
 #ifdef __cplusplus
 extern "C" {
