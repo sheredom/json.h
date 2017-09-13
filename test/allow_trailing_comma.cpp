@@ -182,3 +182,77 @@ UTEST(allow_trailing_comma, array_two_elements) {
 
   free(value);
 }
+
+struct allow_trailing_comma {
+  struct json_value_s *value;
+};
+
+UTEST_F_SETUP(allow_trailing_comma) {
+  const char payload[] = "{\"foo\" : \"Heyo, gaia?\", }";
+  utest_fixture->value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_trailing_comma, 0, 0, 0);
+
+  ASSERT_TRUE(utest_fixture->value);
+}
+
+UTEST_F_TEARDOWN(allow_trailing_comma) {
+  struct json_value_s *value = utest_fixture->value;
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_object, value->type);
+
+  object = (struct json_object_s *)value->payload;
+
+  ASSERT_TRUE(object->start);
+  ASSERT_EQ(1, object->length);
+
+  ASSERT_TRUE(object->start->name);
+  ASSERT_TRUE(object->start->value);
+  ASSERT_FALSE(object->start->next); // we have only one element
+
+  ASSERT_TRUE(object->start->name->string);
+  ASSERT_STREQ("foo", object->start->name->string);
+  ASSERT_EQ(strlen("foo"), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
+
+  value2 = object->start->value;
+
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_string, value2->type);
+
+  string = (struct json_string_s *)value2->payload;
+
+  ASSERT_TRUE(string->string);
+  ASSERT_STREQ("Heyo, gaia?", string->string);
+  ASSERT_EQ(strlen("Heyo, gaia?"), string->string_size);
+  ASSERT_EQ(strlen(string->string), string->string_size);
+
+  free(value);
+}
+
+UTEST_F(allow_trailing_comma, read_write_pretty_read) {
+  size_t size = 0;
+  void *json = json_write_pretty(utest_fixture->value, "  ", "\n", &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}
+
+UTEST_F(allow_trailing_comma, read_write_minified_read) {
+  size_t size = 0;
+  void *json = json_write_minified(utest_fixture->value, &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}
