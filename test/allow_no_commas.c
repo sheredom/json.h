@@ -172,3 +172,71 @@ UTEST(allow_no_commas, array_one) {
 
   free(value);
 }
+
+struct allow_no_commas {
+  struct json_value_s *value;
+};
+
+UTEST_F_SETUP(allow_no_commas) {
+  const char payload[] = "[false true]";
+  utest_fixture->value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
+
+  ASSERT_TRUE(utest_fixture->value);
+}
+
+UTEST_F_TEARDOWN(allow_no_commas) {
+  struct json_value_s *value = utest_fixture->value;
+  struct json_array_s *array = 0;
+  struct json_array_element_s *element = 0;
+  struct json_value_s *value2 = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_array, value->type);
+
+  array = (struct json_array_s *)value->payload;
+
+  ASSERT_TRUE(array->start);
+  ASSERT_EQ(2, array->length);
+
+  element = array->start;
+
+  ASSERT_TRUE(element->value);
+  ASSERT_TRUE(element->next);
+
+  ASSERT_EQ(json_type_false, element->value->type);
+  ASSERT_FALSE(element->value->payload);
+
+  element = element->next;
+
+  ASSERT_TRUE(element->value);
+  ASSERT_FALSE(element->next);
+
+  ASSERT_EQ(json_type_true, element->value->type);
+  ASSERT_FALSE(element->value->payload);
+
+  free(value);
+}
+
+UTEST_F(allow_no_commas, read_write_pretty_read) {
+  size_t size = 0;
+  void *json = json_write_pretty(utest_fixture->value, "  ", "\n", &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}
+
+UTEST_F(allow_no_commas, read_write_minified_read) {
+  size_t size = 0;
+  void *json = json_write_minified(utest_fixture->value, &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}

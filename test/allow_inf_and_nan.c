@@ -206,3 +206,90 @@ UTEST(allow_inf_and_nan, forgot_to_specify_flag_Infinity) {
   ASSERT_EQ(1, result.error_line_no);
   ASSERT_EQ(9, result.error_row_no);
 }
+
+struct allow_inf_and_nan {
+  struct json_value_s *value;
+};
+
+UTEST_F_SETUP(allow_inf_and_nan) {
+  const char payload[] = "[Infinity, NaN, -Infinity]";
+  utest_fixture->value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_inf_and_nan, 0, 0, 0);
+
+  ASSERT_TRUE(utest_fixture->value);
+}
+
+UTEST_F_TEARDOWN(allow_inf_and_nan) {
+  struct json_value_s *value = utest_fixture->value;
+  struct json_array_s *array = 0;
+  struct json_value_s *value2 = 0;
+  struct json_number_s *number = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_array, value->type);
+
+  array = (struct json_array_s *)value->payload;
+
+  ASSERT_TRUE(array->start);
+  ASSERT_EQ(3, array->length);
+
+  value2 = array->start->value;
+  ASSERT_TRUE(value2);
+
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s *)value2->payload;
+
+  ASSERT_STREQ("1.7976931348623158e308", number->number);
+  ASSERT_EQ(strlen("1.7976931348623158e308"), number->number_size);
+
+  value2 = array->start->next->value;
+  ASSERT_TRUE(value2);
+
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s *)value2->payload;
+
+  ASSERT_STREQ("0", number->number);
+  ASSERT_EQ(strlen("0"), number->number_size);
+
+  value2 = array->start->next->next->value;
+  ASSERT_TRUE(value2);
+
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s *)value2->payload;
+
+  ASSERT_STREQ("-1.7976931348623158e308", number->number);
+  ASSERT_EQ(strlen("-1.7976931348623158e308"), number->number_size);
+
+  ASSERT_FALSE(array->start->next->next->next); // only 3 elements
+
+  free(value);
+}
+
+UTEST_F(allow_inf_and_nan, read_write_pretty_read) {
+  size_t size = 0;
+  void *json = json_write_pretty(utest_fixture->value, "  ", "\n", &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}
+
+UTEST_F(allow_inf_and_nan, read_write_minified_read) {
+  size_t size = 0;
+  void *json = json_write_minified(utest_fixture->value, &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}

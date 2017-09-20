@@ -43,6 +43,7 @@ add_executable(json_test
   allow_location_information.c
   allow_multi_line_strings.c
   allow_no_commas.c
+  allow_simplified_json.c
   allow_single_quoted_strings.c
   allow_trailing_comma.cpp
   allow_unquoted_keys.c

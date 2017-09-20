@@ -299,3 +299,72 @@ UTEST(allow_equals_in_object, null) {
 
   free(value);
 }
+
+struct allow_equals_in_object {
+  struct json_value_s *value;
+};
+
+UTEST_F_SETUP(allow_equals_in_object) {
+  const char payload[] = "{\"foo\" = null}";
+  utest_fixture->value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_equals_in_object, 0, 0, 0);
+
+  ASSERT_TRUE(utest_fixture->value);
+}
+
+UTEST_F_TEARDOWN(allow_equals_in_object) {
+  struct json_value_s *value = utest_fixture->value;
+  struct json_object_s *object = 0;
+  struct json_value_s *value2 = 0;
+  size_t size = 0;
+  void *json = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_object, value->type);
+
+  object = (struct json_object_s *)value->payload;
+
+  ASSERT_TRUE(object->start);
+  ASSERT_EQ(1, object->length);
+
+  ASSERT_TRUE(object->start->name);
+  ASSERT_TRUE(object->start->value);
+  ASSERT_FALSE(object->start->next); // we have only one element
+
+  ASSERT_TRUE(object->start->name->string);
+  ASSERT_STREQ("foo", object->start->name->string);
+  ASSERT_EQ(strlen("foo"), object->start->name->string_size);
+  ASSERT_EQ(strlen(object->start->name->string),
+            object->start->name->string_size);
+
+  value2 = object->start->value;
+
+  ASSERT_FALSE(value2->payload);
+  ASSERT_EQ(json_type_null, value2->type);
+
+  free(value);
+}
+
+UTEST_F(allow_equals_in_object, read_write_pretty_read) {
+  size_t size = 0;
+  void *json = json_write_pretty(utest_fixture->value, "  ", "\n", &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}
+
+UTEST_F(allow_equals_in_object, read_write_minified_read) {
+  size_t size = 0;
+  void *json = json_write_minified(utest_fixture->value, &size);
+
+  free(utest_fixture->value);
+
+  utest_fixture->value = json_parse(json, size - 1);
+
+  free(json);
+}
