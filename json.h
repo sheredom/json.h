@@ -163,6 +163,7 @@ enum json_type_e {
   json_type_false,
   json_type_null
 };
+typedef size_t jsonType;
 
 // A JSON string value
 struct json_string_s {
@@ -171,6 +172,7 @@ struct json_string_s {
   // the size (in bytes) of the string
   size_t string_size;
 };
+typedef struct json_string_s            jsonString;
 
 // A JSON string value (extended)
 struct json_string_ex_s {
@@ -186,6 +188,7 @@ struct json_string_ex_s {
   // the row number for the value in the JSON input, in bytes
   size_t row_no;
 };
+typedef struct json_string_ex_s         jsonString_ex;
 
 // a JSON number value
 struct json_number_s {
@@ -194,6 +197,7 @@ struct json_number_s {
   // the size (in bytes) of the number
   size_t number_size;
 };
+typedef struct json_number_s            jsonNumber;
 
 // an element of a JSON object
 struct json_object_element_s {
@@ -204,6 +208,7 @@ struct json_object_element_s {
   // the next object element (can be NULL if the last element in the object)
   struct json_object_element_s *next;
 };
+typedef struct json_object_element_s    jsonObject_element;
 
 // a JSON object value
 struct json_object_s {
@@ -212,6 +217,7 @@ struct json_object_s {
   // the number of elements in the object
   size_t length;
 };
+typedef struct json_object_s            jsonObject;
 
 // an element of a JSON array
 struct json_array_element_s {
@@ -220,6 +226,7 @@ struct json_array_element_s {
   // the next array element (can be NULL if the last element in the array)
   struct json_array_element_s *next;
 };
+typedef struct json_array_element_s             jsonArray_element;
 
 // a JSON array value
 struct json_array_s {
@@ -228,6 +235,7 @@ struct json_array_s {
   // the number of elements in the array
   size_t length;
 };
+typedef struct json_array_s             jsonArray;
 
 // a JSON value
 struct json_value_s {
@@ -239,6 +247,7 @@ struct json_value_s {
   // json_type_null, payload will be NULL
   size_t type;
 };
+typedef struct json_value_s             jsonValue;
 
 // a JSON value (extended)
 struct json_value_ex_s {
@@ -310,6 +319,51 @@ struct json_parse_result_s {
   // the row number for the error, in bytes
   size_t error_row_no;
 };
+
+/*
+* JSON Object
+*/
+jsonValue  * jsonObject_get_value(const jsonObject *object, const char *name);
+const char    * jsonObject_get_string(const jsonObject *object, const char *name);
+jsonObject * jsonObject_get_object(const jsonObject *object, const char *name);
+jsonArray  * jsonObject_get_array(const jsonObject *object, const char *name);
+double          jsonObject_get_number(const jsonObject *object, const char *name); /* returns 0 on fail */
+int             jsonObject_get_boolean(const jsonObject *object, const char *name); /* returns -1 on fail */
+
+                                                                                          /* dotget functions enable addressing values with dot notation in nested objects,
+                                                                                          just like in structs or c++/java/c# objects (e.g. objectA.objectB.value).
+                                                                                          Because valid names in JSON can contain dots, some values may be inaccessible
+                                                                                          this way. */
+jsonValue  * jsonObject_dotget_value(const jsonObject *object, const char *name);
+const char * jsonObject_dotget_string(const jsonObject *object, const char *name);
+jsonObject * jsonObject_dotget_object(const jsonObject *object, const char *name);
+jsonArray  * jsonObject_dotget_array(const jsonObject *object, const char *name);
+double       jsonObject_dotget_number(const jsonObject *object, const char *name); /* returns 0 on fail */
+int          jsonObject_dotget_boolean(const jsonObject *object, const char *name); /* returns -1 on fail */
+
+                                                                                             /* Functions to get available names */
+size_t       jsonObject_get_count(const jsonObject *object);
+const char * jsonObject_get_name(const jsonObject *object, size_t index);
+jsonValue  * jsonObject_get_value_at(const jsonObject *object, size_t index);
+
+/* Functions to check if object has a value with a specific name. Returned value is 1 if object has
+* a value and 0 if it doesn't. dothas functions behave exactly like dotget functions. */
+int jsonObject_has_value(const jsonObject *object, const char *name);
+int jsonObject_has_value_of_type(const jsonObject *object, const char *name, jsonType type);
+
+int jsonObject_dothas_value(const jsonObject *object, const char *name);
+int jsonObject_dothas_value_of_type(const jsonObject *object, const char *name, jsonType type);
+
+/*
+*JSON Value
+*/
+jsonType  jsonValue_get_type(const jsonValue *value);
+jsonObject *   jsonValue_get_object(const jsonValue *value);
+jsonArray  *   jsonValue_get_array(const jsonValue *value);
+const char    *   jsonValue_get_string(const jsonValue *value);
+double            jsonValue_get_number(const jsonValue *value);
+int               jsonValue_get_boolean(const jsonValue *value);
+
 
 #ifdef __cplusplus
 } // extern "C"
