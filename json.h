@@ -325,16 +325,16 @@ struct json_parse_result_s {
 * JSON Object
 */
 jsonValue  * jsonObject_get_value(const jsonObject *object, const char *name);
-const char    * jsonObject_get_string(const jsonObject *object, const char *name);
+const char * jsonObject_get_string(const jsonObject *object, const char *name);
 jsonObject * jsonObject_get_object(const jsonObject *object, const char *name);
 jsonArray  * jsonObject_get_array(const jsonObject *object, const char *name);
-double          jsonObject_get_number(const jsonObject *object, const char *name); /* returns 0 on fail */
-int             jsonObject_get_boolean(const jsonObject *object, const char *name); /* returns -1 on fail */
+double       jsonObject_get_number(const jsonObject *object, const char *name); /* returns 0 on fail */
+int          jsonObject_get_boolean(const jsonObject *object, const char *name); /* returns -1 on fail */
 
-                                                                                          /* dotget functions enable addressing values with dot notation in nested objects,
-                                                                                          just like in structs or c++/java/c# objects (e.g. objectA.objectB.value).
-                                                                                          Because valid names in JSON can contain dots, some values may be inaccessible
-                                                                                          this way. */
+/* dotget functions enable addressing values with dot notation in nested objects,
+  just like in structs or c++/java/c# objects (e.g. objectA.objectB.value).
+  Because valid names in JSON can contain dots, some values may be inaccessible
+  this way. */
 jsonValue  * jsonObject_dotget_value(const jsonObject *object, const char *name);
 const char * jsonObject_dotget_string(const jsonObject *object, const char *name);
 jsonObject * jsonObject_dotget_object(const jsonObject *object, const char *name);
@@ -342,13 +342,13 @@ jsonArray  * jsonObject_dotget_array(const jsonObject *object, const char *name)
 double       jsonObject_dotget_number(const jsonObject *object, const char *name); /* returns 0 on fail */
 int          jsonObject_dotget_boolean(const jsonObject *object, const char *name); /* returns -1 on fail */
 
-                                                                                             /* Functions to get available names */
+/* Functions to get available names */
 size_t       jsonObject_get_count(const jsonObject *object);
 const char * jsonObject_get_name(const jsonObject *object, size_t index);
 jsonValue  * jsonObject_get_value_at(const jsonObject *object, size_t index);
 
 /* Functions to check if object has a value with a specific name. Returned value is 1 if object has
-* a value and 0 if it doesn't. dothas functions behave exactly like dotget functions. */
+ * a value and 0 if it doesn't. dothas functions behave exactly like dotget functions. */
 int jsonObject_has_value(const jsonObject *object, const char *name);
 int jsonObject_has_value_of_type(const jsonObject *object, const char *name, jsonType type);
 
@@ -356,14 +356,14 @@ int jsonObject_dothas_value(const jsonObject *object, const char *name);
 int jsonObject_dothas_value_of_type(const jsonObject *object, const char *name, jsonType type);
 
 /*
-*JSON Value
-*/
-jsonType  jsonValue_get_type(const jsonValue *value);
-jsonObject *   jsonValue_get_object(const jsonValue *value);
-jsonArray  *   jsonValue_get_array(const jsonValue *value);
-const char    *   jsonValue_get_string(const jsonValue *value);
-double            jsonValue_get_number(const jsonValue *value);
-int               jsonValue_get_boolean(const jsonValue *value);
+ *JSON Value
+ */
+jsonType     jsonValue_get_type(const jsonValue *value);
+jsonObject * jsonValue_get_object(const jsonValue *value);
+jsonArray  * jsonValue_get_array(const jsonValue *value);
+const char * jsonValue_get_string(const jsonValue *value);
+double       jsonValue_get_number(const jsonValue *value);
+int          jsonValue_get_boolean(const jsonValue *value);
 
 
 #ifdef __cplusplus
