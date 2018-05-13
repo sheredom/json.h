@@ -29,6 +29,9 @@
 #include "json.h"
 
 #include <stdlib.h>
+#include <string.h>
+#include <float.h>
+#include <math.h>
 
 // work around MSVC 2013 and lower not having strtoull
 #if defined(_MSC_VER) && (_MSC_VER <= 1800)
@@ -2427,6 +2430,239 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
   }
 
   return data;
+}
+
+// atod quick
+inline double _quick_atod(const char *str) {
+  double number = 0.0f;
+  char *p = (char *)str;
+  while (*p == ' ') { ++p; }
+  int negative = 0;
+  switch (*p) {
+  case '-': negative = 1;
+  case '+': ++p; break;
+  }
+  int decimals = 0;
+
+  while (*p <= '9' && *p >= '0') {
+    number = (number * 10.0f) + (*p - '0');
+    ++p;
+  }
+
+  int exponent = 0;
+  if (*p == '.') {
+    ++p;
+    while (*p <= '9' && *p >= '0') {
+      number = (number * 10.0f) + (*p - '0');
+      ++p;
+      ++decimals;
+    }
+    exponent -= decimals;
+  }
+
+  if (negative) { number = -number; }
+  if (decimals == 0) {
+    return number;
+  }
+
+  int n;
+  if (*p == 'e' || *p == 'E') {
+    negative = 0;
+    switch (*++p) {
+    case '-': negative = 1;
+    case '+': ++p;
+    }
+    n = 0;
+    while (*p <= '9' && *p >= '0') {
+      n = n * 10 + (*p - '0');
+      ++p;
+    }
+
+    if (negative) {
+      exponent -= n;
+    }
+    else {
+      exponent += n;
+    }
+  }
+
+  if (exponent < DBL_MIN_EXP || exponent > DBL_MAX_EXP) {
+    return HUGE_VAL;
+  }
+
+  double p10 = 10.;
+  n = exponent;
+  if (n < 0) { n = -n; }
+  while (n) {
+    if (n & 1) {
+      if (exponent < 0) {
+        number /= p10;
+      }
+      else {
+        number *= p10;
+      }
+    }
+    n >>= 1;
+    p10 *= p10;
+  }
+
+  return number;
+}
+
+/* JSON Object */
+inline jsonValue * jsonObject_nget_value(const jsonObject *object, const char *name, size_t n) {
+  size_t i, name_length;
+  jsonObject_element* element = object->start;
+  for (i = 0; i < object->length; ++i) {
+    name_length = strlen(element->name->string);
+    if (name_length != n) {
+      continue;
+    }
+    if (strncmp(element->name->string, name, n) == 0) {
+      return element->value;
+    }
+    element = element->next;
+  }
+  return NULL;
+}
+
+/* JSON Object API */
+
+jsonValue * jsonObject_get_value(const jsonObject *object, const char *name) {
+  if (object == NULL || name == NULL) {
+    return NULL;
+  }
+  return jsonObject_nget_value(object, name, strlen(name));
+}
+
+const char * jsonObject_get_string(const jsonObject *object, const char *name) {
+  return jsonValue_get_string(jsonObject_get_value(object, name));
+}
+
+double jsonObject_get_number(const jsonObject *object, const char *name) {
+  return jsonValue_get_number(jsonObject_get_value(object, name));
+}
+
+jsonObject * jsonObject_get_object(const jsonObject *object, const char *name) {
+  return jsonValue_get_object(jsonObject_get_value(object, name));
+}
+
+jsonArray * jsonObject_get_array(const jsonObject *object, const char *name) {
+  return jsonValue_get_array(jsonObject_get_value(object, name));
+}
+
+int jsonObject_get_boolean(const jsonObject *object, const char *name) {
+  return jsonValue_get_boolean(jsonObject_get_value(object, name));
+}
+
+jsonValue * jsonObject_dotget_value(const jsonObject *object, const char *name) {
+  const char *dot_position = strchr(name, '.');
+  if (!dot_position) {
+    return jsonObject_get_value(object, name);
+  }
+  object = jsonValue_get_object(jsonObject_nget_value(object, name, dot_position - name));
+  return jsonObject_dotget_value(object, dot_position + 1);
+}
+
+const char * jsonObject_dotget_string(const jsonObject *object, const char *name) {
+  return jsonValue_get_string(jsonObject_dotget_value(object, name));
+}
+
+double jsonObject_dotget_number(const jsonObject *object, const char *name) {
+  return jsonValue_get_number(jsonObject_dotget_value(object, name));
+}
+
+jsonObject * jsonObject_dotget_object(const jsonObject *object, const char *name) {
+  return jsonValue_get_object(jsonObject_dotget_value(object, name));
+}
+
+jsonArray * jsonObject_dotget_array(const jsonObject *object, const char *name) {
+  return jsonValue_get_array(jsonObject_dotget_value(object, name));
+}
+
+int jsonObject_dotget_boolean(const jsonObject *object, const char *name) {
+  return jsonValue_get_boolean(jsonObject_dotget_value(object, name));
+}
+
+size_t jsonObject_get_count(const jsonObject *object) {
+  return object ? object->length : 0;
+}
+
+inline jsonObject_element* jsonObject_get_index(const jsonObject *object, size_t index) {
+  if (object == NULL || index >= jsonObject_get_count(object)) {
+    return NULL;
+  }
+  size_t i;
+  jsonObject_element* element = object->start;
+  for (i = 0; i < object->length; ++i) {
+    if (i == index) {
+      return element;
+    }
+    element = element->next;
+    if (!element) {
+      break;
+    }
+  }
+  return NULL;
+}
+
+const char * jsonObject_get_name(const jsonObject *object, size_t index) {
+  jsonObject_element* element = jsonObject_get_index(object, index);
+  return element ? element->name->string : NULL;
+}
+
+jsonValue * jsonObject_get_value_at(const jsonObject *object, size_t index) {
+  jsonObject_element* element = jsonObject_get_index(object, index);
+  return element ? element->value : NULL;
+}
+
+int jsonObject_has_value(const jsonObject *object, const char *name) {
+  return jsonObject_get_value(object, name) != NULL;
+}
+
+int jsonObject_has_value_of_type(const jsonObject *object, const char *name, jsonType type) {
+  jsonValue *val = jsonObject_get_value(object, name);
+  return val != NULL && (jsonValue_get_type(val) & type);
+}
+
+int jsonObject_dothas_value(const jsonObject *object, const char *name) {
+  return jsonObject_dotget_value(object, name) != NULL;
+}
+
+int jsonObject_dothas_value_of_type(const jsonObject *object, const char *name, jsonType type) {
+  jsonValue *val = jsonObject_dotget_value(object, name);
+  return val != NULL && jsonValue_get_type(val) == type;
+}
+
+
+/* JSON Value API */
+jsonType jsonValue_get_type(const jsonValue *value) {
+  return value ? value->type : -1;
+}
+
+jsonObject * jsonValue_get_object(const jsonValue *value) {
+  return jsonValue_get_type(value) == json_type_object ? (jsonObject*)value->payload : NULL;
+}
+
+jsonArray * jsonValue_get_array(const jsonValue *value) {
+  return jsonValue_get_type(value) == json_type_array ? (jsonArray*)value->payload : NULL;
+}
+
+const char * jsonValue_get_string(const jsonValue *value) {
+  return jsonValue_get_type(value) == json_type_string ? ((jsonString*)value->payload)->string : NULL;
+}
+
+double jsonValue_get_number(const jsonValue *value) {
+  return jsonValue_get_type(value) == json_type_number ? _quick_atod(((jsonNumber*)value->payload)->number) : 0;
+}
+
+int jsonValue_get_boolean(const jsonValue *value) {
+  switch (jsonValue_get_type(value)){
+  case json_type_true: return 1;
+  case json_type_false: return 0;
+  default: break;
+  }
+  return -1;
 }
 
 #if defined(__clang__)
