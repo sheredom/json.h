@@ -155,13 +155,14 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
 
 // The various types JSON values can be. Used to identify what a value is
 enum json_type_e {
-  json_type_string,
-  json_type_number,
-  json_type_object,
-  json_type_array,
-  json_type_true,
-  json_type_false,
-  json_type_null
+  json_type_string = 1,
+  json_type_number = 1 << 1,
+  json_type_object = 1 << 2,
+  json_type_array = 1 << 3,
+  json_type_bool = 1 << 4,
+  json_type_true = (1 << 5) | json_type_bool,
+  json_type_false = (1 << 6) | json_type_bool,
+  json_type_null = 1 << 7
 };
 typedef size_t jsonType;
 
