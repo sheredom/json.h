@@ -278,7 +278,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
         offset++;
         break;
       case 'u':
-        if (offset + 5 < size) {
+        if (!(offset + 5 < size)) {
           // invalid escaped unicode sequence!
           state->error = json_parse_error_invalid_string_escape_sequence;
           state->offset = offset;
@@ -294,7 +294,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
         }
 
         // valid sequence!
-        state->offset += 5;
+        offset += 5;
 
         // add space for the 5 character sequence too
         data_size += 5;
