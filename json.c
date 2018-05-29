@@ -49,6 +49,16 @@
 
 // disable 'function selected for inline expansion' warning
 #pragma warning(disable : 4711)
+
+// disable '#pragma warning: there is no warning number' warning
+#pragma warning(disable : 4619)
+
+// disable 'warning number not a valid compiler warning' warning
+#pragma warning(disable : 4616)
+
+// disable 'Compiler will insert Spectre mitigation for memory load if /Qspectre
+// switch specified' warning
+#pragma warning(disable : 5045)
 #endif
 
 struct json_parse_state_s {
