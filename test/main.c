@@ -807,4 +807,36 @@ UTEST(object, empty_strings) {
 }
 
 
+UTEST(string, unicode_escape) {
+	const char expected_str[] = "\xEA\x83\x8A" "ABC" "\xC3\x8A" "DEF" "\n";
+	const char payload[] = "[\"\\ua0caABC\\u00caDEF\\u000a\"]";
+	struct json_value_s *value = json_parse(payload, strlen(payload));
+	struct json_array_s *array = 0;
+	struct json_string_s *str = 0;
+
+	ASSERT_TRUE(value);
+	ASSERT_TRUE(value->payload);
+	ASSERT_EQ(json_type_array, value->type);
+
+	array = (struct json_array_s *)value->payload;
+
+	ASSERT_TRUE(array->start);
+	ASSERT_EQ(1, array->length);
+
+	ASSERT_TRUE(array->start->value);
+	ASSERT_TRUE(array->start->value->payload);
+	ASSERT_EQ(json_type_string, array->start->value->type);
+
+	str = (struct json_number_s *)array->start->value->payload;
+
+	ASSERT_TRUE(str->string);
+
+	ASSERT_STREQ(expected_str, str->string);
+	ASSERT_EQ(strlen(expected_str), str->string_size);
+	ASSERT_EQ(strlen(str->string), str->string_size);
+
+	free(value);
+}
+
+
 UTEST_MAIN();
