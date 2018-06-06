@@ -827,7 +827,7 @@ UTEST(string, unicode_escape) {
 	ASSERT_TRUE(array->start->value->payload);
 	ASSERT_EQ(json_type_string, array->start->value->type);
 
-	str = (struct json_number_s *)array->start->value->payload;
+	str = array->start->value->payload;
 
 	ASSERT_TRUE(str->string);
 

@@ -960,18 +960,18 @@ static void json_parse_string(struct json_parse_state_s *state,
   
           offset += 4;
   
-          if (codepoint <= 0x7f) {
-            data[bytes_written++] = codepoint; // 0xxxxxxx
+          if (codepoint <= 0x7fu) {
+            data[bytes_written++] = (char)codepoint; // 0xxxxxxx
           }
-          else if (codepoint <= 0x7ff) {
-            data[bytes_written++] = 0xc0 | (codepoint >> 6); // 110xxxxx
-            data[bytes_written++] = 0x80 | (codepoint & 0x3f); // 10xxxxxx
+          else if (codepoint <= 0x7ffu) {
+            data[bytes_written++] = (char)(0xc0u | (codepoint >> 6)); // 110xxxxx
+            data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
           }
           else {
             // we assume the value was validated and thus is within the valid range
-            data[bytes_written++] = 0xe0 | (codepoint >> 12); // 1110xxxx
-            data[bytes_written++] = 0x80 | ((codepoint >> 6) & 0x3f); // 10xxxxxx
-            data[bytes_written++] = 0x80 | (codepoint & 0x3f); // 10xxxxxx
+            data[bytes_written++] = (char)(0xe0u | (codepoint >> 12)); // 1110xxxx
+            data[bytes_written++] = (char)(0x80u | ((codepoint >> 6) & 0x3fu)); // 10xxxxxx
+            data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
           }
         }
         break;
