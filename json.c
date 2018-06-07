@@ -75,11 +75,6 @@ struct json_parse_state_s {
   size_t error;
 };
 
-static int json_is_hexadecimal_digit(const char c) {
-  return (('0' <= c && c <= '9') || ('a' <= c && c <= 'f') ||
-          ('A' <= c && c <= 'F'));
-}
-
 static int json_hexadecimal_digit(const char c) {
   if ('0' <= c && c <= '9') {
     return c - '0';
@@ -93,12 +88,13 @@ static int json_hexadecimal_digit(const char c) {
   return -1;
 }
 
-static int json_hexadecimal_value(const char * c, const int size, unsigned int * result) {
-  if (size > sizeof(unsigned int) * 2) {
+static int json_hexadecimal_value(const char * c, const unsigned long size, unsigned long * result) {
+  if (size > sizeof(unsigned long) * 2) {
     return -2;
   }
   *result = 0;
-  for (const char * p = c; p - c < size; ++p) {
+  const char * p;
+  for (p = c; (unsigned long)(p - c) < size; ++p) {
     *result <<= 4;
     int digit = json_hexadecimal_digit(*p);
     if (digit == -1) {
@@ -268,6 +264,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
   const int is_single_quote = '\'' == src[offset];
   const char quote_to_use = is_single_quote ? '\'' : '"';
   const size_t flags_bitset = state->flags_bitset;
+  unsigned long codepoint;
 
   if ((json_parse_flags_allow_location_information & flags_bitset) != 0 &&
       is_key != 0) {
@@ -327,7 +324,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
           return 1;
         }
      
-        unsigned int codepoint;
+		codepoint = 0;
         if (0 != json_hexadecimal_value(&src[offset + 1], 4, &codepoint)) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
           state->error = json_parse_error_invalid_string_escape_sequence;
@@ -937,6 +934,7 @@ static void json_parse_string(struct json_parse_state_s *state,
   const char *const src = state->src;
   const char quote_to_use = '\'' == src[offset] ? '\'' : '"';
   char *data = state->data;
+  unsigned long codepoint;
 
   string->string = data;
 
@@ -953,7 +951,7 @@ static void json_parse_string(struct json_parse_state_s *state,
         return; // we cannot ever reach here
       case 'u':
         {
-          unsigned int codepoint;
+		  codepoint = 0;
           if (0 != json_hexadecimal_value(&src[offset], 4, &codepoint)) {
             return; // this shouldn't happen as the value was already validated
           }
