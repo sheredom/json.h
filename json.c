@@ -75,9 +75,37 @@ struct json_parse_state_s {
   size_t error;
 };
 
-static int json_is_hexadecimal_digit(const char c) {
-  return (('0' <= c && c <= '9') || ('a' <= c && c <= 'f') ||
-          ('A' <= c && c <= 'F'));
+static int json_hexadecimal_digit(const char c) {
+  if ('0' <= c && c <= '9') {
+    return c - '0';
+  }
+  if ('a' <= c && c <= 'f') {
+    return c - 'a' + 10;
+  }
+  if ('A' <= c && c <= 'F') {
+    return c - 'A' + 10;
+  }
+  return -1;
+}
+
+static int json_hexadecimal_value(const char * c, const unsigned long size, unsigned long * result) {
+  const char * p;
+  int digit;
+
+  if (size > sizeof(unsigned long) * 2) {
+    return 0;
+  }
+
+  *result = 0;
+  for (p = c; (unsigned long)(p - c) < size; ++p) {
+    *result <<= 4;
+    digit = json_hexadecimal_digit(*p);
+    if (digit < 0 || digit > 15) {
+      return 0;
+    }
+    *result |= (unsigned char)digit;
+  }
+  return 1;
 }
 
 static int json_skip_whitespace(struct json_parse_state_s *state) {
@@ -239,6 +267,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
   const int is_single_quote = '\'' == src[offset];
   const char quote_to_use = is_single_quote ? '\'' : '"';
   const size_t flags_bitset = state->flags_bitset;
+  unsigned long codepoint;
 
   if ((json_parse_flags_allow_location_information & flags_bitset) != 0 &&
       is_key != 0) {
@@ -291,15 +320,15 @@ static int json_get_string_size(struct json_parse_state_s *state,
         offset++;
         break;
       case 'u':
-        if (offset + 5 < size) {
+        if (!(offset + 5 < size)) {
           // invalid escaped unicode sequence!
           state->error = json_parse_error_invalid_string_escape_sequence;
           state->offset = offset;
           return 1;
-        } else if (!json_is_hexadecimal_digit(src[offset + 1]) ||
-                   !json_is_hexadecimal_digit(src[offset + 2]) ||
-                   !json_is_hexadecimal_digit(src[offset + 3]) ||
-                   !json_is_hexadecimal_digit(src[offset + 4])) {
+        }
+     
+        codepoint = 0;
+        if (!json_hexadecimal_value(&src[offset + 1], 4, &codepoint)) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
           state->error = json_parse_error_invalid_string_escape_sequence;
           state->offset = offset;
@@ -307,10 +336,32 @@ static int json_get_string_size(struct json_parse_state_s *state,
         }
 
         // valid sequence!
-        state->offset += 5;
+        // see: https://en.wikipedia.org/wiki/UTF-8#Invalid_code_points
+        //      1       7       U + 0000        U + 007F        0xxxxxxx
+        //      2       11      U + 0080        U + 07FF        110xxxxx        10xxxxxx
+        //      3       16      U + 0800        U + FFFF        1110xxxx        10xxxxxx        10xxxxxx
+        //      4       21      U + 10000       U + 10FFFF      11110xxx        10xxxxxx        10xxxxxx        10xxxxxx
+        // Note: the high and low surrogate halves used by UTF-16 (U+D800 through U+DFFF) and code points not encodable by UTF-16 (those after U+10FFFF) are not legal Unicode values, and their UTF-8 encoding must be treated as an invalid byte sequence.
+    
+        if (codepoint <= 0x7f) {
+          offset += 1;
+          data_size += 1;
+        }
+        else if (codepoint <= 0x7ff) {
+          offset += 2;
+          data_size += 2;
+        }
+        else if (codepoint >= 0xd800 && codepoint <= 0xdfff) {
+          state->error = json_parse_error_invalid_string_escape_sequence;
+          state->offset = offset;
+          return 1;
+        }
+        else {
+          offset += 3;
+          data_size += 3;
+        }
+        // codepoints after 0xffff are not supported in json
 
-        // add space for the 5 character sequence too
-        data_size += 5;
         break;
       }
     } else if (('\r' == src[offset]) || ('\n' == src[offset])) {
@@ -886,13 +937,14 @@ static void json_parse_string(struct json_parse_state_s *state,
   const char *const src = state->src;
   const char quote_to_use = '\'' == src[offset] ? '\'' : '"';
   char *data = state->data;
+  unsigned long codepoint;
 
   string->string = data;
 
   // skip leading '"' or '\''
   offset++;
 
-  do {
+  while (quote_to_use != src[offset]) {
     if ('\\' == src[offset]) {
       // skip the reverse solidus
       offset++;
@@ -900,6 +952,30 @@ static void json_parse_string(struct json_parse_state_s *state,
       switch (src[offset++]) {
       default:
         return; // we cannot ever reach here
+      case 'u':
+        {
+          codepoint = 0;
+          if (!json_hexadecimal_value(&src[offset], 4, &codepoint)) {
+            return; // this shouldn't happen as the value was already validated
+          }
+  
+          offset += 4;
+  
+          if (codepoint <= 0x7fu) {
+            data[bytes_written++] = (char)codepoint; // 0xxxxxxx
+          }
+          else if (codepoint <= 0x7ffu) {
+            data[bytes_written++] = (char)(0xc0u | (codepoint >> 6)); // 110xxxxx
+            data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
+          }
+          else {
+            // we assume the value was validated and thus is within the valid range
+            data[bytes_written++] = (char)(0xe0u | (codepoint >> 12)); // 1110xxxx
+            data[bytes_written++] = (char)(0x80u | ((codepoint >> 6) & 0x3fu)); // 10xxxxxx
+            data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
+          }
+        }
+        break;
       case '"':
         data[bytes_written++] = '"';
         break;
@@ -942,7 +1018,7 @@ static void json_parse_string(struct json_parse_state_s *state,
       // copy the character
       data[bytes_written++] = src[offset++];
     }
-  } while (quote_to_use != src[offset]);
+  }
 
   // skip trailing '"' or '\''
   offset++;
