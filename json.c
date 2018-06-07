@@ -89,12 +89,12 @@ static int json_hexadecimal_digit(const char c) {
 }
 
 static int json_hexadecimal_value(const char * c, const unsigned long size, unsigned long * result) {
-  if (size > sizeof(unsigned long) * 2) {
-    return -2;
-  }
-
   const char * p;
   int digit;
+
+  if (size > sizeof(unsigned long) * 2) {
+    return 0;
+  }
 
   *result = 0;
   for (p = c; (unsigned long)(p - c) < size; ++p) {
