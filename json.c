@@ -75,7 +75,7 @@ struct json_parse_state_s {
   size_t error;
 };
 
-static int json_hexadecimal_digit(const char c) {
+static unsigned char json_hexadecimal_digit(const char c) {
   if ('0' <= c && c <= '9') {
     return c - '0';
   }
@@ -85,24 +85,27 @@ static int json_hexadecimal_digit(const char c) {
   if ('A' <= c && c <= 'F') {
     return c - 'A' + 10;
   }
-  return -1;
+  return 0x10;
 }
 
 static int json_hexadecimal_value(const char * c, const unsigned long size, unsigned long * result) {
   if (size > sizeof(unsigned long) * 2) {
     return -2;
   }
-  *result = 0;
+
   const char * p;
+  unsigned char digit;
+
+  *result = 0;
   for (p = c; (unsigned long)(p - c) < size; ++p) {
     *result <<= 4;
-    int digit = json_hexadecimal_digit(*p);
-    if (digit == -1) {
-      return -1;
+    digit = json_hexadecimal_digit(*p);
+    if (digit >= 0x10) {
+      return 0;
     }
     *result |= digit;
   }
-  return 0;
+  return 1;
 }
 
 static int json_skip_whitespace(struct json_parse_state_s *state) {
@@ -325,7 +328,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
         }
      
         codepoint = 0;
-        if (0 != json_hexadecimal_value(&src[offset + 1], 4, &codepoint)) {
+        if (!json_hexadecimal_value(&src[offset + 1], 4, &codepoint)) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
           state->error = json_parse_error_invalid_string_escape_sequence;
           state->offset = offset;
@@ -952,7 +955,7 @@ static void json_parse_string(struct json_parse_state_s *state,
       case 'u':
         {
           codepoint = 0;
-          if (0 != json_hexadecimal_value(&src[offset], 4, &codepoint)) {
+          if (!json_hexadecimal_value(&src[offset], 4, &codepoint)) {
             return; // this shouldn't happen as the value was already validated
           }
   
