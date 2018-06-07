@@ -75,7 +75,7 @@ struct json_parse_state_s {
   size_t error;
 };
 
-static unsigned char json_hexadecimal_digit(const char c) {
+static int json_hexadecimal_digit(const char c) {
   if ('0' <= c && c <= '9') {
     return c - '0';
   }
@@ -85,7 +85,7 @@ static unsigned char json_hexadecimal_digit(const char c) {
   if ('A' <= c && c <= 'F') {
     return c - 'A' + 10;
   }
-  return 0x10;
+  return -1;
 }
 
 static int json_hexadecimal_value(const char * c, const unsigned long size, unsigned long * result) {
@@ -94,16 +94,16 @@ static int json_hexadecimal_value(const char * c, const unsigned long size, unsi
   }
 
   const char * p;
-  unsigned char digit;
+  int digit;
 
   *result = 0;
   for (p = c; (unsigned long)(p - c) < size; ++p) {
     *result <<= 4;
     digit = json_hexadecimal_digit(*p);
-    if (digit >= 0x10) {
+    if (digit < 0 || digit > 15) {
       return 0;
     }
-    *result |= digit;
+    *result |= (unsigned char)digit;
   }
   return 1;
 }
