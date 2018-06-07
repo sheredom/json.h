@@ -324,7 +324,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
           return 1;
         }
      
-		codepoint = 0;
+        codepoint = 0;
         if (0 != json_hexadecimal_value(&src[offset + 1], 4, &codepoint)) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
           state->error = json_parse_error_invalid_string_escape_sequence;
@@ -951,7 +951,7 @@ static void json_parse_string(struct json_parse_state_s *state,
         return; // we cannot ever reach here
       case 'u':
         {
-		  codepoint = 0;
+          codepoint = 0;
           if (0 != json_hexadecimal_value(&src[offset], 4, &codepoint)) {
             return; // this shouldn't happen as the value was already validated
           }
@@ -973,8 +973,8 @@ static void json_parse_string(struct json_parse_state_s *state,
           }
         }
         break;
-	  case '"':
-		data[bytes_written++] = '"';
+      case '"':
+        data[bytes_written++] = '"';
         break;
       case '\\':
         data[bytes_written++] = '\\';
