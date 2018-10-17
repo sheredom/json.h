@@ -268,6 +268,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
   const char quote_to_use = is_single_quote ? '\'' : '"';
   const size_t flags_bitset = state->flags_bitset;
   unsigned long codepoint;
+  unsigned long high_surrogate = 0;
 
   if ((json_parse_flags_allow_location_information & flags_bitset) != 0 &&
       is_key != 0) {
@@ -326,7 +327,7 @@ static int json_get_string_size(struct json_parse_state_s *state,
           state->offset = offset;
           return 1;
         }
-     
+
         codepoint = 0;
         if (!json_hexadecimal_value(&src[offset + 1], 4, &codepoint)) {
           // escaped unicode sequences must contain 4 hexadecimal digits!
@@ -343,25 +344,42 @@ static int json_get_string_size(struct json_parse_state_s *state,
         //      4       21      U + 10000       U + 10FFFF      11110xxx        10xxxxxx        10xxxxxx        10xxxxxx
         // Note: the high and low surrogate halves used by UTF-16 (U+D800 through U+DFFF) and code points not encodable by UTF-16 (those after U+10FFFF) are not legal Unicode values, and their UTF-8 encoding must be treated as an invalid byte sequence.
     
-        if (codepoint <= 0x7f) {
-          offset += 1;
+        if (high_surrogate != 0) {
+          // we previously read the high half of the \uxxxx\uxxxx pair,
+          // so now we expect the low half.
+          if (codepoint >= 0xdc00 && codepoint <= 0xdfff) { // low surrogate range
+            data_size += 3;
+            high_surrogate = 0;
+          } else {
+            state->error = json_parse_error_invalid_string_escape_sequence;
+            state->offset = offset;
+            return 1;
+          }
+        } else if (codepoint <= 0x7f) {
+          data_size += 0;
+        } else if (codepoint <= 0x7ff) {
           data_size += 1;
-        }
-        else if (codepoint <= 0x7ff) {
-          offset += 2;
-          data_size += 2;
-        }
-        else if (codepoint >= 0xd800 && codepoint <= 0xdfff) {
+        } else if (codepoint >= 0xd800 && codepoint <= 0xdbff) { // high surrogate range
+          // the codepoint is the first half of a "utf-16 surrogate pair"
+          // so we need the other half for it to be valid: \uHHHH\uLLLL
+          if (offset + 11 > size || '\\' != src[offset + 5] ||
+              'u' != src[offset + 6]) {
+            state->error = json_parse_error_invalid_string_escape_sequence;
+            state->offset = offset;
+            return 1;
+          }
+          high_surrogate = codepoint;
+        } else if (codepoint >= 0xd800 && codepoint <= 0xdfff) { // low surrogate range
+          // we did not read the other half before.
           state->error = json_parse_error_invalid_string_escape_sequence;
           state->offset = offset;
           return 1;
+        } else {
+          data_size += 2;
         }
-        else {
-          offset += 3;
-          data_size += 3;
-        }
-        // codepoints after 0xffff are not supported in json
+        // escaped codepoints after 0xffff are supported in json through utf-16 surrogate pairs: \uD83D\uDD25 for U+1F525
 
+        offset += 5;
         break;
       }
     } else if (('\r' == src[offset]) || ('\n' == src[offset])) {
@@ -804,6 +822,7 @@ static int json_get_number_size(struct json_parse_state_s *state) {
       if (json_parse_flags_allow_equals_in_object & flags_bitset) {
         break;
       }
+      // FALLTHROUGH
     default:
       state->error = json_parse_error_invalid_number_format;
       state->offset = offset;
@@ -937,6 +956,7 @@ static void json_parse_string(struct json_parse_state_s *state,
   const char *const src = state->src;
   const char quote_to_use = '\'' == src[offset] ? '\'' : '"';
   char *data = state->data;
+  unsigned long high_surrogate = 0;
   unsigned long codepoint;
 
   string->string = data;
@@ -952,30 +972,38 @@ static void json_parse_string(struct json_parse_state_s *state,
       switch (src[offset++]) {
       default:
         return; // we cannot ever reach here
-      case 'u':
-        {
-          codepoint = 0;
-          if (!json_hexadecimal_value(&src[offset], 4, &codepoint)) {
-            return; // this shouldn't happen as the value was already validated
-          }
-  
-          offset += 4;
-  
-          if (codepoint <= 0x7fu) {
-            data[bytes_written++] = (char)codepoint; // 0xxxxxxx
-          }
-          else if (codepoint <= 0x7ffu) {
-            data[bytes_written++] = (char)(0xc0u | (codepoint >> 6)); // 110xxxxx
-            data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
-          }
-          else {
-            // we assume the value was validated and thus is within the valid range
-            data[bytes_written++] = (char)(0xe0u | (codepoint >> 12)); // 1110xxxx
-            data[bytes_written++] = (char)(0x80u | ((codepoint >> 6) & 0x3fu)); // 10xxxxxx
-            data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
-          }
+      case 'u': {
+        codepoint = 0;
+        if (!json_hexadecimal_value(&src[offset], 4, &codepoint)) {
+          return; // this shouldn't happen as the value was already validated
         }
-        break;
+
+        offset += 4;
+
+        if (codepoint <= 0x7fu) {
+          data[bytes_written++] = (char)codepoint; // 0xxxxxxx
+        } else if (codepoint <= 0x7ffu) {
+          data[bytes_written++] = (char)(0xc0u | (codepoint >> 6)); // 110xxxxx
+          data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
+        } else if (codepoint >= 0xd800 && codepoint <= 0xdbff) { // high surrogate
+          high_surrogate = codepoint;
+          continue; // we need the low half to form a complete codepoint.
+        } else if (codepoint >= 0xdc00 && codepoint <= 0xdfff) { // low surrogate
+          // combine with the previously read half to obtain the complete codepoint.
+          const unsigned long surrogate_offset = 0x10000u - (0xD800u << 10) - 0xDC00u;
+          codepoint = (high_surrogate << 10) + codepoint + surrogate_offset;
+          high_surrogate = 0;
+          data[bytes_written++] = (char)(0xF0u | (codepoint >> 18)); // 11110xxx
+          data[bytes_written++] = (char)(0x80u | ((codepoint >> 12) & 0x3fu)); // 10xxxxxx
+          data[bytes_written++] = (char)(0x80u | ((codepoint >> 6) & 0x3fu)); // 10xxxxxx
+          data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
+        } else {
+          // we assume the value was validated and thus is within the valid range
+          data[bytes_written++] = (char)(0xe0u | (codepoint >> 12)); // 1110xxxx
+          data[bytes_written++] = (char)(0x80u | ((codepoint >> 6) & 0x3fu)); // 10xxxxxx
+          data[bytes_written++] = (char)(0x80u | (codepoint & 0x3fu)); // 10xxxxxx
+        }
+      } break;
       case '"':
         data[bytes_written++] = '"';
         break;

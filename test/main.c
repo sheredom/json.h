@@ -808,8 +808,10 @@ UTEST(object, empty_strings) {
 
 
 UTEST(string, unicode_escape) {
-	const char expected_str[] = "\xEA\x83\x8A" "ABC" "\xC3\x8A" "DEF" "\n";
-	const char payload[] = "[\"\\ua0caABC\\u00caDEF\\u000a\"]";
+	const char expected_str[] = "\xEA\x83\x8A" "ABC" "\xC3\x8A" "DEF" "\n"
+	                            " ,\xC5\xBD,\xE0\xA0\x80,\xE0\xA6\xA8,\xE2\x99\x9E,\xEF\xBF\xBD,\xD0\xA8,\xE4\x93\x8D,\xF0\x90\x80\x80,\xF0\x9F\x98\x83.";
+	const char payload[] = "[\"\\ua0caABC\\u00caDEF\\u000a"
+	                       "\\u0020,\\u017D,\\u0800,\\u09A8,\\u265E,\\uFFFD,\\u0428,\\u44CD,\\uD800\\uDC00,\\uD83D\\uDE03.\"]";
 	struct json_value_s *value = json_parse(payload, strlen(payload));
 	struct json_array_s *array = 0;
 	struct json_string_s *str = 0;
