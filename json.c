@@ -624,7 +624,6 @@ static int json_get_array_size(struct json_parse_state_s *state) {
       if (',' == src[state->offset]) {
         // skip comma
         state->offset++;
-        allow_comma = 0;
       } else if (!(json_parse_flags_allow_no_commas & flags_bitset)) {
         state->error = json_parse_error_expected_comma_or_closing_bracket;
         return 1;
@@ -1935,13 +1934,15 @@ static char *json_write_number(const struct json_number_s *number, char *data) {
     }
 
     if ('\0' == *inf++) {
+      char * dbl_max;
+        
       // if we had a leading '-' we need to record it in the JSON output
       if ('-' == number->number[0]) {
         *data++ = '-';
       }
 
       // Inf becomes 1.7976931348623158e308 because JSON can't support it
-      for (char * dbl_max = (char *)"1.7976931348623158e308"; '\0' != *dbl_max; dbl_max++) {
+      for (dbl_max = (char *)"1.7976931348623158e308"; '\0' != *dbl_max; dbl_max++) {
         *data++ = *dbl_max;
       }
 
