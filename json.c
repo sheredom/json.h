@@ -1677,7 +1677,7 @@ static int json_write_get_number_size(const struct json_number_s *number,
 
   // check if we have infinity
   if ((i < number->number_size) && ('I' == number->number[i])) {
-    char *inf = "Infinity";
+    const char *inf = "Infinity";
     size_t k;
 
     for (k = i; k < number->number_size; k++) {
@@ -1706,7 +1706,7 @@ static int json_write_get_number_size(const struct json_number_s *number,
 
   // check if we have nan
   if ((i < number->number_size) && ('N' == number->number[i])) {
-    char *nan = "NaN";
+    const char *nan = "NaN";
     size_t k;
 
     for (k = i; k < number->number_size; k++) {
@@ -1920,7 +1920,7 @@ static char *json_write_number(const struct json_number_s *number, char *data) {
 
   // check if we have infinity
   if ((i < number->number_size) && ('I' == number->number[i])) {
-    char *inf = "Infinity";
+    const char *inf = "Infinity";
     size_t k;
 
     for (k = i; k < number->number_size; k++) {
@@ -1935,15 +1935,13 @@ static char *json_write_number(const struct json_number_s *number, char *data) {
     }
 
     if ('\0' == *inf++) {
-      char *dbl_max;
-
       // if we had a leading '-' we need to record it in the JSON output
       if ('-' == number->number[0]) {
         *data++ = '-';
       }
 
       // Inf becomes 1.7976931348623158e308 because JSON can't support it
-      for (dbl_max = "1.7976931348623158e308"; '\0' != *dbl_max; dbl_max++) {
+      for (char * dbl_max = (char *)"1.7976931348623158e308"; '\0' != *dbl_max; dbl_max++) {
         *data++ = *dbl_max;
       }
 
@@ -1953,7 +1951,7 @@ static char *json_write_number(const struct json_number_s *number, char *data) {
 
   // check if we have nan
   if ((i < number->number_size) && ('N' == number->number[i])) {
-    char *nan = "NaN";
+    const char *nan = "NaN";
     size_t k;
 
     for (k = i; k < number->number_size; k++) {
