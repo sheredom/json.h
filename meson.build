@@ -2,7 +2,7 @@
 #                                                                                 #
 # NAME: meson.build                                                               #
 #                                                                                 #
-# AUTHOR: Boris Claas Kiefer.                                                     #
+# AUTHOR: Neil Henning.                                                           #
 # WRITTEN BY: Michael Brockus.                                                    #
 #                                                                                 #
 # License: Unlicense                                                              #
