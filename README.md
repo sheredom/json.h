@@ -1,20 +1,19 @@
-# json.h #
+# 🗄️ json.h
 
 [![Build status](https://ci.appveyor.com/api/projects/status/piell6hcrlwrcxp9?svg=true)](https://ci.appveyor.com/project/sheredom/json-h)
-
 [![Build status](https://api.travis-ci.org/repositories/sheredom/json.h.svg)](https://travis-ci.org/sheredom/json.h)
 
-A simple one header/one source solution to parsing JSON in C and C++.
+A simple single header solution to parsing JSON in C and C++.
 
 JSON is parsed into a read-only, single allocation buffer.
 
 The current supported compilers are gcc, clang and msvc.
 
-The current supported platforms are Windows, Mac OSX and Linux.
+The current supported platforms are Windows, mac OS and Linux.
 
 ## Usage ##
 
-Just include json.h, json.c in your code!
+Just `#include "json.h"` in your code!
 
 ### json_parse ###
 
@@ -33,7 +32,8 @@ Returns a `struct json_value_s*` pointing the root of the json DOM.
 
 ### struct json_value_s ###
 
-The main struct for interacting with a parsed JSON Document Object Model (DOM) is the `struct json_value_s`.
+The main struct for interacting with a parsed JSON Document Object Model (DOM)
+is the `struct json_value_s`.
 
 ```
 struct json_value_s {
@@ -43,9 +43,13 @@ struct json_value_s {
 ```
 
 - `payload` - a pointer to the contents of the value.
-- `type` - the type of struct `payload` points to, one of `json_type_e`. Note: if type is `json_type_true`, `json_type_false`, or `json_type_null`, payload will be NULL.
+- `type` - the type of struct `payload` points to, one of `json_type_e`. Note:
+  if type is `json_type_true`, `json_type_false`, or `json_type_null`, payload
+  will be NULL.
 
-For example, if we had the JSON string *'{"a" : true, "b" : [false, null, "foo"]}'*, to get to each part of the parsed JSON we'd do:
+For example, if we had the JSON string
+*'{"a" : true, "b" : [false, null, "foo"]}'*, to get to each part of the parsed
+JSON we'd do:
 
 ```
 const char json[] = "{\"a\" : true, \"b\" : [false, null, \"foo\"]}";
@@ -120,16 +124,21 @@ struct json_value_s *json_parse_ex(
 
 - `src` - a utf-8 json string to parse.
 - `src_size` - the size of `src` in bytes.
-- `flags_bitset` - extra parsing flags, a bitset of flags specified in `enum json_parse_flags_e`.
-- `alloc_func_ptr` - a callback function to use for doing the single allocation. If NULL, `malloc()` is used.
-- `user_data` - user data to be passed as the first argument to `alloc_func_ptr`.
-- `result` - the result of the parsing. If a parsing error occured this will contain what type of error, and where in the source it occured. Can be NULL.
+- `flags_bitset` - extra parsing flags, a bitset of flags specified in
+  `enum json_parse_flags_e`.
+- `alloc_func_ptr` - a callback function to use for doing the single allocation.
+  If NULL, `malloc()` is used.
+- `user_data` - user data to be passed as the first argument to
+  `alloc_func_ptr`.
+- `result` - the result of the parsing. If a parsing error occured this will
+  contain what type of error, and where in the source it occured. Can be NULL.
 
 Returns a `struct json_value_s*` pointing the root of the json DOM.
 
 ### enum json_parse_flags_e ###
 
-The extra parsing flags that can be specified to `json_parse_ex()` are as follows:
+The extra parsing flags that can be specified to `json_parse_ex()` are as
+follows:
 
 ```
 enum json_parse_flags_e {
@@ -152,15 +161,33 @@ enum json_parse_flags_e {
 ```
 
 - `json_parse_flags_default` - the default, no special behaviour is enabled.
-- `json_parse_flags_allow_trailing_comma` - allow trailing commas in objects and arrays. For example, both `[true,]` and `{"a" : null,}` would be allowed with this option on.
-- `json_parse_flags_allow_unquoted_keys` - allow unquoted keys for objects. For example, `{a : null}` would be allowed with this option on.
-- `json_parse_flags_allow_global_object` - allow a global unbracketed object. For example, `a : null, b : true, c : {}` would be allowed with this option on.
-- `json_parse_flags_allow_equals_in_object` - allow objects to use '=' as well as ':' between key/value pairs. For example, `{"a" = null, "b" : true}` would be allowed with this option on.
-- `json_parse_flags_allow_no_commas` - allow that objects don't have to have comma separators between key/value pairs. For example, `{"a" : null "b" : true}` would be allowed with this option on.
-- `json_parse_flags_allow_c_style_comments` - allow c-style comments (// or /* */) to be ignored in the input JSON file.
+- `json_parse_flags_allow_trailing_comma` - allow trailing commas in objects and
+  arrays. For example, both `[true,]` and `{"a" : null,}` would be allowed with
+  this option on.
+- `json_parse_flags_allow_unquoted_keys` - allow unquoted keys for objects. For
+  example, `{a : null}` would be allowed with this option on.
+- `json_parse_flags_allow_global_object` - allow a global unbracketed object. For
+  example, `a : null, b : true, c : {}` would be allowed with this option on.
+- `json_parse_flags_allow_equals_in_object` - allow objects to use '=' as well as
+  ':' between key/value pairs. For example, `{"a" = null, "b" : true}` would be
+  allowed with this option on.
+- `json_parse_flags_allow_no_commas` - allow that objects don't have to have
+  comma separators between key/value pairs. For example,
+  `{"a" : null "b" : true}` would be allowed with this option on.
+- `json_parse_flags_allow_c_style_comments` - allow c-style comments (`//` or
+  `/* */`) to be ignored in the input JSON file.
 - `json_parse_flags_deprecated` - a deprecated option.
-- `json_parse_flags_allow_location_information` - allow location information to be tracked for where values are in the input JSON. Useful for alerting users to errors with precise location information pertaining to the original source. When this option is enabled, all `json_value_s*`'s can be casted to `json_value_ex_s*`, and the `json_string_s*` of `json_object_element_s*`'s name member can be casted to `json_string_ex_s*` to retrieve specific locations on all the values and keys. Note this option will increase the memory budget required for the DOM used to record the JSON.
-- `json_parse_flags_allow_simplified_json` - allow simplified JSON to be parsed. Simplified JSON is an enabling of a set of other parsing options. [See the Bitsquid blog introducing this here.](http://bitsquid.blogspot.com/2009/10/simplified-json-notation.html)
+- `json_parse_flags_allow_location_information` - allow location information to
+  be tracked for where values are in the input JSON. Useful for alerting users to
+  errors with precise location information pertaining to the original source.
+  When this option is enabled, all `json_value_s*`'s can be casted to
+  `json_value_ex_s*`, and the `json_string_s*` of `json_object_element_s*`'s
+  name member can be casted to `json_string_ex_s*` to retrieve specific
+  locations on all the values and keys. Note this option will increase the
+  memory budget required for the DOM used to record the JSON.
+- `json_parse_flags_allow_simplified_json` - allow simplified JSON to be parsed.
+  Simplified JSON is an enabling of a set of other parsing options.
+  [See the Bitsquid blog introducing this here.](http://bitsquid.blogspot.com/2009/10/simplified-json-notation.html)
 
 ## Design ##
 
@@ -173,7 +200,9 @@ structure of the original JSON), followed by the data.
 
 ## Todo ##
 
-- Add debug output to specify why the printer failed (as suggested by [@hugin84](https://twitter.com/hugin84) in https://twitter.com/hugin84/status/668506811595677696)
+- Add debug output to specify why the printer failed (as suggested by
+  [@hugin84](https://twitter.com/hugin84) in
+  https://twitter.com/hugin84/status/668506811595677696).
 
 ## License ##
 
