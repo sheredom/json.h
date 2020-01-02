@@ -11,11 +11,11 @@ The current supported compilers are gcc, clang and msvc.
 
 The current supported platforms are Windows, mac OS and Linux.
 
-## Usage ##
+## Usage
 
 Just `#include "json.h"` in your code!
 
-### json_parse ###
+### json_parse
 
 Parse a json string into a DOM.
 
@@ -30,7 +30,7 @@ struct json_value_s *json_parse(
 
 Returns a `struct json_value_s*` pointing the root of the json DOM.
 
-### struct json_value_s ###
+### struct json_value_s
 
 The main struct for interacting with a parsed JSON Document Object Model (DOM)
 is the `struct json_value_s`.
@@ -108,7 +108,7 @@ struct json_string_s* string = (struct json_string_s*)b_3rd_value->payload;
 free(root);
 ```
 
-### json_parse_ex ###
+### json_parse_ex
 
 Extended parse a json string into a DOM.
 
@@ -135,7 +135,7 @@ struct json_value_s *json_parse_ex(
 
 Returns a `struct json_value_s*` pointing the root of the json DOM.
 
-### enum json_parse_flags_e ###
+### enum json_parse_flags_e
 
 The extra parsing flags that can be specified to `json_parse_ex()` are as
 follows:
@@ -151,12 +151,28 @@ enum json_parse_flags_e {
   json_parse_flags_allow_c_style_comments = 0x20,
   json_parse_flags_deprecated = 0x40,
   json_parse_flags_allow_location_information = 0x80,
+  json_parse_flags_allow_single_quoted_strings = 0x100,
+  json_parse_flags_allow_hexadecimal_numbers = 0x200,
+  json_parse_flags_allow_leading_plus_sign = 0x400,
+  json_parse_flags_allow_leading_or_trailing_decimal_point = 0x800,
+  json_parse_flags_allow_inf_and_nan = 0x1000,
+  json_parse_flags_allow_multi_line_strings = 0x2000,
   json_parse_flags_allow_simplified_json =
       (json_parse_flags_allow_trailing_comma |
        json_parse_flags_allow_unquoted_keys |
        json_parse_flags_allow_global_object |
        json_parse_flags_allow_equals_in_object |
-       json_parse_flags_allow_no_commas)
+       json_parse_flags_allow_no_commas),
+  json_parse_flags_allow_json5 =
+      (json_parse_flags_allow_trailing_comma |
+       json_parse_flags_allow_unquoted_keys |
+       json_parse_flags_allow_c_style_comments |
+       json_parse_flags_allow_single_quoted_strings |
+       json_parse_flags_allow_hexadecimal_numbers |
+       json_parse_flags_allow_leading_plus_sign |
+       json_parse_flags_allow_leading_or_trailing_decimal_point |
+       json_parse_flags_allow_inf_and_nan |
+       json_parse_flags_allow_multi_line_strings)
 };
 ```
 
@@ -185,11 +201,26 @@ enum json_parse_flags_e {
   name member can be casted to `json_string_ex_s*` to retrieve specific
   locations on all the values and keys. Note this option will increase the
   memory budget required for the DOM used to record the JSON.
+- `json_parse_flags_allow_single_quoted_strings` - allows strings to be in
+  `'single quotes'`.
+- `json_parse_flags_allow_hexadecimal_numbers` - allows hexadecimal numbers to
+  be used `0x42`.
+- `json_parse_flags_allow_leading_plus_sign` - allows a leading '+' sign on
+  numbers `+42`.
+- `json_parse_flags_allow_leading_or_trailing_decimal_point` - allows decimal
+  points to be lead or trailed by 0 digits `.42` or `42.`.
+- `json_parse_flags_allow_inf_and_nan` - allows using infinity and NaN
+  identifiers `Infinity` or `NaN`.
+- `json_parse_flags_allow_multi_line_strings` - allows strings to span multiple
+  lines.
 - `json_parse_flags_allow_simplified_json` - allow simplified JSON to be parsed.
   Simplified JSON is an enabling of a set of other parsing options.
   [See the Bitsquid blog introducing this here.](http://bitsquid.blogspot.com/2009/10/simplified-json-notation.html)
+- `json_parse_flags_allow_json5` - allow JSON5 to be parsed. JSON5 is an
+  enabling of a set of other parsing options.
+  [See the website defining this extension here.](https://json5.org)
 
-## Design ##
+## Design
 
 The json_parse function calls malloc once, and then slices up this single
 allocation to support all the weird and wonderful JSON structures you can
@@ -198,13 +229,13 @@ imagine!
 The structure of the data is always the JSON structs first (which encode the
 structure of the original JSON), followed by the data.
 
-## Todo ##
+## Todo
 
 - Add debug output to specify why the printer failed (as suggested by
   [@hugin84](https://twitter.com/hugin84) in
   https://twitter.com/hugin84/status/668506811595677696).
 
-## License ##
+## License
 
 This is free and unencumbered software released into the public domain.
 
