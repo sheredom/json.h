@@ -54,15 +54,31 @@ add_executable(json_test
 )
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  set_source_files_properties(../json.c test.c test.cpp PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Werror"
+  set_source_files_properties(test.c PROPERTIES
+    COMPILE_FLAGS "-Wall -Wextra -Werror -std=c89"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  set_source_files_properties(../json.c test.c test.cpp PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror"
+  set_source_files_properties(test.c PROPERTIES
+    COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=c89"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
-  set_source_files_properties(../json.c test.c test.cpp PROPERTIES
+  set_source_files_properties(test.c PROPERTIES
+    COMPILE_FLAGS "/Wall /WX /wd4514"
+  )
+else()
+  message(WARNING "Unknown compiler '${CMAKE_C_COMPILER_ID}'!")
+endif()
+
+if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+  set_source_files_properties(test.cpp PROPERTIES
+    COMPILE_FLAGS "-Wall -Wextra -Werror"
+  )
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set_source_files_properties(test.cpp PROPERTIES
+    COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror"
+  )
+elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
+  set_source_files_properties(test.cpp PROPERTIES
     COMPILE_FLAGS "/Wall /WX /wd4514"
   )
 else()
