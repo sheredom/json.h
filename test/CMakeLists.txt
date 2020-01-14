@@ -26,7 +26,16 @@
 project(json)
 cmake_minimum_required(VERSION 2.8.7)
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../README.md readme_md)
+string(REPLACE ";" "@" readme_md "${readme_md}")
+string(REGEX MATCHALL "```c[^`]*```" snippets "${readme_md}")
+string(REPLACE "```c" "{" snippets ${snippets})
+string(REPLACE "```" "}\n\n" snippets ${snippets})
+string(REPLACE ";" "" snippets "${snippets}")
+string(REPLACE "@" ";" snippets "${snippets}")
+file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generated.h "${snippets}")
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../ ${CMAKE_CURRENT_BINARY_DIR})
 
 add_executable(json_test
   ../json.h
@@ -46,7 +55,7 @@ add_executable(json_test
   allow_single_quoted_strings.c
   allow_trailing_comma.cpp
   allow_unquoted_keys.c
-  main.c
+  main.cpp
   test.c
   test.cpp
   write_minified.cpp

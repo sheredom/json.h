@@ -167,6 +167,35 @@ json_weak void *json_write_pretty(const struct json_value_s *value,
                                   const char *indent, const char *newline,
                                   size_t *out_size);
 
+/* Reinterpret a JSON value as a string. Returns null is the value was not a
+ * string. */
+json_weak struct json_string_s *
+json_value_as_string(struct json_value_s *const value);
+
+/* Reinterpret a JSON value as a number. Returns null is the value was not a
+ * number. */
+json_weak struct json_number_s *
+json_value_as_number(struct json_value_s *const value);
+
+/* Reinterpret a JSON value as an object. Returns null is the value was not an
+ * object. */
+json_weak struct json_object_s *
+json_value_as_object(struct json_value_s *const value);
+
+/* Reinterpret a JSON value as an array. Returns null is the value was not an
+ * array. */
+json_weak struct json_array_s *
+json_value_as_array(struct json_value_s *const value);
+
+/* Whether the value is true. */
+json_weak int json_value_is_true(const struct json_value_s *const value);
+
+/* Whether the value is false. */
+json_weak int json_value_is_false(const struct json_value_s *const value);
+
+/* Whether the value is null. */
+json_weak int json_value_is_null(const struct json_value_s *const value);
+
 /* The various types JSON values can be. Used to identify what a value is. */
 enum json_type_e {
   json_type_string,
@@ -2019,6 +2048,50 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
 struct json_value_s *json_parse(const void *src, size_t src_size) {
   return json_parse_ex(src, src_size, json_parse_flags_default, json_null,
                        json_null, json_null);
+}
+
+struct json_string_s *json_value_as_string(struct json_value_s *const value) {
+  if (value->type != json_type_string) {
+    return json_null;
+  }
+
+  return (struct json_string_s *)value->payload;
+}
+
+struct json_number_s *json_value_as_number(struct json_value_s *const value) {
+  if (value->type != json_type_number) {
+    return json_null;
+  }
+
+  return (struct json_number_s *)value->payload;
+}
+
+struct json_object_s *json_value_as_object(struct json_value_s *const value) {
+  if (value->type != json_type_object) {
+    return json_null;
+  }
+
+  return (struct json_object_s *)value->payload;
+}
+
+struct json_array_s *json_value_as_array(struct json_value_s *const value) {
+  if (value->type != json_type_array) {
+    return json_null;
+  }
+
+  return (struct json_array_s *)value->payload;
+}
+
+int json_value_is_true(const struct json_value_s *const value) {
+  return value->type == json_type_true;
+}
+
+int json_value_is_false(const struct json_value_s *const value) {
+  return value->type == json_type_false;
+}
+
+int json_value_is_null(const struct json_value_s *const value) {
+  return value->type == json_type_null;
 }
 
 json_weak int json_write_minified_get_value_size(const struct json_value_s *value,

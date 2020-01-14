@@ -19,7 +19,7 @@ Just `#include "json.h"` in your code!
 
 Parse a json string into a DOM.
 
-```
+```c
 struct json_value_s *json_parse(
     const void *src,
     size_t src_size);
@@ -35,7 +35,7 @@ Returns a `struct json_value_s*` pointing the root of the json DOM.
 The main struct for interacting with a parsed JSON Document Object Model (DOM)
 is the `struct json_value_s`.
 
-```
+```c
 struct json_value_s {
   void *payload;
   size_t type;
@@ -47,72 +47,11 @@ struct json_value_s {
   if type is `json_type_true`, `json_type_false`, or `json_type_null`, payload
   will be NULL.
 
-For example, if we had the JSON string
-*'{"a" : true, "b" : [false, null, "foo"]}'*, to get to each part of the parsed
-JSON we'd do:
-
-```
-const char json[] = "{\"a\" : true, \"b\" : [false, null, \"foo\"]}";
-struct json_value_s* root = json_parse(json, strlen(json));
-/* root->type is json_type_object */
-
-struct json_object_s* object = (struct json_object_s*)root->payload;
-/* object->length is 2 */
-
-struct json_object_element_s* a = object->start;
-
-struct json_string_s* a_name = a->name;
-/* a_name->string is "a" */
-/* a_name->string_size is strlen("a") */
-
-struct json_value_s* a_value = a->value;
-/* a_value->type is json_type_true */
-/* a_value->payload is NULL */
-
-struct json_object_element_s* b = a->next;
-/* b->next is NULL */
-
-struct json_string_s* b_name = b->name;
-/* b_name->string is "b" */
-/* b_name->string_size is strlen("b") */
-
-struct json_value_s* b_value = b->value;
-/* b_value->type is json_type_array */
-
-struct json_array_s* array = (struct json_array_s*)b_value->payload;
-/* array->length is 3 */
-
-struct json_array_element_s* b_1st = array->start;
-
-struct json_value_s* b_1st_value = b_1st->value;
-/* b_1st_value->type is json_type_false */
-/* b_1st_value->payload is NULL */
-
-struct json_array_element_s* b_2nd = b_1st->next;
-
-struct json_value_s* b_2nd_value = b_2nd->value;
-/* b_2nd_value->type is json_type_null */
-/* b_2nd_value->payload is NULL */
-
-struct json_array_element_s* b_3rd = b_2nd->next;
-/* b_3rd->next is NULL */
-
-struct json_value_s* b_3rd_value = b_3rd->value;
-/* b_3rd_value->type is json_type_string */
-
-struct json_string_s* string = (struct json_string_s*)b_3rd_value->payload;
-/* string->string is "foo" */
-/* string->string_size is strlen("foo") */
-
-/* Don't forget to free the one allocation! */
-free(root);
-```
-
 ### json_parse_ex
 
 Extended parse a json string into a DOM.
 
-```
+```c
 struct json_value_s *json_parse_ex(
     const void *src,
     size_t src_size,
@@ -140,7 +79,7 @@ Returns a `struct json_value_s*` pointing the root of the json DOM.
 The extra parsing flags that can be specified to `json_parse_ex()` are as
 follows:
 
-```
+```c
 enum json_parse_flags_e {
   json_parse_flags_default = 0,
   json_parse_flags_allow_trailing_comma = 0x1,
@@ -219,6 +158,141 @@ enum json_parse_flags_e {
 - `json_parse_flags_allow_json5` - allow JSON5 to be parsed. JSON5 is an
   enabling of a set of other parsing options.
   [See the website defining this extension here.](https://json5.org)
+
+## Examples
+
+### Parsing with `json_parse`
+
+Lets say we had the JSON string  *'{"a" : true, "b" : [false, null, "foo"]}'*.
+To get to each part of the parsed JSON we'd do:
+
+```c
+const char json[] = "{\"a\" : true, \"b\" : [false, null, \"foo\"]}";
+struct json_value_s* root = json_parse(json, strlen(json));
+assert(root->type == json_type_object);
+
+struct json_object_s* object = (struct json_object_s*)root->payload;
+assert(object->length == 2);
+
+struct json_object_element_s* a = object->start;
+
+struct json_string_s* a_name = a->name;
+assert(0 == strcmp(a_name->string, "a"));
+assert(a_name->string_size == strlen("a"));
+
+struct json_value_s* a_value = a->value;
+assert(a_value->type == json_type_true);
+assert(a_value->payload == NULL);
+
+struct json_object_element_s* b = a->next;
+assert(b->next == NULL);
+
+struct json_string_s* b_name = b->name;
+assert(0 == strcmp(b_name->string, "b"));
+assert(b_name->string_size == strlen("b"));
+
+struct json_value_s* b_value = b->value;
+assert(b_value->type == json_type_array);
+
+struct json_array_s* array = (struct json_array_s*)b_value->payload;
+assert(array->length == 3);
+
+struct json_array_element_s* b_1st = array->start;
+
+struct json_value_s* b_1st_value = b_1st->value;
+assert(b_1st_value->type == json_type_false);
+assert(b_1st_value->payload == NULL);
+
+struct json_array_element_s* b_2nd = b_1st->next;
+
+struct json_value_s* b_2nd_value = b_2nd->value;
+assert(b_2nd_value->type == json_type_null);
+assert(b_2nd_value->payload == NULL);
+
+struct json_array_element_s* b_3rd = b_2nd->next;
+assert(b_3rd->next == NULL);
+
+struct json_value_s* b_3rd_value = b_3rd->value;
+assert(b_3rd_value->type == json_type_string);
+
+struct json_string_s* string = (struct json_string_s*)b_3rd_value->payload;
+assert(0 == strcmp(string->string, "foo"));
+assert(string->string_size == strlen("foo"));
+
+/* Don't forget to free the one allocation! */
+free(root);
+```
+
+### Iterator Helpers
+
+There are some functions that serve no purpose other than to make it nicer to
+iterate through the produced JSON DOM:
+
+- `json_value_as_string` - returns a value as a string, or null if it wasn't a
+  string.
+- `json_value_as_number` - returns a value as a number, or null if it wasn't a
+  number.
+- `json_value_as_object` - returns a value as an object, or null if it wasn't an
+  object.
+- `json_value_as_array` - returns a value as an array, or null if it wasn't an
+  array.
+- `json_value_is_true` - returns non-zero is a value was true, zero otherwise.
+- `json_value_is_false` - returns non-zero is a value was false, zero otherwise.
+- `json_value_is_null` - returns non-zero is a value was null, zero otherwise.
+
+Lets look at the same example from above but using these helper iterators
+instead:
+
+```c
+const char json[] = "{\"a\" : true, \"b\" : [false, null, \"foo\"]}";
+struct json_value_s* root = json_parse(json, strlen(json));
+
+struct json_object_s* object = json_value_as_object(root);
+assert(object != NULL);
+assert(object->length == 2);
+
+struct json_object_element_s* a = object->start;
+
+struct json_string_s* a_name = a->name;
+assert(0 == strcmp(a_name->string, "a"));
+assert(a_name->string_size == strlen("a"));
+
+struct json_value_s* a_value = a->value;
+assert(json_value_is_true(a_value));
+
+struct json_object_element_s* b = a->next;
+assert(b->next == NULL);
+
+struct json_string_s* b_name = b->name;
+assert(0 == strcmp(b_name->string, "b"));
+assert(b_name->string_size == strlen("b"));
+
+struct json_array_s* array = json_value_as_array(b->value);
+assert(array->length == 3);
+
+struct json_array_element_s* b_1st = array->start;
+
+struct json_value_s* b_1st_value = b_1st->value;
+assert(json_value_is_false(b_1st_value));
+
+struct json_array_element_s* b_2nd = b_1st->next;
+
+struct json_value_s* b_2nd_value = b_2nd->value;
+assert(json_value_is_null(b_2nd_value));
+
+struct json_array_element_s* b_3rd = b_2nd->next;
+assert(b_3rd->next == NULL);
+
+struct json_string_s* string = json_value_as_string(b_3rd->value);
+assert(string != NULL);
+assert(0 == strcmp(string->string, "foo"));
+assert(string->string_size == strlen("foo"));
+
+/* Don't forget to free the one allocation! */
+free(root);
+```
+
+As you can see it makes iterating through the DOM a little more pleasant.
 
 ## Design
 
