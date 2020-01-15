@@ -778,7 +778,7 @@ UTEST(object, empty_strings) {
 
 	ASSERT_TRUE(el1->value);
 	ASSERT_EQ(json_type_string, el1->value->type);
-	s1 = el1->value->payload;
+	s1 = (struct json_string_s *)el1->value->payload;
 	ASSERT_TRUE(s1);
 	ASSERT_TRUE(s1->string);
 	ASSERT_STREQ("", s1->string);
@@ -795,7 +795,7 @@ UTEST(object, empty_strings) {
 
 	ASSERT_TRUE(el2->value);
 	ASSERT_EQ(json_type_string, el2->value->type);
-	s2 = el2->value->payload;
+	s2 = (struct json_string_s *)el2->value->payload;
 	ASSERT_TRUE(s2);
 	ASSERT_TRUE(s2->string);
 	ASSERT_STREQ("", s2->string);
@@ -829,7 +829,7 @@ UTEST(string, unicode_escape) {
 	ASSERT_TRUE(array->start->value->payload);
 	ASSERT_EQ(json_type_string, array->start->value->type);
 
-	str = array->start->value->payload;
+	str = (struct json_string_s *)array->start->value->payload;
 
 	ASSERT_TRUE(str->string);
 
@@ -840,5 +840,69 @@ UTEST(string, unicode_escape) {
 	free(value);
 }
 
+UTEST(helpers, all) {
+  const char payload[] = "{\"foo\" : [ null, true, false, \"bar\", 42 ]}";
+  struct json_value_s *const root = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_object_element_s *object_element = 0;
+  struct json_array_s *array = 0;
+  struct json_array_element_s *array_element = 0;
+  struct json_number_s *number = 0;
+  struct json_string_s *string = 0;
+
+  object = json_value_as_object(root);
+  ASSERT_TRUE(object);
+  ASSERT_EQ(object->length, 1);
+
+  object_element = object->start;
+  ASSERT_TRUE(object_element);
+  ASSERT_STREQ(object_element->name->string, "foo");
+  ASSERT_FALSE(object_element->next);
+
+  array = json_value_as_array(object_element->value);
+  ASSERT_TRUE(array);
+  ASSERT_EQ(array->length, 5);
+
+  // null
+  array_element = array->start;
+  ASSERT_TRUE(array_element);
+  ASSERT_TRUE(json_value_is_null(array_element->value));
+
+  // true
+  array_element = array_element->next;
+  ASSERT_TRUE(array_element);
+  ASSERT_TRUE(json_value_is_true(array_element->value));
+
+  // false
+  array_element = array_element->next;
+  ASSERT_TRUE(array_element);
+  ASSERT_TRUE(json_value_is_false(array_element->value));
+
+  // string
+  array_element = array_element->next;
+  ASSERT_TRUE(array_element);
+
+  string = json_value_as_string(array_element->value);
+  ASSERT_TRUE(string);
+  ASSERT_STREQ(string->string, "bar");
+
+  // number
+  array_element = array_element->next;
+  ASSERT_TRUE(array_element);
+
+  number = json_value_as_number(array_element->value);
+  ASSERT_TRUE(number);
+  ASSERT_STREQ(number->number, "42");
+
+  ASSERT_FALSE(array_element->next);
+
+  free(root);
+}
+
+#define assert(x) ASSERT_TRUE(x)
+
+UTEST(generated, readme){
+#include "generated.h"
+}
 
 UTEST_MAIN();
