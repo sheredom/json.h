@@ -773,6 +773,13 @@ int json_get_string_size(struct json_parse_state_s *state,
     }
   }
 
+  /* If the offset is equal to the size, we had a non-terminated string! */
+  if (offset == size) {
+    state->error = json_parse_error_premature_end_of_buffer;
+    state->offset = offset - 1;
+    return 1;
+  }
+
   /* skip trailing '"' or '\''. */
   offset++;
 
