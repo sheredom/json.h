@@ -899,6 +899,12 @@ UTEST(helpers, all) {
   free(root);
 }
 
+UTEST(random, overflow) {
+  const char payload[] = "\n\t\t\n\t\t\t\t\"\x00";
+  struct json_value_s *const root = json_parse(payload, sizeof(payload));
+  ASSERT_FALSE(root);
+}
+
 #define assert(x) ASSERT_TRUE(x)
 
 UTEST(generated, readme){
