@@ -69,8 +69,8 @@ struct json_value_s *json_parse_ex(
   If NULL, `malloc()` is used.
 - `user_data` - user data to be passed as the first argument to
   `alloc_func_ptr`.
-- `result` - the result of the parsing. If a parsing error occured this will
-  contain what type of error, and where in the source it occured. Can be NULL.
+- `result` - the result of the parsing. If a parsing error occurred this will
+  contain what type of error, and where in the source it occurred. Can be NULL.
 
 Returns a `struct json_value_s*` pointing the root of the json DOM.
 
