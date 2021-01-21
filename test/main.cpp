@@ -744,100 +744,101 @@ UTEST(array, missing_closing_bracket) {
   ASSERT_EQ(1, result.error_row_no);
 }
 
-
 UTEST(object, empty_strings) {
-	const char payload[] = "{\"foo\": \"\", \"bar\": \"\"}";
-	struct json_value_s *value = json_parse(payload, strlen(payload));
-	struct json_object_s *object = 0;
-	struct json_object_element_s *el1 = 0;
-	struct json_object_element_s *el2 = 0;
-	struct json_string_s *s1 = 0;
-	struct json_string_s *s2 = 0;
+  const char payload[] = "{\"foo\": \"\", \"bar\": \"\"}";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_object_s *object = 0;
+  struct json_object_element_s *el1 = 0;
+  struct json_object_element_s *el2 = 0;
+  struct json_string_s *s1 = 0;
+  struct json_string_s *s2 = 0;
 
-	ASSERT_TRUE(value);
-	ASSERT_TRUE(value->payload);
-	ASSERT_EQ(json_type_object, value->type);
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_object, value->type);
 
-	object = (struct json_object_s *)value->payload;
+  object = (struct json_object_s *)value->payload;
 
-	ASSERT_EQ(2, object->length);
+  ASSERT_EQ(2, object->length);
 
-	el1 = object->start;
-	ASSERT_TRUE(el1);
-	el2 = el1->next;
-	ASSERT_TRUE(el2);
+  el1 = object->start;
+  ASSERT_TRUE(el1);
+  el2 = el1->next;
+  ASSERT_TRUE(el2);
 
-	ASSERT_FALSE(el2->next); // we have only one element
+  ASSERT_FALSE(el2->next); // we have only one element
 
-	ASSERT_TRUE(el1->name);
-	ASSERT_TRUE(el1->name->string);
-	ASSERT_STREQ("foo", el1->name->string);
-	ASSERT_EQ(strlen("foo"), el1->name->string_size);
-	ASSERT_EQ(strlen(el1->name->string),
-		el1->name->string_size);
+  ASSERT_TRUE(el1->name);
+  ASSERT_TRUE(el1->name->string);
+  ASSERT_STREQ("foo", el1->name->string);
+  ASSERT_EQ(strlen("foo"), el1->name->string_size);
+  ASSERT_EQ(strlen(el1->name->string), el1->name->string_size);
 
-	ASSERT_TRUE(el1->value);
-	ASSERT_EQ(json_type_string, el1->value->type);
-	s1 = (struct json_string_s *)el1->value->payload;
-	ASSERT_TRUE(s1);
-	ASSERT_TRUE(s1->string);
-	ASSERT_STREQ("", s1->string);
-	ASSERT_EQ(strlen(""), s1->string_size);
-	ASSERT_EQ(strlen(s1->string),
-		s1->string_size);
+  ASSERT_TRUE(el1->value);
+  ASSERT_EQ(json_type_string, el1->value->type);
+  s1 = (struct json_string_s *)el1->value->payload;
+  ASSERT_TRUE(s1);
+  ASSERT_TRUE(s1->string);
+  ASSERT_STREQ("", s1->string);
+  ASSERT_EQ(strlen(""), s1->string_size);
+  ASSERT_EQ(strlen(s1->string), s1->string_size);
 
-	ASSERT_TRUE(el2->name);
-	ASSERT_TRUE(el2->name->string);
-	ASSERT_STREQ("bar", el2->name->string);
-	ASSERT_EQ(strlen("bar"), el2->name->string_size);
-	ASSERT_EQ(strlen(el2->name->string),
-		el2->name->string_size);
+  ASSERT_TRUE(el2->name);
+  ASSERT_TRUE(el2->name->string);
+  ASSERT_STREQ("bar", el2->name->string);
+  ASSERT_EQ(strlen("bar"), el2->name->string_size);
+  ASSERT_EQ(strlen(el2->name->string), el2->name->string_size);
 
-	ASSERT_TRUE(el2->value);
-	ASSERT_EQ(json_type_string, el2->value->type);
-	s2 = (struct json_string_s *)el2->value->payload;
-	ASSERT_TRUE(s2);
-	ASSERT_TRUE(s2->string);
-	ASSERT_STREQ("", s2->string);
-	ASSERT_EQ(strlen(""), s2->string_size);
-	ASSERT_EQ(strlen(s2->string),
-		s2->string_size);
+  ASSERT_TRUE(el2->value);
+  ASSERT_EQ(json_type_string, el2->value->type);
+  s2 = (struct json_string_s *)el2->value->payload;
+  ASSERT_TRUE(s2);
+  ASSERT_TRUE(s2->string);
+  ASSERT_STREQ("", s2->string);
+  ASSERT_EQ(strlen(""), s2->string_size);
+  ASSERT_EQ(strlen(s2->string), s2->string_size);
 
-	free(value);
+  free(value);
 }
 
-
 UTEST(string, unicode_escape) {
-	const char expected_str[] = "\xEA\x83\x8A" "ABC" "\xC3\x8A" "DEF" "\n"
-	                            " ,\xC5\xBD,\xE0\xA0\x80,\xE0\xA6\xA8,\xE2\x99\x9E,\xEF\xBF\xBD,\xD0\xA8,\xE4\x93\x8D,\xF0\x90\x80\x80,\xF0\x9F\x98\x83.";
-	const char payload[] = "[\"\\ua0caABC\\u00caDEF\\u000a"
-	                       "\\u0020,\\u017D,\\u0800,\\u09A8,\\u265E,\\uFFFD,\\u0428,\\u44CD,\\uD800\\uDC00,\\uD83D\\uDE03.\"]";
-	struct json_value_s *value = json_parse(payload, strlen(payload));
-	struct json_array_s *array = 0;
-	struct json_string_s *str = 0;
+  const char expected_str[] =
+      "\xEA\x83\x8A"
+      "ABC"
+      "\xC3\x8A"
+      "DEF"
+      "\n"
+      " ,\xC5\xBD,\xE0\xA0\x80,\xE0\xA6\xA8,\xE2\x99\x9E,\xEF\xBF\xBD,\xD0\xA8,"
+      "\xE4\x93\x8D,\xF0\x90\x80\x80,\xF0\x9F\x98\x83.";
+  const char payload[] = "[\"\\ua0caABC\\u00caDEF\\u000a"
+                         "\\u0020,\\u017D,\\u0800,\\u09A8,\\u265E,\\uFFFD,"
+                         "\\u0428,\\u44CD,\\uD800\\uDC00,\\uD83D\\uDE03.\"]";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_array_s *array = 0;
+  struct json_string_s *str = 0;
 
-	ASSERT_TRUE(value);
-	ASSERT_TRUE(value->payload);
-	ASSERT_EQ(json_type_array, value->type);
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_array, value->type);
 
-	array = (struct json_array_s *)value->payload;
+  array = (struct json_array_s *)value->payload;
 
-	ASSERT_TRUE(array->start);
-	ASSERT_EQ(1, array->length);
+  ASSERT_TRUE(array->start);
+  ASSERT_EQ(1, array->length);
 
-	ASSERT_TRUE(array->start->value);
-	ASSERT_TRUE(array->start->value->payload);
-	ASSERT_EQ(json_type_string, array->start->value->type);
+  ASSERT_TRUE(array->start->value);
+  ASSERT_TRUE(array->start->value->payload);
+  ASSERT_EQ(json_type_string, array->start->value->type);
 
-	str = (struct json_string_s *)array->start->value->payload;
+  str = (struct json_string_s *)array->start->value->payload;
 
-	ASSERT_TRUE(str->string);
+  ASSERT_TRUE(str->string);
 
-	ASSERT_STREQ(expected_str, str->string);
-	ASSERT_EQ(strlen(expected_str), str->string_size);
-	ASSERT_EQ(strlen(str->string), str->string_size);
+  ASSERT_STREQ(expected_str, str->string);
+  ASSERT_EQ(strlen(expected_str), str->string_size);
+  ASSERT_EQ(strlen(str->string), str->string_size);
 
-	free(value);
+  free(value);
 }
 
 UTEST(helpers, all) {
