@@ -48,10 +48,10 @@
 
 #include <stddef.h>
 
-#if defined(__clang__) || defined(__GNUC__)
-#define json_weak __attribute__((weak))
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #define json_weak __inline
+#elif defined(__clang__) || defined(__GNUC__)
+#define json_weak __attribute__((weak))
 #else
 #error Non clang, non gcc, non MSVC compiler found!
 #endif
@@ -373,13 +373,17 @@ struct json_parse_result_s {
 #pragma warning(pop)
 #endif
 
-#if defined(_MSC_VER)
-#define json_strtoumax _strtoui64
+#if defined(_MSC_VER) && (_MSC_VER < 1920)
 #define json_uintmax_t unsigned __int64
 #else
 #include <inttypes.h>
-#define json_strtoumax strtoumax
 #define json_uintmax_t uintmax_t
+#endif
+
+#if defined(_MSC_VER)
+#define json_strtoumax _strtoui64
+#else
+#define json_strtoumax strtoumax
 #endif
 
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
@@ -667,6 +671,16 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
     /* add space for the character. */
     data_size++;
 
+    switch (src[offset]) {
+    default:
+      break;
+    case '\0':
+    case '\t':
+      state->error = json_parse_error_invalid_string;
+      state->offset = offset;
+      return 1;
+    }
+
     if ('\\' == src[offset]) {
       /* skip reverse solidus character. */
       offset++;
@@ -864,6 +878,7 @@ int json_get_object_size(struct json_parse_state_s *state,
   const size_t size = state->size;
   size_t elements = 0;
   int allow_comma = 0;
+  int found_closing_brace = 0;
 
   if (is_global_object) {
     /* if we found an opening '{' of an object, we actually have a normal JSON
@@ -886,15 +901,23 @@ int json_get_object_size(struct json_parse_state_s *state,
 
   state->dom_size += sizeof(struct json_object_s);
 
-  while (state->offset < size) {
+  if ((state->offset == size) && !is_global_object) {
+    state->error = json_parse_error_premature_end_of_buffer;
+    return 1;
+  }
+
+  do {
     if (!is_global_object) {
       if (json_skip_all_skippables(state)) {
         state->error = json_parse_error_premature_end_of_buffer;
         return 1;
       }
+
       if ('}' == src[state->offset]) {
         /* skip trailing '}'. */
         state->offset++;
+
+        found_closing_brace = 1;
 
         /* finished the object! */
         break;
@@ -972,6 +995,11 @@ int json_get_object_size(struct json_parse_state_s *state,
     /* successfully parsed a name/value pair! */
     elements++;
     allow_comma = 1;
+  } while (state->offset < size);
+
+  if ((state->offset == size) && !is_global_object && !found_closing_brace) {
+    state->error = json_parse_error_premature_end_of_buffer;
+    return 1;
   }
 
   state->dom_size += sizeof(struct json_object_element_s) * elements;
@@ -1190,7 +1218,7 @@ int json_get_number_size(struct json_parse_state_s *state) {
     }
 
     if ((offset < size) && ('e' == src[offset] || 'E' == src[offset])) {
-      /* our number has an exponent! Wkip 'e' or 'E'. */
+      /* our number has an exponent! Skip 'e' or 'E'. */
       offset++;
 
       if ((offset < size) && ('-' == src[offset] || '+' == src[offset])) {
@@ -1198,10 +1226,17 @@ int json_get_number_size(struct json_parse_state_s *state) {
         offset++;
       }
 
-      /* consume exponent digits. */
-      while ((offset < size) && ('0' <= src[offset] && src[offset] <= '9')) {
-        offset++;
+      if ((offset < size) && !('0' <= src[offset] && src[offset] <= '9')) {
+        /* an exponent must have at least one digit! */
+        state->error = json_parse_error_invalid_number_format;
+        state->offset = offset;
+        return 1;
       }
+
+      /* consume exponent digits. */
+      do {
+        offset++;
+      } while ((offset < size) && ('0' <= src[offset] && src[offset] <= '9'));
     }
   }
 
