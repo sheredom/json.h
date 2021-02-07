@@ -24,7 +24,9 @@
 # For more information, please refer to <http://unlicense.org/>
 
 project(json)
-cmake_minimum_required(VERSION 2.8.7)
+cmake_minimum_required(VERSION 3.15)
+
+set(JSON_USE_SANITIZER "" CACHE STRING "Set which Clang Sanitizer to use")
 
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../README.md readme_md)
 string(REPLACE ";" "@" readme_md "${readme_md}")
@@ -60,16 +62,29 @@ add_executable(json_test
   test.cpp
   write_minified.cpp
   write_pretty.cpp
+  JSONTestSuite.cpp
+  JSONTestSuite.inc
 )
+
+if(NOT "${JSON_USE_SANITIZER}" STREQUAL "")
+  target_compile_options(json_test PUBLIC -fno-omit-frame-pointer -fsanitize=${JSON_USE_SANITIZER})
+  target_link_options(json_test PUBLIC -fno-omit-frame-pointer -fsanitize=${JSON_USE_SANITIZER})
+endif()
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set_source_files_properties(test.c PROPERTIES
     COMPILE_FLAGS "-Wall -Wextra -Werror -std=c89"
   )
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang")
-  set_source_files_properties(test.c PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=c89"
-  )
+  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set_source_files_properties(test.c PROPERTIES
+      COMPILE_FLAGS "/Wall /WX /wd4514"
+    )
+  else()
+    set_source_files_properties(test.c PROPERTIES
+      COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror -std=c89"
+    )
+  endif()
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
   set_source_files_properties(test.c PROPERTIES
     COMPILE_FLAGS "/Wall /WX /wd4514"
@@ -83,9 +98,15 @@ if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
     COMPILE_FLAGS "-Wall -Wextra -Werror"
   )
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set_source_files_properties(test.cpp PROPERTIES
-    COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror"
-  )
+  if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
+    set_source_files_properties(test.cpp PROPERTIES
+      COMPILE_FLAGS "/Wall /WX /wd4514"
+    )
+  else()
+    set_source_files_properties(test.cpp PROPERTIES
+      COMPILE_FLAGS "-Wall -Wextra -Weverything -Werror"
+    )
+  endif()
 elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
   set_source_files_properties(test.cpp PROPERTIES
     COMPILE_FLAGS "/Wall /WX /wd4514"
