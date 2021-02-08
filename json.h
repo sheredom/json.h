@@ -47,6 +47,7 @@
 #endif
 
 #include <stddef.h>
+#include <string.h>
 
 #if defined(_MSC_VER)
 #define json_weak __inline
@@ -143,14 +144,28 @@ enum json_parse_flags_e {
 json_weak struct json_value_s *json_parse(const void *src, size_t src_size);
 
 /* Parse a JSON text file, returning a pointer to the root of the JSON
- * structure. json_parse performs 1 call to malloc for the entire encoding.
- * Returns 0 if an error occurred (malformed JSON input, or malloc failed). If
- * an error occurred, the result struct (if not NULL) will explain the type of
- * error, and the location in the input it occurred. */
+ * structure. json_parse performs 1 call to alloc_func_ptr for the entire
+ * encoding. Returns 0 if an error occurred (malformed JSON input, or malloc
+ * failed). If an error occurred, the result struct (if not NULL) will explain
+ * the type of error, and the location in the input it occurred. If
+ * alloc_func_ptr is null then malloc is used. */
 json_weak struct json_value_s *
 json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
               void *(*alloc_func_ptr)(void *, size_t), void *user_data,
               struct json_parse_result_s *result);
+
+/* Extracts a value and all the data that makes it up into a newly created
+ * value. json_extract_value performs 1 call to malloc for the entire encoding.
+ */
+json_weak struct json_value_s *
+json_extract_value(const struct json_value_s *value);
+
+/* Extracts a value and all the data that makes it up into a newly created
+ * value. json_extract_value performs 1 call to alloc_func_ptr for the entire
+ * encoding. If alloc_func_ptr is null then malloc is used. */
+json_weak struct json_value_s *
+json_extract_value_ex(const struct json_value_s *value,
+                      void *(*alloc_func_ptr)(void *, size_t), void *user_data);
 
 /* Write out a minified JSON utf-8 string. This string is an encoding of the
  * minimal string characters required to still encode the same data.
@@ -2099,6 +2114,263 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
 struct json_value_s *json_parse(const void *src, size_t src_size) {
   return json_parse_ex(src, src_size, json_parse_flags_default, json_null,
                        json_null, json_null);
+}
+
+struct json_extract_result_s {
+  size_t dom_size;
+  size_t data_size;
+};
+
+struct json_value_s *json_extract_value(const struct json_value_s *value) {
+  return json_extract_value_ex(value, json_null, json_null);
+}
+
+json_weak struct json_extract_result_s
+json_extract_get_number_size(const struct json_number_s *const number);
+json_weak struct json_extract_result_s
+json_extract_get_string_size(const struct json_string_s *const string);
+json_weak struct json_extract_result_s
+json_extract_get_object_size(const struct json_object_s *const object);
+json_weak struct json_extract_result_s
+json_extract_get_array_size(const struct json_array_s *const array);
+json_weak struct json_extract_result_s
+json_extract_get_value_size(const struct json_value_s *const value);
+
+struct json_extract_result_s
+json_extract_get_number_size(const struct json_number_s *const number) {
+  struct json_extract_result_s result;
+  result.dom_size = sizeof(struct json_number_s);
+  result.data_size = number->number_size;
+  return result;
+}
+
+struct json_extract_result_s
+json_extract_get_string_size(const struct json_string_s *const string) {
+  struct json_extract_result_s result;
+  result.dom_size = sizeof(struct json_string_s);
+  result.data_size = string->string_size + 1;
+  return result;
+}
+
+struct json_extract_result_s
+json_extract_get_object_size(const struct json_object_s *const object) {
+  struct json_extract_result_s result;
+  size_t i;
+  const struct json_object_element_s *element = object->start;
+
+  result.dom_size = sizeof(struct json_object_s) +
+                    (sizeof(struct json_object_element_s) * object->length);
+  result.data_size = 0;
+
+  for (i = 0; i < object->length; i++) {
+    const struct json_extract_result_s string_result =
+        json_extract_get_string_size(element->name);
+    const struct json_extract_result_s value_result =
+        json_extract_get_value_size(element->value);
+
+    result.dom_size += string_result.dom_size;
+    result.data_size += string_result.data_size;
+
+    result.dom_size += value_result.dom_size;
+    result.data_size += value_result.data_size;
+
+    element = element->next;
+  }
+
+  return result;
+}
+
+struct json_extract_result_s
+json_extract_get_array_size(const struct json_array_s *const array) {
+  struct json_extract_result_s result;
+  size_t i;
+  const struct json_array_element_s *element = array->start;
+
+  result.dom_size = sizeof(struct json_array_s) +
+                    (sizeof(struct json_array_element_s) * array->length);
+  result.data_size = 0;
+
+  for (i = 0; i < array->length; i++) {
+    const struct json_extract_result_s value_result =
+        json_extract_get_value_size(element->value);
+
+    result.dom_size += value_result.dom_size;
+    result.data_size += value_result.data_size;
+
+    element = element->next;
+  }
+
+  return result;
+}
+
+struct json_extract_result_s
+json_extract_get_value_size(const struct json_value_s *const value) {
+  struct json_extract_result_s result = {0, 0};
+
+  switch (value->type) {
+  default:
+    break;
+  case json_type_object:
+    result = json_extract_get_object_size(
+        (const struct json_object_s *)value->payload);
+    break;
+  case json_type_array:
+    result = json_extract_get_array_size(
+        (const struct json_array_s *)value->payload);
+    break;
+  case json_type_number:
+    result = json_extract_get_number_size(
+        (const struct json_number_s *)value->payload);
+    break;
+  case json_type_string:
+    result = json_extract_get_string_size(
+        (const struct json_string_s *)value->payload);
+    break;
+  }
+
+  result.dom_size += sizeof(struct json_value_s);
+
+  return result;
+}
+
+struct json_extract_state_s {
+  char *dom;
+  char *data;
+};
+
+json_weak void json_extract_copy_value(struct json_extract_state_s *const state,
+                                       const struct json_value_s *const value);
+void json_extract_copy_value(struct json_extract_state_s *const state,
+                             const struct json_value_s *const value) {
+  struct json_string_s *string;
+  struct json_number_s *number;
+  struct json_object_s *object;
+  struct json_array_s *array;
+  struct json_value_s *new_value;
+
+  memcpy(state->dom, value, sizeof(struct json_value_s));
+  new_value = (struct json_value_s *)state->dom;
+  state->dom += sizeof(struct json_value_s);
+  new_value->payload = state->dom;
+
+  if (json_type_string == value->type) {
+    memcpy(state->dom, value->payload, sizeof(struct json_string_s));
+    string = (struct json_string_s *)state->dom;
+    state->dom += sizeof(struct json_string_s);
+
+    memcpy(state->data, string->string, string->string_size + 1);
+    string->string = state->data;
+    state->data += string->string_size + 1;
+  } else if (json_type_number == value->type) {
+    memcpy(state->dom, value->payload, sizeof(struct json_number_s));
+    number = (struct json_number_s *)state->dom;
+    state->dom += sizeof(struct json_number_s);
+
+    memcpy(state->data, number->number, number->number_size);
+    number->number = state->data;
+    state->data += number->number_size;
+  } else if (json_type_object == value->type) {
+    struct json_object_element_s *element;
+    size_t i;
+
+    memcpy(state->dom, value->payload, sizeof(struct json_object_s));
+    object = (struct json_object_s *)state->dom;
+    state->dom += sizeof(struct json_object_s);
+
+    element = object->start;
+    object->start = (struct json_object_element_s *)state->dom;
+
+    for (i = 0; i < object->length; i++) {
+      struct json_value_s *previous_value;
+      struct json_object_element_s *previous_element;
+
+      memcpy(state->dom, element, sizeof(struct json_object_element_s));
+      element = (struct json_object_element_s *)state->dom;
+      state->dom += sizeof(struct json_object_element_s);
+
+      string = element->name;
+      memcpy(state->dom, string, sizeof(struct json_string_s));
+      string = (struct json_string_s *)state->dom;
+      state->dom += sizeof(struct json_string_s);
+      element->name = string;
+
+      memcpy(state->data, string->string, string->string_size + 1);
+      string->string = state->data;
+      state->data += string->string_size + 1;
+
+      previous_value = element->value;
+      element->value = (struct json_value_s *)state->dom;
+      json_extract_copy_value(state, previous_value);
+
+      previous_element = element;
+      element = element->next;
+
+      if (element) {
+        previous_element->next = (struct json_object_element_s *)state->dom;
+      }
+    }
+  } else if (json_type_array == value->type) {
+    struct json_array_element_s *element;
+    size_t i;
+
+    memcpy(state->dom, value->payload, sizeof(struct json_array_s));
+    array = (struct json_array_s *)state->dom;
+    state->dom += sizeof(struct json_array_s);
+
+    element = array->start;
+    array->start = (struct json_array_element_s *)state->dom;
+
+    for (i = 0; i < array->length; i++) {
+      struct json_value_s *previous_value;
+      struct json_array_element_s *previous_element;
+
+      memcpy(state->dom, element, sizeof(struct json_array_element_s));
+      element = (struct json_array_element_s *)state->dom;
+      state->dom += sizeof(struct json_array_element_s);
+
+      previous_value = element->value;
+      element->value = (struct json_value_s *)state->dom;
+      json_extract_copy_value(state, previous_value);
+
+      previous_element = element;
+      element = element->next;
+
+      if (element) {
+        previous_element->next = (struct json_array_element_s *)state->dom;
+      }
+    }
+  }
+}
+
+struct json_value_s *json_extract_value_ex(const struct json_value_s *value,
+                                           void *(*alloc_func_ptr)(void *,
+                                                                   size_t),
+                                           void *user_data) {
+  void *allocation;
+  struct json_extract_result_s result;
+  struct json_extract_state_s state;
+  size_t total_size;
+
+  if (json_null == value) {
+    /* invalid value was null! */
+    return json_null;
+  }
+
+  result = json_extract_get_value_size(value);
+  total_size = result.dom_size + result.data_size;
+
+  if (json_null == alloc_func_ptr) {
+    allocation = malloc(total_size);
+  } else {
+    allocation = alloc_func_ptr(user_data, total_size);
+  }
+
+  state.dom = (char *)allocation;
+  state.data = state.dom + result.dom_size;
+
+  json_extract_copy_value(&state, value);
+
+  return (struct json_value_s *)allocation;
 }
 
 struct json_string_s *json_value_as_string(struct json_value_s *const value) {

@@ -295,6 +295,33 @@ free(root);
 
 As you can see it makes iterating through the DOM a little more pleasant.
 
+### Extracting a Value from a DOM
+
+If you want to extract a value from a DOM into a new allocation then
+`json_extract_value` and `json_extract_value_ex` are you friends. These
+functions let you take any value and its subtree from a DOM and clone it
+into a new allocation - either a single `malloc` or a user-provided
+allocation region.
+
+```c
+const char json[] = "{\"foo\" : { \"bar\" : [123, false, null, true], \"haz\" : \"haha\" }}";
+struct json_value_s* root = json_parse(json, strlen(json));
+assert(root);
+
+struct json_value_s* foo = json_value_as_object(root)->start->value;
+assert(foo);
+
+struct json_value_s* extracted = json_extract_value(foo);
+
+/* We can free root now because we've got a new allocation for extracted! */
+free(root);
+
+assert(json_value_as_object(extracted));
+
+/* Don't forget to free the one allocation! */
+free(extracted);
+```
+
 ## Design
 
 The json_parse function calls malloc once, and then slices up this single
