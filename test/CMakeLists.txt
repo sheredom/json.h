@@ -57,6 +57,7 @@ add_executable(json_test
   allow_single_quoted_strings.c
   allow_trailing_comma.cpp
   allow_unquoted_keys.c
+  extract.cpp
   main.cpp
   test.c
   test.cpp
