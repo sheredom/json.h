@@ -906,6 +906,12 @@ UTEST(random, overflow) {
   ASSERT_FALSE(root);
 }
 
+UTEST(random, whitespace_overrun) {
+  const char payload[] = "1e";
+  struct json_value_s *const root = json_parse(payload, 2);
+  ASSERT_FALSE(root);
+}
+
 #define assert(x) ASSERT_TRUE(x)
 
 UTEST(generated, readme){
