@@ -1220,7 +1220,7 @@ int json_get_number_size(struct json_parse_state_s *state) {
     if ((offset < size) && ('.' == src[offset])) {
       offset++;
 
-      if (!('0' <= src[offset] && src[offset] <= '9')) {
+      if ((offset >= size) || !('0' <= src[offset] && src[offset] <= '9')) {
         if (!(json_parse_flags_allow_leading_or_trailing_decimal_point &
               flags_bitset) ||
             !had_leading_digits) {
