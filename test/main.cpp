@@ -907,7 +907,13 @@ UTEST(random, overflow) {
 }
 
 UTEST(random, whitespace_overrun) {
-  const char payload[] = "1e";
+  const char payload[2] = {'1', 'e'};
+  struct json_value_s *const root = json_parse(payload, 2);
+  ASSERT_FALSE(root);
+}
+
+UTEST(random, number_overrun) {
+  const char payload[2] = {'0', '.'};
   struct json_value_s *const root = json_parse(payload, 2);
   ASSERT_FALSE(root);
 }
