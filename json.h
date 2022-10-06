@@ -543,6 +543,9 @@ int json_skip_whitespace(struct json_parse_state_s *state) {
 
 json_weak int json_skip_c_style_comments(struct json_parse_state_s *state);
 int json_skip_c_style_comments(struct json_parse_state_s *state) {
+   if (state->offset >= state->size) {
+      return 0;
+  }
   /* do we have a comment?. */
   if ('/' == state->src[state->offset]) {
     /* skip '/'. */
