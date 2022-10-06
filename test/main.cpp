@@ -918,6 +918,12 @@ UTEST(random, number_overrun) {
   ASSERT_FALSE(root);
 }
 
+UTEST(random, skip_c_style_overrun) {
+  const char payload[2] = {'4', 'e'};
+  struct json_value_s *const root = json_parse_ex(payload, 2, json_parse_flags_allow_json5, 0, 0, 0);
+  ASSERT_FALSE(root);
+}
+
 #define assert(x) ASSERT_TRUE(x)
 
 UTEST(generated, readme){
