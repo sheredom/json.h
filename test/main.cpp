@@ -920,7 +920,23 @@ UTEST(random, number_overrun) {
 
 UTEST(random, skip_c_style_overrun) {
   const char payload[2] = {'4', 'e'};
-  struct json_value_s *const root = json_parse_ex(payload, 2, json_parse_flags_allow_json5, 0, 0, 0);
+  struct json_value_s *const root =
+      json_parse_ex(payload, 2, json_parse_flags_allow_json5, 0, 0, 0);
+  ASSERT_FALSE(root);
+}
+
+UTEST(random, infinity_overrun) {
+  const char payload[11] = {'[', 'I', 'n', 'f', 'i', 'n',
+                            'i', 't', 'y', '0', ']'};
+  struct json_value_s *const root =
+      json_parse_ex(payload, 11, json_parse_flags_allow_inf_and_nan, 0, 0, 0);
+  ASSERT_FALSE(root);
+}
+
+UTEST(random, nan_overrun) {
+  const char payload[6] = {'[', 'N', 'a', 'N', '0', ']'};
+  struct json_value_s *const root =
+      json_parse_ex(payload, 11, json_parse_flags_allow_inf_and_nan, 0, 0, 0);
   ASSERT_FALSE(root);
 }
 
