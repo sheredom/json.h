@@ -543,8 +543,8 @@ int json_skip_whitespace(struct json_parse_state_s *state) {
 
 json_weak int json_skip_c_style_comments(struct json_parse_state_s *state);
 int json_skip_c_style_comments(struct json_parse_state_s *state) {
-   if (state->offset >= state->size) {
-      return 0;
+  if (state->offset >= state->size) {
+    return 0;
   }
   /* do we have a comment?. */
   if ('/' == state->src[state->offset]) {
@@ -1178,6 +1178,16 @@ int json_get_number_size(struct json_parse_state_s *state) {
           offset += nan_strlen;
 
           inf_or_nan = 1;
+        }
+      }
+
+      if (inf_or_nan) {
+        const char c = src[offset];
+        if ((offset < size) && ('0' <= c && c <= '9')) {
+          /* cannot follow an inf or nan with digits! */
+          state->error = json_parse_error_invalid_number_format;
+          state->offset = offset;
+          return 1;
         }
       }
     }
