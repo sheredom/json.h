@@ -219,7 +219,7 @@ json_weak int json_value_is_false(const struct json_value_s *const value);
 json_weak int json_value_is_null(const struct json_value_s *const value);
 
 /* The various types JSON values can be. Used to identify what a value is. */
-enum json_type_e {
+typedef enum json_type_e {
   json_type_string,
   json_type_number,
   json_type_object,
@@ -227,18 +227,20 @@ enum json_type_e {
   json_type_true,
   json_type_false,
   json_type_null
-};
+
+} json_type;
 
 /* A JSON string value. */
-struct json_string_s {
+typedef struct json_string_s {
   /* utf-8 string */
   const char *string;
   /* The size (in bytes) of the string */
   size_t string_size;
-};
+
+} json_string;
 
 /* A JSON string value (extended). */
-struct json_string_ex_s {
+typedef struct json_string_ex_s {
   /* The JSON string this extends. */
   struct json_string_s string;
 
@@ -250,52 +252,58 @@ struct json_string_ex_s {
 
   /* The row number for the value in the JSON input, in bytes. */
   size_t row_no;
-};
+
+} json_string_ex;
 
 /* A JSON number value. */
-struct json_number_s {
+typedef struct json_number_s {
   /* ASCII string containing representation of the number. */
   const char *number;
   /* the size (in bytes) of the number. */
   size_t number_size;
-};
+
+} json_number;
 
 /* an element of a JSON object. */
-struct json_object_element_s {
+typedef struct json_object_element_s {
   /* the name of this element. */
   struct json_string_s *name;
   /* the value of this element. */
   struct json_value_s *value;
   /* the next object element (can be NULL if the last element in the object). */
   struct json_object_element_s *next;
-};
+
+} json_object_element;
 
 /* a JSON object value. */
-struct json_object_s {
+typedef struct json_object_s {
   /* a linked list of the elements in the object. */
   struct json_object_element_s *start;
   /* the number of elements in the object. */
   size_t length;
-};
+
+} json_object;
 
 /* an element of a JSON array. */
-struct json_array_element_s {
+typedef struct json_array_element_s {
   /* the value of this element. */
   struct json_value_s *value;
   /* the next array element (can be NULL if the last element in the array). */
   struct json_array_element_s *next;
-};
+
+} json_array_element;
 
 /* a JSON array value. */
-struct json_array_s {
+typedef struct json_array_s {
   /* a linked list of the elements in the array. */
   struct json_array_element_s *start;
   /* the number of elements in the array. */
   size_t length;
-};
+
+} json_array;
 
 /* a JSON value. */
-struct json_value_s {
+typedef struct json_value_s {
   /* a pointer to either a json_string_s, json_number_s, json_object_s, or. */
   /* json_array_s. Should be cast to the appropriate struct type based on what.
    */
@@ -305,10 +313,11 @@ struct json_value_s {
    */
   /* json_type_null, payload will be NULL. */
   size_t type;
-};
+
+} json_value;
 
 /* a JSON value (extended). */
-struct json_value_ex_s {
+typedef struct json_value_ex_s {
   /* the JSON value this extends. */
   struct json_value_s value;
 
@@ -320,7 +329,8 @@ struct json_value_ex_s {
 
   /* the row number for the value in the JSON input, in bytes. */
   size_t row_no;
-};
+
+} json_value_ex;
 
 /* a parsing error code. */
 enum json_parse_error_e {
@@ -365,7 +375,7 @@ enum json_parse_error_e {
 };
 
 /* error report from json_parse_ex(). */
-struct json_parse_result_s {
+typedef struct json_parse_result_s {
   /* the error code (one of json_parse_error_e). */
   size_t error;
 
@@ -377,7 +387,8 @@ struct json_parse_result_s {
 
   /* the row number for the error, in bytes. */
   size_t error_row_no;
-};
+
+} json_parse_result;
 
 #ifdef __cplusplus
 } /* extern "C". */
