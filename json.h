@@ -228,7 +228,7 @@ typedef enum json_type_e {
   json_type_false,
   json_type_null
 
-} json_type;
+} json_type_t;
 
 /* A JSON string value. */
 typedef struct json_string_s {
@@ -237,7 +237,7 @@ typedef struct json_string_s {
   /* The size (in bytes) of the string */
   size_t string_size;
 
-} json_string;
+} json_string_t;
 
 /* A JSON string value (extended). */
 typedef struct json_string_ex_s {
@@ -262,7 +262,7 @@ typedef struct json_number_s {
   /* the size (in bytes) of the number. */
   size_t number_size;
 
-} json_number;
+} json_number_t;
 
 /* an element of a JSON object. */
 typedef struct json_object_element_s {
@@ -273,7 +273,7 @@ typedef struct json_object_element_s {
   /* the next object element (can be NULL if the last element in the object). */
   struct json_object_element_s *next;
 
-} json_object_element;
+} json_object_element_t;
 
 /* a JSON object value. */
 typedef struct json_object_s {
@@ -282,7 +282,7 @@ typedef struct json_object_s {
   /* the number of elements in the object. */
   size_t length;
 
-} json_object;
+} json_object_t;
 
 /* an element of a JSON array. */
 typedef struct json_array_element_s {
@@ -291,7 +291,7 @@ typedef struct json_array_element_s {
   /* the next array element (can be NULL if the last element in the array). */
   struct json_array_element_s *next;
 
-} json_array_element;
+} json_array_element_t;
 
 /* a JSON array value. */
 typedef struct json_array_s {
@@ -300,7 +300,7 @@ typedef struct json_array_s {
   /* the number of elements in the array. */
   size_t length;
 
-} json_array;
+} json_array_t;
 
 /* a JSON value. */
 typedef struct json_value_s {
@@ -314,7 +314,7 @@ typedef struct json_value_s {
   /* json_type_null, payload will be NULL. */
   size_t type;
 
-} json_value;
+} json_value_t;
 
 /* a JSON value (extended). */
 typedef struct json_value_ex_s {
@@ -330,7 +330,7 @@ typedef struct json_value_ex_s {
   /* the row number for the value in the JSON input, in bytes. */
   size_t row_no;
 
-} json_value_ex;
+} json_value_ex_t;
 
 /* a parsing error code. */
 enum json_parse_error_e {
@@ -387,7 +387,7 @@ typedef struct json_parse_result_s {
   /* the row number for the error, in bytes. */
   size_t error_row_no;
 
-} json_parse_result;
+} json_parse_result_t;
 
 #ifdef __cplusplus
 } /* extern "C". */
