@@ -356,8 +356,7 @@ enum json_parse_error_e {
   json_parse_error_allocator_failed,
 
   /* the JSON input had unexpected trailing characters that weren't part of the.
-   */
-  /* JSON value. */
+     JSON value. */
   json_parse_error_unexpected_trailing_characters,
 
   /* catch-all error for everything else that exploded (real bad chi!). */
@@ -543,31 +542,33 @@ int json_skip_whitespace(struct json_parse_state_s *state) {
 
 json_weak int json_skip_c_style_comments(struct json_parse_state_s *state);
 int json_skip_c_style_comments(struct json_parse_state_s *state) {
-  if (state->offset >= state->size) {
+  /* to have a C-style comment we need at least 2 characters of space */
+  if ((state->offset + 2) > state->size) {
     return 0;
   }
-  /* do we have a comment?. */
+
+  /* do we have a comment? */
   if ('/' == state->src[state->offset]) {
-    /* skip '/'. */
-    state->offset++;
+    if ('/' == state->src[state->offset + 1]) {
+      /* we had a comment of the form // */
 
-    if ('/' == state->src[state->offset]) {
-      /* we had a comment of the form //. */
+      /* skip first '/' */
+      state->offset++;
 
-      /* skip second '/'. */
+      /* skip second '/' */
       state->offset++;
 
       while (state->offset < state->size) {
         switch (state->src[state->offset]) {
         default:
-          /* skip the character in the comment. */
+          /* skip the character in the comment */
           state->offset++;
           break;
         case '\n':
-          /* if we have a newline, our comment has ended! Skip the newline. */
+          /* if we have a newline, our comment has ended! Skip the newline */
           state->offset++;
 
-          /* we entered a newline, so move our line info forward. */
+          /* we entered a newline, so move our line info forward */
           state->line_no++;
           state->line_offset = state->offset;
           return 1;
@@ -576,10 +577,13 @@ int json_skip_c_style_comments(struct json_parse_state_s *state) {
 
       /* we reached the end of the JSON file! */
       return 1;
-    } else if ('*' == state->src[state->offset]) {
-      /* we had a comment in the C-style long form. */
+    } else if ('*' == state->src[state->offset + 1]) {
+      /* we had a comment in the C-style long form */
 
-      /* skip '*'. */
+      /* skip '/' */
+      state->offset++;
+
+      /* skip '*' */
       state->offset++;
 
       while (state->offset + 1 < state->size) {
@@ -589,16 +593,16 @@ int json_skip_c_style_comments(struct json_parse_state_s *state) {
           state->offset += 2;
           return 1;
         } else if ('\n' == state->src[state->offset]) {
-          /* we entered a newline, so move our line info forward. */
+          /* we entered a newline, so move our line info forward */
           state->line_no++;
           state->line_offset = state->offset;
         }
 
-        /* skip character within comment. */
+        /* skip character within comment */
         state->offset++;
       }
 
-      /* Comment wasn't ended correctly which is a failure. */
+      /* comment wasn't ended correctly which is a failure */
       return 1;
     }
   }
@@ -628,7 +632,7 @@ int json_skip_all_skippables(struct json_parse_state_s *state) {
 
       /* This should really be checked on access, not in front of every call.
        */
-      if (state->offset == size) {
+      if (state->offset >= size) {
         state->error = json_parse_error_premature_end_of_buffer;
         return 1;
       }
@@ -953,7 +957,7 @@ int json_get_object_size(struct json_parse_state_s *state,
       }
     }
 
-    /* if we parsed at least once element previously, grok for a comma. */
+    /* if we parsed at least one element previously, grok for a comma. */
     if (allow_comma) {
       if (',' == src[state->offset]) {
         /* skip comma. */
