@@ -940,6 +940,16 @@ UTEST(random, nan_overrun) {
   ASSERT_FALSE(root);
 }
 
+UTEST(random, array_overrun) {
+  const char payload[40] = {'{', '"', 'k', '"', ' ', ':', ' ', 't', 'r', 'u',
+                            'e', '/', ' ', '"', 'b', '"', ' ', ':', ' ', '[',
+                            'f', 'a', 'l', 's', 'e', ',', ' ', 'n', 'u', 'l',
+                            'l', ',', ' ', '"', 'f', 'o', 'o', '"', ']', '}'};
+  struct json_value_s *const root =
+      json_parse_ex(payload, 40, 0x2ffff, 0, 0, 0);
+  ASSERT_FALSE(root);
+}
+
 #define assert(x) ASSERT_TRUE(x)
 
 UTEST(generated, readme){
