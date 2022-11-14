@@ -1186,12 +1186,27 @@ int json_get_number_size(struct json_parse_state_s *state) {
       }
 
       if (inf_or_nan) {
-        const char c = src[offset];
-        if ((offset < size) && ('0' <= c && c <= '9')) {
-          /* cannot follow an inf or nan with digits! */
-          state->error = json_parse_error_invalid_number_format;
-          state->offset = offset;
-          return 1;
+        if (offset < size) {
+          switch (src[offset]) {
+          default:
+            break;
+          case '0':
+          case '1':
+          case '2':
+          case '3':
+          case '4':
+          case '5':
+          case '6':
+          case '7':
+          case '8':
+          case '9':
+          case 'e':
+          case 'E':
+            /* cannot follow an inf or nan with digits! */
+            state->error = json_parse_error_invalid_number_format;
+            state->offset = offset;
+            return 1;
+          }
         }
       }
     }
