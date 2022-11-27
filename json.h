@@ -253,7 +253,7 @@ typedef struct json_string_ex_s {
   /* The row number for the value in the JSON input, in bytes. */
   size_t row_no;
 
-} json_string_ex;
+} json_string_ex_t;
 
 /* A JSON number value. */
 typedef struct json_number_s {
