@@ -50,12 +50,18 @@
 #include <stddef.h>
 #include <string.h>
 
+#if defined(__TINYC__)
+#define JSON_ATTRIBUTE(a) __attribute((a))
+#else
+#define JSON_ATTRIBUTE(a) __attribute__((a))
+#endif
+
 #if defined(_MSC_VER) || defined(__WATCOMC__)
 #define json_weak __inline
-#elif defined(__clang__) || defined(__GNUC__)
-#define json_weak __attribute__((weak))
+#elif defined(__clang__) || defined(__GNUC__) || defined(__TINYC__)
+#define json_weak JSON_ATTRIBUTE(weak)
 #else
-#error Non clang, non gcc, non MSVC, non WATCOM compiler found!
+#error Non clang, non gcc, non MSVC, non tcc, non WATCOM compiler found!
 #endif
 
 #ifdef __cplusplus
@@ -435,6 +441,11 @@ typedef struct json_parse_result_s {
 /* Who cares if nullptr doesn't work with C++98, we don't use it there! */
 #pragma clang diagnostic ignored "-Wc++98-compat"
 #pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
+
+#if __has_warning("-Wunsafe-buffer-usage")
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+#endif
+
 #elif defined(_MSC_VER)
 #pragma warning(push)
 

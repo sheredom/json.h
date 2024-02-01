@@ -81,7 +81,6 @@ UTEST(allocator, null) {
   struct json_parse_result_s result;
   struct json_value_s *value =
       json_parse_ex(payload, strlen(payload), 0, &_::alloc, 0, &result);
-  struct json_object_s *object = 0;
 
   ASSERT_FALSE(value);
 

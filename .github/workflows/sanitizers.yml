@@ -25,7 +25,7 @@ jobs:
 
     - name: Setup dependencies
       if: startsWith(matrix.os, 'ubuntu')
-      run: sudo apt-get install -y clang-10
+      run: sudo apt-get install -y clang
 
     - name: Configure CMake (macOS)
       shell: bash
@@ -37,7 +37,7 @@ jobs:
       shell: bash
       if: startsWith(matrix.os, 'ubuntu')
       working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DCMAKE_C_COMPILER=clang-10 -DCMAKE_CXX_COMPILER=clang++-10  -DJSON_USE_SANITIZER=${{ matrix.sanitizer }}
+      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DJSON_USE_SANITIZER=${{ matrix.sanitizer }}
 
     - name: Build
       working-directory: ${{github.workspace}}/build

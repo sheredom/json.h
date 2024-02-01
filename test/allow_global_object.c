@@ -345,8 +345,6 @@ UTEST_F_TEARDOWN(allow_global_object) {
   struct json_value_s *value = utest_fixture->value;
   struct json_object_s *object = 0;
   struct json_value_s *value2 = 0;
-  size_t size = 0;
-  void *json = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
