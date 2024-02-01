@@ -55,9 +55,6 @@ UTEST(allow_json5, example1) {
                          "}";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_json5, 0, 0, 0);
-  struct json_object_s *object = 0;
-  struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
 
@@ -111,9 +108,6 @@ UTEST(allow_json5, example2) {
       "}\n";
   struct json_value_s *value = json_parse_ex(
       payload, strlen(payload), json_parse_flags_allow_json5, 0, 0, 0);
-  struct json_object_s *object = 0;
-  struct json_value_s *value2 = 0;
-  struct json_string_s *string = 0;
 
   ASSERT_TRUE(value);
 

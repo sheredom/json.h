@@ -143,7 +143,6 @@ UTEST(allow_no_commas, array_one) {
       payload, strlen(payload), json_parse_flags_allow_no_commas, 0, 0, 0);
   struct json_array_s *array = 0;
   struct json_array_element_s *element = 0;
-  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -189,7 +188,6 @@ UTEST_F_TEARDOWN(allow_no_commas) {
   struct json_value_s *value = utest_fixture->value;
   struct json_array_s *array = 0;
   struct json_array_element_s *element = 0;
-  struct json_value_s *value2 = 0;
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
