@@ -375,6 +375,10 @@ enum json_parse_error_e {
      JSON value. */
   json_parse_error_unexpected_trailing_characters,
 
+  /* the JSON has too many nested objects & arrays - to prevent a stack
+     overflow, the library only supports recursion up to JSON_MAX_RECURSION */
+  json_parse_error_recursion,
+
   /* catch-all error for everything else that exploded (real bad chi!). */
   json_parse_error_unknown
 };
@@ -464,6 +468,11 @@ typedef struct json_parse_result_s {
 #pragma warning(disable : 5045)
 #endif
 
+/* set recursion limit for recursing nested arrays & objects */
+#ifndef JSON_MAX_RECURSION
+#define JSON_MAX_RECURSION 1000
+#endif
+
 struct json_parse_state_s {
   const char *src;
   size_t size;
@@ -477,6 +486,7 @@ struct json_parse_state_s {
   size_t line_offset; /* (offset-line_offset) is the character number (in
                          bytes). */
   size_t error;
+  size_t recursion;
 };
 
 json_weak int json_hexadecimal_digit(const char c);
@@ -929,6 +939,12 @@ int json_get_object_size(struct json_parse_state_s *state,
   int allow_comma = 0;
   int found_closing_brace = 0;
 
+  if (++state->recursion > JSON_MAX_RECURSION) {
+      // recursion error
+      state->error = json_parse_error_recursion;
+      return 1;
+  }
+
   if (is_global_object) {
     /* if we found an opening '{' of an object, we actually have a normal JSON
      * object at the root of the DOM... */
@@ -941,6 +957,7 @@ int json_get_object_size(struct json_parse_state_s *state,
   if (!is_global_object) {
     if ('{' != src[state->offset]) {
       state->error = json_parse_error_unknown;
+      --state->recursion;
       return 1;
     }
 
@@ -952,6 +969,7 @@ int json_get_object_size(struct json_parse_state_s *state,
 
   if ((state->offset == size) && !is_global_object) {
     state->error = json_parse_error_premature_end_of_buffer;
+    --state->recursion;
     return 1;
   }
 
@@ -959,6 +977,7 @@ int json_get_object_size(struct json_parse_state_s *state,
     if (!is_global_object) {
       if (json_skip_all_skippables(state)) {
         state->error = json_parse_error_premature_end_of_buffer;
+        --state->recursion;
         return 1;
       }
 
@@ -991,6 +1010,7 @@ int json_get_object_size(struct json_parse_state_s *state,
       } else {
         /* otherwise we are required to have a comma, and we found none. */
         state->error = json_parse_error_expected_comma_or_closing_bracket;
+        --state->recursion;
         return 1;
       }
 
@@ -999,6 +1019,7 @@ int json_get_object_size(struct json_parse_state_s *state,
       } else {
         if (json_skip_all_skippables(state)) {
           state->error = json_parse_error_premature_end_of_buffer;
+          --state->recursion;
           return 1;
         }
       }
@@ -1007,11 +1028,13 @@ int json_get_object_size(struct json_parse_state_s *state,
     if (json_get_key_size(state)) {
       /* key parsing failed! */
       state->error = json_parse_error_invalid_string;
+      --state->recursion;
       return 1;
     }
 
     if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
+      --state->recursion;
       return 1;
     }
 
@@ -1019,11 +1042,13 @@ int json_get_object_size(struct json_parse_state_s *state,
       const char current = src[state->offset];
       if ((':' != current) && ('=' != current)) {
         state->error = json_parse_error_expected_colon;
+        --state->recursion;
         return 1;
       }
     } else {
       if (':' != src[state->offset]) {
         state->error = json_parse_error_expected_colon;
+        --state->recursion;
         return 1;
       }
     }
@@ -1033,11 +1058,13 @@ int json_get_object_size(struct json_parse_state_s *state,
 
     if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
+      --state->recursion;
       return 1;
     }
 
     if (json_get_value_size(state, /* is_global_object = */ 0)) {
       /* value parsing failed! */
+      --state->recursion;
       return 1;
     }
 
@@ -1048,10 +1075,12 @@ int json_get_object_size(struct json_parse_state_s *state,
 
   if ((state->offset == size) && !is_global_object && !found_closing_brace) {
     state->error = json_parse_error_premature_end_of_buffer;
+    --state->recursion;
     return 1;
   }
 
   state->dom_size += sizeof(struct json_object_element_s) * elements;
+  --state->recursion;
 
   return 0;
 }
@@ -1064,9 +1093,16 @@ int json_get_array_size(struct json_parse_state_s *state) {
   const char *const src = state->src;
   const size_t size = state->size;
 
+  if (++state->recursion > JSON_MAX_RECURSION) {
+      // recursion error
+      state->error = json_parse_error_recursion;
+      return 1;
+  }
+
   if ('[' != src[state->offset]) {
     /* expected array to begin with leading '['. */
     state->error = json_parse_error_unknown;
+    --state->recursion;
     return 1;
   }
 
@@ -1078,6 +1114,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
   while (state->offset < size) {
     if (json_skip_all_skippables(state)) {
       state->error = json_parse_error_premature_end_of_buffer;
+      --state->recursion;
       return 1;
     }
 
@@ -1088,6 +1125,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
       state->dom_size += sizeof(struct json_array_element_s) * elements;
 
       /* finished the object! */
+      --state->recursion;
       return 0;
     }
 
@@ -1099,6 +1137,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
         allow_comma = 0;
       } else if (!(json_parse_flags_allow_no_commas & flags_bitset)) {
         state->error = json_parse_error_expected_comma_or_closing_bracket;
+        --state->recursion;
         return 1;
       }
 
@@ -1108,6 +1147,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
       } else {
         if (json_skip_all_skippables(state)) {
           state->error = json_parse_error_premature_end_of_buffer;
+          --state->recursion;
           return 1;
         }
       }
@@ -1115,6 +1155,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
 
     if (json_get_value_size(state, /* is_global_object = */ 0)) {
       /* value parsing failed! */
+      --state->recursion;
       return 1;
     }
 
@@ -1126,6 +1167,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
   /* we consumed the entire input before finding the closing ']' of the array!
    */
   state->error = json_parse_error_premature_end_of_buffer;
+  --state->recursion;
   return 1;
 }
 
@@ -2089,6 +2131,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   state.dom_size = 0;
   state.data_size = 0;
   state.flags_bitset = flags_bitset;
+  state.recursion = 0;
 
   input_error = json_get_value_size(
       &state, (int)(json_parse_flags_allow_global_object & state.flags_bitset));
