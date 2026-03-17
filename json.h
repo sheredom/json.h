@@ -2543,10 +2543,10 @@ int json_write_get_number_size(const struct json_number_s *number,
 
       i = 0;
 
-      while (0 != parsed_number) {
+      do {
         parsed_number /= 10;
         i++;
-      }
+      } while (0 != parsed_number);
 
       *size += i;
       return 0;
@@ -2785,10 +2785,10 @@ char *json_write_number(const struct json_number_s *number, char *data) {
 
       i = 0;
 
-      while (0 != parsed_number) {
+      do {
         parsed_number /= 10;
         i++;
-      }
+      } while (0 != parsed_number);
 
       /* Restore parsed_number to its original value stored in the backup. */
       parsed_number = backup;
