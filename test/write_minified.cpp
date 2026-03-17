@@ -263,6 +263,39 @@ UTEST(write_minified, array_false) {
   free(minified);
 }
 
+UTEST(write_minified, object_hex_number_zero) {
+  struct json_number_s sub = {"0x0", strlen("0x0")};
+  struct json_value_s sub_value = {&sub, json_type_number};
+  struct json_string_s sub_string = {"sub", strlen("sub")};
+  struct json_object_element_s element = {&sub_string, &sub_value, 0};
+  struct json_object_s object = {&element, 1};
+  struct json_value_s value = {&object, json_type_object};
+  size_t size = 0;
+  void *minified = json_write_minified(&value, &size);
+
+  ASSERT_TRUE(minified);
+  ASSERT_EQ(strlen(static_cast<char *>(minified)) + 1, size);
+  ASSERT_STREQ("{\"sub\":0}", static_cast<char *>(minified));
+
+  free(minified);
+}
+
+UTEST(write_minified, array_hex_number_zero) {
+  struct json_number_s sub = {"0x0", strlen("0x0")};
+  struct json_value_s sub_value = {&sub, json_type_number};
+  struct json_array_element_s element = {&sub_value, 0};
+  struct json_array_s array = {&element, 1};
+  struct json_value_s value = {&array, json_type_array};
+  size_t size = 0;
+  void *minified = json_write_minified(&value, &size);
+
+  ASSERT_TRUE(minified);
+  ASSERT_EQ(strlen(static_cast<char *>(minified)) + 1, size);
+  ASSERT_STREQ("[0]", static_cast<char *>(minified));
+
+  free(minified);
+}
+
 UTEST(write_minified, array_null) {
   struct json_value_s sub_value = {0, json_type_null};
   struct json_array_element_s element = {&sub_value, 0};
