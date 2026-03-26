@@ -127,6 +127,78 @@ UTEST(allow_unquoted_keys, value_unquoted_fails) {
   ASSERT_EQ(3, result.error_row_no);
   ASSERT_EQ(2, result.error_line_no);
 }
+
+UTEST(allow_unquoted_keys, dollar_sign_in_key) {
+  const char payload[] = "{$foo : \"bar\", foo$bar : 123, $$ : true}";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_unquoted_keys, 0, 0, 0);
+  struct json_object_s *object = 0;
+  struct json_object_element_s *element = 0;
+  struct json_value_s *value2 = 0;
+  struct json_string_s *string = 0;
+  struct json_number_s *number = 0;
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_object, value->type);
+
+  object = (struct json_object_s *)value->payload;
+
+  ASSERT_TRUE(object->start);
+  ASSERT_EQ(3, object->length);
+
+  // First element: $foo
+  element = object->start;
+  ASSERT_TRUE(element->name);
+  ASSERT_TRUE(element->value);
+  ASSERT_TRUE(element->next);
+
+  ASSERT_TRUE(element->name->string);
+  ASSERT_STREQ("$foo", element->name->string);
+  ASSERT_EQ(strlen("$foo"), element->name->string_size);
+
+  value2 = element->value;
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_string, value2->type);
+
+  string = (struct json_string_s *)value2->payload;
+  ASSERT_TRUE(string->string);
+  ASSERT_STREQ("bar", string->string);
+
+  // Second element: foo$bar
+  element = element->next;
+  ASSERT_TRUE(element->name);
+  ASSERT_TRUE(element->value);
+  ASSERT_TRUE(element->next);
+
+  ASSERT_TRUE(element->name->string);
+  ASSERT_STREQ("foo$bar", element->name->string);
+  ASSERT_EQ(strlen("foo$bar"), element->name->string_size);
+
+  value2 = element->value;
+  ASSERT_TRUE(value2->payload);
+  ASSERT_EQ(json_type_number, value2->type);
+
+  number = (struct json_number_s *)value2->payload;
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("123", number->number);
+
+  // Third element: $$
+  element = element->next;
+  ASSERT_TRUE(element->name);
+  ASSERT_TRUE(element->value);
+  ASSERT_FALSE(element->next);
+
+  ASSERT_TRUE(element->name->string);
+  ASSERT_STREQ("$$", element->name->string);
+  ASSERT_EQ(strlen("$$"), element->name->string_size);
+
+  value2 = element->value;
+  ASSERT_FALSE(value2->payload);
+  ASSERT_EQ(json_type_true, value2->type);
+
+  free(value);
+}
 struct allow_unquoted_keys {
   struct json_value_s *value;
 };
