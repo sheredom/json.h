@@ -878,7 +878,7 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
 json_weak int is_valid_unquoted_key_char(const char c);
 int is_valid_unquoted_key_char(const char c) {
   return (('0' <= c && c <= '9') || ('a' <= c && c <= 'z') ||
-          ('A' <= c && c <= 'Z') || ('_' == c));
+          ('A' <= c && c <= 'Z') || ('_' == c) || ('$' == c));
 }
 
 json_weak int json_get_key_size(struct json_parse_state_s *state);
