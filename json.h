@@ -70,6 +70,7 @@ extern "C" {
 
 struct json_value_s;
 struct json_parse_result_s;
+struct json_allocator_s;
 
 enum json_parse_flags_e {
   json_parse_flags_default = 0,
@@ -145,42 +146,67 @@ enum json_parse_flags_e {
        json_parse_flags_allow_multi_line_strings)
 };
 
+/* a Define for the allocate memory function pointer. */
+#define JSON_ALLOC_FUNC(name) void *name(const size_t size, void *user_data)
+/* a Function pointer for allocating a block of memory */
+typedef JSON_ALLOC_FUNC(json_alloc_func_t);
+
+/* a Define for the free memory function pointer. */
+#define JSON_FREE_FUNC(name) void name(void *base, void *user_data)
+/* a Function pointer for freeing a block of memory */
+typedef JSON_FREE_FUNC(json_free_func_t);
+
 /* Parse a JSON text file, returning a pointer to the root of the JSON
- * structure. json_parse performs 1 call to malloc for the entire encoding.
- * Returns 0 if an error occurred (malformed JSON input, or malloc failed). */
+ * structure. json_parse performs 1 call to the allocator for the entire encoding.
+ * Returns 0 if an error occurred (malformed JSON input, or allocation failed).
+ * Uses the default allocator (malloc). If needed, you can use json_parse_ex()
+ * to pass along your custom memory allocator. */
 json_weak struct json_value_s *json_parse(const void *src, size_t src_size);
 
 /* Parse a JSON text file, returning a pointer to the root of the JSON
  * structure. json_parse performs 1 call to alloc_func_ptr for the entire
- * encoding. Returns 0 if an error occurred (malformed JSON input, or malloc
+ * encoding. Returns 0 if an error occurred (malformed JSON input, or allocation
  * failed). If an error occurred, the result struct (if not NULL) will explain
- * the type of error, and the location in the input it occurred. If
- * alloc_func_ptr is null then malloc is used. */
+ * the type of error, and the location in the input it occurred.
+ * If allocator is null, the default allocator (malloc) is used instead. */
 json_weak struct json_value_s *
 json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
-              void *(*alloc_func_ptr)(void *, size_t), void *user_data,
+              struct json_allocator_s *allocator,
               struct json_parse_result_s *result);
 
 /* Extracts a value and all the data that makes it up into a newly created
- * value. json_extract_value performs 1 call to malloc for the entire encoding.
- */
+ * value. json_extract_value performs 1 call to the allocator for the entire encoding.
+ * Uses the default allocator (malloc). If needed, you can use json_extract_value_ex()
+ * to pass along your custom memory allocator. */
 json_weak struct json_value_s *
 json_extract_value(const struct json_value_s *value);
 
 /* Extracts a value and all the data that makes it up into a newly created
- * value. json_extract_value performs 1 call to alloc_func_ptr for the entire
- * encoding. If alloc_func_ptr is null then malloc is used. */
+ * value. json_extract_value performs 1 call to the allocator for the entire encoding.
+ * If allocator is null then the default allocator (malloc) is used. */
 json_weak struct json_value_s *
 json_extract_value_ex(const struct json_value_s *value,
-                      void *(*alloc_func_ptr)(void *, size_t), void *user_data);
+                      struct json_allocator_s *allocator);
 
 /* Write out a minified JSON utf-8 string. This string is an encoding of the
  * minimal string characters required to still encode the same data.
- * json_write_minified performs 1 call to malloc for the entire encoding. Return
- * 0 if an error occurred (malformed JSON input, or malloc failed). The out_size
- * parameter is optional as the utf-8 string is null terminated. */
+ * json_write_minified_ex performs 1 call to the allocator for the entire encoding. Return
+ * 0 if an error occurred (malformed JSON input, or allocation failed). The out_size
+ * parameter is optional as the utf-8 string is null terminated.
+ * Uses the default allocator (malloc). If needed, you can use json_write_minified_ex()
+ * to pass along your custom memory allocator. */
 json_weak void *json_write_minified(const struct json_value_s *value,
                                     size_t *out_size);
+
+/* Write out a minified JSON utf-8 string. This string is an encoding of the
+ * minimal string characters required to still encode the same data.
+ * json_write_minified_ex performs 1 call to the allocator for the entire encoding. Return
+ * 0 if an error occurred (malformed JSON input, or allocation failed). The out_size
+ * parameter is optional as the utf-8 string is null terminated.
+ * If allocator is null then the default allocator (malloc) is used. */
+json_weak void *json_write_minified_ex(const struct json_value_s *value,
+                                       struct json_allocator_s *allocator,
+                                       size_t *out_size);
 
 /* Write out a pretty JSON utf-8 string. This string is encoded such that the
  * resultant JSON is pretty in that it is easily human readable. The indent and
@@ -188,12 +214,29 @@ json_weak void *json_write_minified(const struct json_value_s *value,
  * newline they want (two spaces / three spaces / tabs? \r, \n, \r\n ?). Both
  * indent and newline can be NULL, indent defaults to two spaces ("  "), and
  * newline defaults to linux newlines ('\n' as the newline character).
- * json_write_pretty performs 1 call to malloc for the entire encoding. Return 0
- * if an error occurred (malformed JSON input, or malloc failed). The out_size
- * parameter is optional as the utf-8 string is null terminated. */
+ * json_write_pretty_ex performs 1 call to the allocator for the entire encoding. Return 0
+ * if an error occurred (malformed JSON input, or allocation failed). The out_size
+ * parameter is optional as the utf-8 string is null terminated.
+ * Uses the default allocator (malloc). If needed, you can use json_write_pretty_ex()
+ * to pass along your custom memory allocator. */
 json_weak void *json_write_pretty(const struct json_value_s *value,
                                   const char *indent, const char *newline,
                                   size_t *out_size);
+
+/* Write out a pretty JSON utf-8 string. This string is encoded such that the
+ * resultant JSON is pretty in that it is easily human readable. The indent and
+ * newline parameters allow a user to specify what kind of indentation and
+ * newline they want (two spaces / three spaces / tabs? \r, \n, \r\n ?). Both
+ * indent and newline can be NULL, indent defaults to two spaces ("  "), and
+ * newline defaults to linux newlines ('\n' as the newline character).
+ * json_write_pretty_ex performs 1 call to the allocator for the entire encoding. Return 0
+ * if an error occurred (malformed JSON input, or allocation failed). The out_size
+ * parameter is optional as the utf-8 string is null terminated.
+ * If allocator is null then the default allocator (malloc) is used. */
+json_weak void *json_write_pretty_ex(const struct json_value_s *value,
+                                     const char *indent, const char *newline,
+                                     struct json_allocator_s *allocator,
+                                     size_t *out_size);
 
 /* Reinterpret a JSON value as a string. Returns null is the value was not a
  * string. */
@@ -338,6 +381,18 @@ typedef struct json_value_ex_s {
 
 } json_value_ex_t;
 
+/* a JSON Allocator function table. */
+typedef struct json_allocator_s {
+    /* Allocate function pointer. */
+    json_alloc_func_t *alloc;
+    /* Free function pointer. */
+    json_free_func_t *free;
+    /* Custom user data pointer. */
+    void *user_data;
+    /* Padding to align struct. */
+    uintptr_t padding;
+} json_allocator_t;
+
 /* a parsing error code. */
 enum json_parse_error_e {
   /* no error occurred (huzzah!). */
@@ -368,7 +423,7 @@ enum json_parse_error_e {
   /* string was malformed! */
   json_parse_error_invalid_string,
 
-  /* a call to malloc, or a user provider allocator, failed. */
+  /* a call to default allocator (malloc), or a user provider allocator, failed. */
   json_parse_error_allocator_failed,
 
   /* the JSON input had unexpected trailing characters that weren't part of the.
@@ -473,7 +528,28 @@ typedef struct json_parse_result_s {
 #define JSON_MAX_RECURSION 1000
 #endif
 
+json_weak JSON_ALLOC_FUNC(json_default_alloc) {
+    if (0 == size) {
+        return json_null;
+    }
+    return malloc(size);
+}
+
+json_weak JSON_FREE_FUNC(json_default_free) {
+    if (json_null == base) {
+        return;
+    }
+    free(base);
+}
+
+static const struct json_allocator_s json_default_allocator = {
+    .alloc = json_default_alloc,
+    .free = json_default_free,
+    .user_data = json_null,
+};
+
 struct json_parse_state_s {
+  struct json_allocator_s allocator;
   const char *src;
   size_t size;
   size_t offset;
@@ -488,6 +564,13 @@ struct json_parse_state_s {
   size_t error;
   size_t recursion;
 };
+
+json_weak struct json_allocator_s json_create_allocator(struct json_allocator_s *custom_allocator) {
+  if (json_null == custom_allocator || json_null == custom_allocator->alloc || json_null == custom_allocator->free) {
+    return json_default_allocator;
+  }
+  return *custom_allocator;
+}
 
 json_weak int json_hexadecimal_digit(const char c);
 int json_hexadecimal_digit(const char c) {
@@ -2102,8 +2185,7 @@ void json_parse_value(struct json_parse_state_s *state, int is_global_object,
 
 struct json_value_s *
 json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
-              void *(*alloc_func_ptr)(void *user_data, size_t size),
-              void *user_data, struct json_parse_result_s *result) {
+              struct json_allocator_s *allocator, struct json_parse_result_s *result) {
   struct json_parse_state_s state;
   void *allocation;
   struct json_value_s *value;
@@ -2132,6 +2214,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   state.data_size = 0;
   state.flags_bitset = flags_bitset;
   state.recursion = 0;
+  state.allocator = json_create_allocator(allocator);
 
   input_error = json_get_value_size(
       &state, (int)(json_parse_flags_allow_global_object & state.flags_bitset));
@@ -2164,14 +2247,10 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   /* the JSON values). */
   total_size = state.dom_size + state.data_size;
 
-  if (json_null == alloc_func_ptr) {
-    allocation = malloc(total_size);
-  } else {
-    allocation = alloc_func_ptr(user_data, total_size);
-  }
+  allocation = state.allocator.alloc(total_size, state.allocator.user_data);
 
   if (json_null == allocation) {
-    /* malloc failed! */
+    /* allocation failed! */
     if (result) {
       result->error = json_parse_error_allocator_failed;
       result->error_offset = 0;
@@ -2214,8 +2293,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
 }
 
 struct json_value_s *json_parse(const void *src, size_t src_size) {
-  return json_parse_ex(src, src_size, json_parse_flags_default, json_null,
-                       json_null, json_null);
+  return json_parse_ex(src, src_size, json_parse_flags_default, json_null, json_null);
 }
 
 struct json_extract_result_s {
@@ -2224,7 +2302,7 @@ struct json_extract_result_s {
 };
 
 struct json_value_s *json_extract_value(const struct json_value_s *value) {
-  return json_extract_value_ex(value, json_null, json_null);
+  return json_extract_value_ex(value, json_null);
 }
 
 json_weak struct json_extract_result_s
@@ -2336,6 +2414,7 @@ json_extract_get_value_size(const struct json_value_s *const value) {
 }
 
 struct json_extract_state_s {
+  struct json_allocator_s allocator;
   char *dom;
   char *data;
 };
@@ -2445,9 +2524,7 @@ void json_extract_copy_value(struct json_extract_state_s *const state,
 }
 
 struct json_value_s *json_extract_value_ex(const struct json_value_s *value,
-                                           void *(*alloc_func_ptr)(void *,
-                                                                   size_t),
-                                           void *user_data) {
+                                           struct json_allocator_s *allocator) {
   void *allocation;
   struct json_extract_result_s result;
   struct json_extract_state_s state;
@@ -2458,14 +2535,13 @@ struct json_value_s *json_extract_value_ex(const struct json_value_s *value,
     return json_null;
   }
 
+  state.allocator = json_create_allocator(allocator);
+
   result = json_extract_get_value_size(value);
   total_size = result.dom_size + result.data_size;
 
-  if (json_null == alloc_func_ptr) {
-    allocation = malloc(total_size);
-  } else {
-    allocation = alloc_func_ptr(user_data, total_size);
-  }
+
+  allocation = state.allocator.alloc(total_size, state.allocator.user_data);
 
   state.dom = (char *)allocation;
   state.data = state.dom + result.dom_size;
@@ -3094,6 +3170,10 @@ char *json_write_minified_value(const struct json_value_s *value, char *data) {
 }
 
 void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
+    return json_write_minified_ex(value, json_null, out_size);
+}
+
+void *json_write_minified_ex(const struct json_value_s *value, struct json_allocator_s *allocator, size_t *out_size) {
   size_t size = 0;
   char *data = json_null;
   char *data_end = json_null;
@@ -3102,6 +3182,8 @@ void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
     return json_null;
   }
 
+  struct json_allocator_s active_allocator = json_create_allocator(allocator);
+
   if (json_write_minified_get_value_size(value, &size)) {
     /* value was malformed! */
     return json_null;
@@ -3109,10 +3191,10 @@ void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
 
   size += 1; /* for the '\0' null terminating character. */
 
-  data = (char *)malloc(size);
+  data = (char *)active_allocator.alloc(size, active_allocator.user_data);
 
   if (json_null == data) {
-    /* malloc failed! */
+    /* allocation failed! */
     return json_null;
   }
 
@@ -3120,7 +3202,7 @@ void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
 
   if (json_null == data_end) {
     /* bad chi occurred! */
-    free(data);
+    active_allocator.free(data, active_allocator.user_data);
     return json_null;
   }
 
@@ -3435,8 +3517,12 @@ char *json_write_pretty_value(const struct json_value_s *value, size_t depth,
   }
 }
 
-void *json_write_pretty(const struct json_value_s *value, const char *indent,
-                        const char *newline, size_t *out_size) {
+void *json_write_pretty(const struct json_value_s *value, const char *indent, const char *newline, size_t *out_size) {
+    return json_write_pretty_ex(value, indent, newline, json_null, out_size);
+}
+
+void *json_write_pretty_ex(const struct json_value_s *value, const char *indent,
+                        const char *newline, struct json_allocator_s *allocator, size_t *out_size) {
   size_t size = 0;
   size_t indent_size = 0;
   size_t newline_size = 0;
@@ -3446,6 +3532,8 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
   if (json_null == value) {
     return json_null;
   }
+
+  struct json_allocator_s active_allocator = json_create_allocator(allocator);
 
   if (json_null == indent) {
     indent = "  "; /* default to two spaces. */
@@ -3471,10 +3559,10 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
 
   size += 1; /* for the '\0' null terminating character. */
 
-  data = (char *)malloc(size);
+  data = (char *)active_allocator.alloc(size, active_allocator.user_data);
 
   if (json_null == data) {
-    /* malloc failed! */
+    /* allocation failed! */
     return json_null;
   }
 
@@ -3482,7 +3570,7 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
 
   if (json_null == data_end) {
     /* bad chi occurred! */
-    free(data);
+    active_allocator.free(data, active_allocator.user_data);
     return json_null;
   }
 
