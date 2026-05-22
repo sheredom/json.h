@@ -337,6 +337,12 @@ structure of the original JSON), followed by the data.
   [@hugin84](https://twitter.com/hugin84) in
   https://twitter.com/hugin84/status/668506811595677696).
 
+## AI Usage
+
+AI tool use is explicitly permitted in commits to this repository. There is a
+tagged release [pre-ai](https://github.com/sheredom/json.h/releases/tag/pre-ai)
+that denotes the last release where AI tooling was not used.
+
 ## License
 
 This is free and unencumbered software released into the public domain.
