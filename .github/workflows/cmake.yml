@@ -71,4 +71,4 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: if [ "${{ matrix.os }}" == "windows-latest" ]; then cd ${{ matrix.type }}; fi; ./json_test
+      run: ctest --rerun-failed --output-on-failure -C ${{ matrix.type }}

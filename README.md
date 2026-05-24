@@ -1,7 +1,6 @@
 # 🗄️ json.h
 
 [![Actions Status](https://github.com/sheredom/json.h/workflows/CMake/badge.svg)](https://github.com/sheredom/json.h/actions)
-[![Build status](https://ci.appveyor.com/api/projects/status/piell6hcrlwrcxp9?svg=true)](https://ci.appveyor.com/project/sheredom/json-h)
 [![Sponsor](https://img.shields.io/badge/💜-sponsor-blueviolet)](https://github.com/sponsors/sheredom)
 
 A simple single header solution to parsing JSON in C and C++.
