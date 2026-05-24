@@ -26,6 +26,8 @@
 project(json)
 cmake_minimum_required(VERSION 3.15)
 
+enable_testing()
+
 set(JSON_USE_SANITIZER "" CACHE STRING "Set which Clang Sanitizer to use")
 
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../README.md readme_md)
@@ -71,6 +73,8 @@ if(NOT "${JSON_USE_SANITIZER}" STREQUAL "")
   target_compile_options(json_test PUBLIC -fno-omit-frame-pointer -fsanitize=${JSON_USE_SANITIZER})
   target_link_options(json_test PUBLIC -fno-omit-frame-pointer -fsanitize=${JSON_USE_SANITIZER})
 endif()
+
+add_test(NAME json_test COMMAND json_test)
 
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
   set_source_files_properties(test.c PROPERTIES

@@ -10,18 +10,42 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
         type: [Debug, RelWithDebInfo, MinSizeRel, Release]
-        compiler: [default, clang, gcc, tcc]
-        exclude:
-          - {os: "macos-latest", compiler: "clang"}
-          - {os: "macos-latest", compiler: "gcc"}
-          - {os: "macos-latest", compiler: "tcc"}
-          - {os: "ubuntu-latest", compiler: "default"}
-          - {os: "ubuntu-latest", compiler: "default"}
-          - {os: "windows-latest", compiler: "gcc"}
-          - {os: "windows-latest", compiler: "tcc"}
-    runs-on: ${{ matrix.os }}
+        config:
+          - os: ubuntu-latest
+            compiler: clang
+            sanitizer: ''
+          - os: ubuntu-latest
+            compiler: gcc
+            sanitizer: ''
+          - os: ubuntu-latest
+            compiler: tcc
+            sanitizer: ''
+          - os: windows-latest
+            compiler: default
+            sanitizer: ''
+          - os: windows-latest
+            compiler: clang
+            sanitizer: ''
+          - os: macos-latest
+            compiler: default
+            sanitizer: ''
+          - os: ubuntu-latest
+            compiler: clang
+            sanitizer: address
+          - os: ubuntu-latest
+            compiler: clang
+            sanitizer: memory
+          - os: ubuntu-latest
+            compiler: clang
+            sanitizer: undefined
+          - os: macos-latest
+            compiler: default
+            sanitizer: address
+          - os: macos-latest
+            compiler: default
+            sanitizer: undefined
+    runs-on: ${{ matrix.config.os }}
 
     steps:
     - uses: actions/checkout@v2
@@ -29,39 +53,30 @@ jobs:
     - name: Create Build Environment
       run: cmake -E make_directory ${{github.workspace}}/build
 
-    - name: Setup dependencies
-      if: startsWith(matrix.os, 'ubuntu')
-      run: sudo apt-get install -y gcc-10 g++-10 clang tcc
+    - name: Setup dependencies (Ubuntu)
+      if: startsWith(matrix.config.os, 'ubuntu')
+      run: sudo apt-get update && sudo apt-get install -y gcc-10 g++-10 clang tcc
 
     - name: Configure CMake
       shell: bash
-      if: matrix.compiler == 'default'
       working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }}
+      run: |
+        cmake_args=(-DCMAKE_BUILD_TYPE=${{ matrix.type }})
+        if [ -n "${{ matrix.config.sanitizer }}" ]; then
+          cmake_args+=("-DJSON_USE_SANITIZER=${{ matrix.config.sanitizer }}")
+        fi
 
-    - name: Configure CMake with GCC
-      shell: bash
-      if: matrix.compiler == 'gcc'
-      working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10
-
-    - name: Configure CMake with TCC (Ubuntu)
-      shell: bash
-      if: matrix.compiler == 'tcc' && startsWith(matrix.os, 'ubuntu')
-      working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DCMAKE_C_COMPILER=tcc -DCMAKE_CXX_COMPILER=g++-10
-
-    - name: Configure CMake with Clang (Ubuntu)
-      shell: bash
-      if: (matrix.compiler == 'clang') && startsWith(matrix.os, 'ubuntu')
-      working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }} -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
-
-    - name: Configure CMake with Clang (Windows)
-      shell: bash
-      if: (matrix.compiler == 'clang') && startsWith(matrix.os, 'windows')
-      working-directory: ${{github.workspace}}/build
-      run: cmake $GITHUB_WORKSPACE/test -DCMAKE_BUILD_TYPE=${{ matrix.type }} -T ClangCL
+        if [ "${{ matrix.config.compiler }}" = "gcc" ]; then
+          cmake "$GITHUB_WORKSPACE/test" "${cmake_args[@]}" -DCMAKE_C_COMPILER=gcc-10 -DCMAKE_CXX_COMPILER=g++-10
+        elif [ "${{ matrix.config.compiler }}" = "tcc" ]; then
+          cmake "$GITHUB_WORKSPACE/test" "${cmake_args[@]}" -DCMAKE_C_COMPILER=tcc -DCMAKE_CXX_COMPILER=g++-10
+        elif [ "${{ matrix.config.compiler }}" = "clang" ] && [ "${{ matrix.config.os }}" = "ubuntu-latest" ]; then
+          cmake "$GITHUB_WORKSPACE/test" "${cmake_args[@]}" -DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++
+        elif [ "${{ matrix.config.compiler }}" = "clang" ] && [ "${{ matrix.config.os }}" = "windows-latest" ]; then
+          cmake "$GITHUB_WORKSPACE/test" "${cmake_args[@]}" -T ClangCL
+        else
+          cmake "$GITHUB_WORKSPACE/test" "${cmake_args[@]}"
+        fi
 
     - name: Build
       working-directory: ${{github.workspace}}/build
@@ -71,4 +86,4 @@ jobs:
     - name: Test
       working-directory: ${{github.workspace}}/build
       shell: bash
-      run: if [ "${{ matrix.os }}" == "windows-latest" ]; then cd ${{ matrix.type }}; fi; ./json_test
+      run: ctest --build-config ${{ matrix.type }} --output-on-failure
