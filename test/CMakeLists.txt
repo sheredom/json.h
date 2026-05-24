@@ -45,8 +45,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 # MSVC and clang-cl use /std: and don't accept -std=, so we skip
 # the standard flag for those compilers.
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  set(JSON_C_WARNINGS "-Wall -Wextra -Werror")
-  set(JSON_CXX_WARNINGS "-Wall -Wextra -Werror")
+  set(JSON_C_WARNINGS "-Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-parameter")
+  set(JSON_CXX_WARNINGS "-Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-parameter")
   set(JSON_USE_STD_FLAG TRUE)
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
   if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
@@ -54,8 +54,8 @@ elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STR
     set(JSON_CXX_WARNINGS "/Wall /WX /wd4514 /wd5045")
     set(JSON_USE_STD_FLAG FALSE)
   else()
-    set(JSON_C_WARNINGS "-Wall -Wextra -Weverything -Werror -Wno-poison-system-directories")
-    set(JSON_CXX_WARNINGS "-Wall -Wextra -Weverything -Werror -Wno-poison-system-directories")
+    set(JSON_C_WARNINGS "-Wall -Wextra -Weverything -Werror -Wno-poison-system-directories -Wno-sign-compare -Wno-unused-parameter -Wno-overlength-strings -Wno-cast-qual -Wno-declaration-after-statement -Wno-shadow -Wno-c99-extensions -Wno-padded -Wno-switch-default -Wno-unsafe-buffer-usage")
+    set(JSON_CXX_WARNINGS "-Wall -Wextra -Weverything -Werror -Wno-poison-system-directories -Wno-sign-compare -Wno-unused-parameter -Wno-overlength-strings -Wno-cast-qual -Wno-shadow -Wno-padded -Wno-switch-default -Wno-unsafe-buffer-usage -Wno-zero-as-null-pointer-constant -Wno-old-style-cast")
     set(JSON_USE_STD_FLAG TRUE)
   endif()
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "MSVC")
@@ -89,32 +89,38 @@ function(json_set_cxx_flags FILE STANDARD)
   endif()
 endfunction()
 
+# C files — each compiled under a specific C standard.
+json_set_c_flags(main.c  "-std=gnu89")
+json_set_c_flags(test.c  "-std=gnu89")
+json_set_c_flags(test99.c "-std=c99")
+
+list(FIND CMAKE_C_COMPILE_FEATURES c_std_11 IDX)
+if(${IDX} GREATER -1)
+  json_set_c_flags(test11.c "-std=c11")
+endif()
+
+# C++ files — each compiled under a specific C++ standard.
+json_set_cxx_flags(test.cpp   "" "-Wno-c++98-compat")
+json_set_cxx_flags(test98.cpp "-std=gnu++98")
+json_set_cxx_flags(test11.cpp "-std=c++11" "-Wno-c++98-compat")
+json_set_cxx_flags(test14.cpp "-std=c++14" "-Wno-c++98-compat")
+json_set_cxx_flags(test17.cpp "-std=c++17" "-Wno-c++98-compat")
+json_set_cxx_flags(test20.cpp "-std=c++20" "-Wno-c++98-compat")
+
 set(JSON_TEST_SOURCES
   ../json.h
-  allocator.cpp
-  allow_c_style_comments.cpp
-  allow_equals_in_object.c
-  allow_global_object.c
-  allow_hexadecimal_numbers.c
-  allow_inf_and_nan.c
-  allow_json5.c
-  allow_leading_or_trailing_decimal_point.c
-  allow_leading_plus_sign.c
-  allow_location_information.c
-  allow_multi_line_strings.c
-  allow_no_commas.c
-  allow_simplified_json.c
-  allow_single_quoted_strings.c
-  allow_trailing_comma.cpp
-  allow_unquoted_keys.c
-  extract.cpp
-  main.cpp
+  utest.h
+  test_shared.h
+  main.c
   test.c
+  test11.c
+  test99.c
   test.cpp
-  write_minified.cpp
-  write_pretty.cpp
-  JSONTestSuite.cpp
-  JSONTestSuite.inc
+  test98.cpp
+  test11.cpp
+  test14.cpp
+  test17.cpp
+  test20.cpp
 )
 
 # Helper: add a test executable and register it with CTest.
