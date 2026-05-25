@@ -45,8 +45,8 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR}/../)
 # MSVC and clang-cl use /std: and don't accept -std=, so we skip
 # the standard flag for those compilers.
 if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU")
-  set(JSON_C_WARNINGS "-Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-parameter")
-  set(JSON_CXX_WARNINGS "-Wall -Wextra -Werror -Wno-sign-compare -Wno-unused-parameter")
+  set(JSON_C_WARNINGS "-Wall -Wextra -Werror")
+  set(JSON_CXX_WARNINGS "-Wall -Wextra -Werror")
   set(JSON_USE_STD_FLAG TRUE)
 elseif("${CMAKE_C_COMPILER_ID}" STREQUAL "Clang" OR "${CMAKE_C_COMPILER_ID}" STREQUAL "AppleClang")
   if(CMAKE_CXX_COMPILER_FRONTEND_VARIANT STREQUAL "MSVC")
