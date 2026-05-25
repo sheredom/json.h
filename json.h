@@ -453,6 +453,9 @@ typedef struct json_parse_result_s {
 #elif defined(_MSC_VER)
 #pragma warning(push)
 
+/* disable 'function not inlined' warning. */
+#pragma warning(disable : 4710)
+
 /* disable 'function selected for inline expansion' warning. */
 #pragma warning(disable : 4711)
 
