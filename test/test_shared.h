@@ -36,6 +36,7 @@
 
 #if defined(__clang__)
 #pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
 #pragma clang diagnostic ignored "-Woverlength-strings"
 #pragma clang diagnostic ignored "-Wc99-extensions"
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
