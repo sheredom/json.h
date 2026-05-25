@@ -940,9 +940,9 @@ int json_get_object_size(struct json_parse_state_s *state,
   int found_closing_brace = 0;
 
   if (++state->recursion > JSON_MAX_RECURSION) {
-      /* recursion error */
-      state->error = json_parse_error_recursion;
-      return 1;
+    /* recursion error */
+    state->error = json_parse_error_recursion;
+    return 1;
   }
 
   if (is_global_object) {
@@ -1094,9 +1094,9 @@ int json_get_array_size(struct json_parse_state_s *state) {
   const size_t size = state->size;
 
   if (++state->recursion > JSON_MAX_RECURSION) {
-      /* recursion error */
-      state->error = json_parse_error_recursion;
-      return 1;
+    /* recursion error */
+    state->error = json_parse_error_recursion;
+    return 1;
   }
 
   if ('[' != src[state->offset]) {

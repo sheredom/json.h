@@ -93,11 +93,11 @@ typedef uint64_t utest_uint64_t;
 typedef uint32_t utest_uint32_t;
 #endif
 
+#include <errno.h>
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <errno.h>
 
 #if defined(__cplusplus)
 #if defined(_MSC_VER) && !defined(_CPPUNWIND)
@@ -347,10 +347,12 @@ static UTEST_INLINE utest_int64_t utest_ns(void) {
   return utest_mul_div(counter.QuadPart, 1000000000, frequency.QuadPart);
 #elif defined(__linux__) && defined(__STRICT_ANSI__)
   return utest_mul_div(clock(), 1000000000, CLOCKS_PER_SEC);
+#elif defined(__APPLE__)
+  return UTEST_CAST(utest_int64_t, clock_gettime_nsec_np(CLOCK_UPTIME_RAW));
 #elif defined(__linux__) || defined(__FreeBSD__) || defined(__OpenBSD__) ||    \
     defined(__NetBSD__) || defined(__DragonFly__) || defined(__sun__) ||       \
     defined(__HAIKU__)
-  struct timespec ts;
+  struct timespec ts = {0, 0};
 #if defined(__STDC_VERSION__) && (__STDC_VERSION__ >= 201112L) &&              \
     !defined(__HAIKU__)
   timespec_get(&ts, TIME_UTC);
@@ -363,8 +365,6 @@ static UTEST_INLINE utest_int64_t utest_ns(void) {
 #endif
 #endif
   return UTEST_CAST(utest_int64_t, ts.tv_sec) * 1000 * 1000 * 1000 + ts.tv_nsec;
-#elif __APPLE__
-  return UTEST_CAST(utest_int64_t, clock_gettime_nsec_np(CLOCK_UPTIME_RAW));
 #elif __EMSCRIPTEN__
   return emscripten_performance_now() * 1000000.0;
 #else
@@ -532,7 +532,13 @@ template <> struct utest_type_deducer<unsigned long long, false> {
 };
 
 template <> struct utest_type_deducer<bool, false> {
-  static void _(const bool i) { UTEST_PRINTF(i ? "true" : "false"); }
+  static void _(const bool i) {
+    if (i) {
+      UTEST_PRINTF("true");
+    } else {
+      UTEST_PRINTF("false");
+    }
+  }
 };
 
 template <typename T> struct utest_type_deducer<const T *, false> {
@@ -553,8 +559,8 @@ template <typename T> struct utest_type_deducer<T, true> {
 
 // default printer for all other objects (specialize for custom printing)
 template <typename T> struct utest_type_deducer<T, false> {
-  static void _(const T& t) {
-    UTEST_PRINTF("(object %p)", static_cast<const void*>(&t));
+  static void _(const T &t) {
+    UTEST_PRINTF("(object %p)", static_cast<const void *>(&t));
   }
 };
 
@@ -565,7 +571,7 @@ template <> struct utest_type_deducer<std::nullptr_t, false> {
 };
 
 template <typename T>
-UTEST_WEAK UTEST_OVERLOADABLE void utest_type_printer(const T& t) {
+UTEST_WEAK UTEST_OVERLOADABLE void utest_type_printer(const T &t) {
   utest_type_deducer<T>::_(t);
 }
 
@@ -664,20 +670,20 @@ utest_type_printer(long long unsigned int i) {
 #define utest_type_printer(val)                                                \
   UTEST_PRINTF(                                                                \
       _Generic((val),                                                          \
-      signed char: "%d",                                                       \
-      unsigned char: "%u",                                                     \
-      short: "%d",                                                             \
-      unsigned short: "%u",                                                    \
-      int: "%d",                                                               \
-      long: "%ld",                                                             \
-      long long: "%lld",                                                       \
-      unsigned: "%u",                                                          \
-      unsigned long: "%lu",                                                    \
-      unsigned long long: "%llu",                                              \
-      float: "%f",                                                             \
-      double: "%f",                                                            \
-      long double: "%Lf",                                                      \
-      default: _Generic((val - val), ptrdiff_t: "%p", default: "undef")),      \
+          signed char: "%d",                                                   \
+          unsigned char: "%u",                                                 \
+          short: "%d",                                                         \
+          unsigned short: "%u",                                                \
+          int: "%d",                                                           \
+          long: "%ld",                                                         \
+          long long: "%lld",                                                   \
+          unsigned: "%u",                                                      \
+          unsigned long: "%lu",                                                \
+          unsigned long long: "%llu",                                          \
+          float: "%f",                                                         \
+          double: "%f",                                                        \
+          long double: "%Lf",                                                  \
+          default: _Generic((val - val), ptrdiff_t: "%p", default: "undef")),  \
       (val))
 #else
 /*
@@ -698,7 +704,7 @@ utest_type_printer(long long unsigned int i) {
 #endif
 
 #if defined(__cplusplus) && (__cplusplus >= 201103L)
-#define UTEST_AUTO(x) const auto&
+#define UTEST_AUTO(x) const auto &
 #elif !defined(__cplusplus)
 
 #if defined(__clang__)
@@ -907,6 +913,47 @@ utest_strncpy_gcc(char *const dst, const char *const src, const size_t size) {
 #define EXPECT_FALSE_MSG(x, msg) UTEST_FALSE(x, msg, 0)
 #define ASSERT_FALSE(x) UTEST_FALSE(x, "", 1)
 #define ASSERT_FALSE_MSG(x, msg) UTEST_FALSE(x, msg, 1)
+
+#define UTEST_MEMEQ(x, y, size, msg, is_assert)                                \
+  UTEST_SURPRESS_WARNING_BEGIN do {                                            \
+    UTEST_SURPRESS_WARNINGS_BEGIN                                              \
+    size_t i = 0;                                                              \
+    const void *xEval = (x);                                                   \
+    const void *yEval = (y);                                                   \
+    const size_t sizeEval = UTEST_CAST(size_t, size);                          \
+    if (0 != memcmp(xEval, yEval, sizeEval)) {                                 \
+      UTEST_PRINTF("%s:%i: Failure\n", __FILE__, __LINE__);                    \
+      UTEST_PRINTF("  Expected : ");                                           \
+      for (i = 0; i < sizeEval; ++i) {                                         \
+        const unsigned char b =                                                \
+            UTEST_PTR_CAST(const unsigned char *, xEval)[i];                   \
+        UTEST_PRINTF("%02X ", b);                                              \
+      }                                                                        \
+      UTEST_PRINTF("\n");                                                      \
+      UTEST_PRINTF("    Actual : ");                                           \
+      for (i = 0; i < sizeEval; ++i) {                                         \
+        const unsigned char b =                                                \
+            UTEST_PTR_CAST(const unsigned char *, yEval)[i];                   \
+        UTEST_PRINTF("%02X ", b);                                              \
+      }                                                                        \
+      UTEST_PRINTF("\n");                                                      \
+      if (strlen(msg) > 0) {                                                   \
+        UTEST_PRINTF("   Message : %s\n", msg);                                \
+      }                                                                        \
+      *utest_result = UTEST_TEST_FAILURE;                                      \
+      if (is_assert) {                                                         \
+        return;                                                                \
+      }                                                                        \
+    }                                                                          \
+    UTEST_SURPRESS_WARNINGS_END                                                \
+  }                                                                            \
+  while (0)                                                                    \
+  UTEST_SURPRESS_WARNING_END
+
+#define EXPECT_MEMEQ(x, y, s) UTEST_MEMEQ(x, y, s, "", 0)
+#define EXPECT_MEMEQ_MSG(x, y, s, msg) UTEST_MEMEQ(x, y, s, msg, 0)
+#define ASSERT_MEMEQ(x, y, s) UTEST_MEMEQ(x, y, s, "", 1)
+#define ASSERT_MEMEQ_MSG(x, y, s, msg) UTEST_STREQ(x, y, s, msg, 1)
 
 #define UTEST_STREQ(x, y, msg, is_assert)                                      \
   UTEST_SURPRESS_WARNING_BEGIN do {                                            \
