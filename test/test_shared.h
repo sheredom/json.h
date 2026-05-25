@@ -41,6 +41,9 @@
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-libc-call"
 #pragma clang diagnostic ignored "-Wsign-compare"
+#elif defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wsign-compare"
 #endif
 
 #ifndef JSON_SUITE
@@ -1158,7 +1161,7 @@ JSON_TEST(allow_hexadecimal_numbers, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : 0x0123456789}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(10u, result.error_offset);
@@ -1417,7 +1420,7 @@ JSON_TEST(allow_inf_and_nan, forgot_to_specify_flag_Infinity) {
   const char payload[] = "{\"foo\" : Infinity}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_value, result.error);
   ASSERT_EQ(9u, result.error_offset);
@@ -1826,7 +1829,7 @@ JSON_TEST(allow_leading_or_trailing_decimal_point,
   const char payload[] = "{\"foo\" : .0}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(9u, result.error_offset);
@@ -1839,7 +1842,7 @@ JSON_TEST(allow_leading_or_trailing_decimal_point,
   const char payload[] = "{\"foo\" : 0.}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(11u, result.error_offset);
@@ -2004,7 +2007,7 @@ JSON_TEST(allow_leading_plus_sign, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : +0}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(9u, result.error_offset);
@@ -2296,7 +2299,7 @@ JSON_TEST(allow_multi_line_strings, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : \"Hello, \nWorld!\"}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_string_escape_sequence, result.error);
   ASSERT_EQ(17u, result.error_offset);
@@ -2863,7 +2866,7 @@ JSON_TEST(allow_single_quoted_strings, forgot_to_specify_flag) {
   const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
   struct json_parse_result_s result;
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_string, result.error);
   ASSERT_EQ(1u, result.error_offset);
@@ -4206,7 +4209,7 @@ JSON_TEST(object, missing_closing_bracket) {
   struct json_parse_result_s result;
 
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
 
   ASSERT_FALSE(value);
 
@@ -4222,7 +4225,7 @@ JSON_TEST(array, missing_closing_bracket) {
   struct json_parse_result_s result;
 
   struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), UTEST_NULL, UTEST_NULL, UTEST_NULL, &result);
+      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
 
   ASSERT_FALSE(value);
 
@@ -4874,7 +4877,7 @@ JSON_TEST(generated, readme) {
 }
 
 JSON_TEST(write_minified, object_empty) {
-  struct json_object_s object = {UTEST_NULL, UTEST_NULL};
+  struct json_object_s object = {UTEST_NULL, 0};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
   void *minified = json_write_minified(&value, &size);
@@ -4921,7 +4924,7 @@ JSON_TEST(write_minified, object_number) {
 }
 
 JSON_TEST(write_minified, object_object) {
-  struct json_object_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_object_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, UTEST_NULL};
@@ -4938,7 +4941,7 @@ JSON_TEST(write_minified, object_object) {
 }
 
 JSON_TEST(write_minified, object_array) {
-  struct json_array_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_array_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, UTEST_NULL};
@@ -5003,7 +5006,7 @@ JSON_TEST(write_minified, object_null) {
 }
 
 JSON_TEST(write_minified, array_empty) {
-  struct json_array_s array = {UTEST_NULL, UTEST_NULL};
+  struct json_array_s array = {UTEST_NULL, 0};
   struct json_value_s value = {&array, json_type_array};
   size_t size = 0;
   void *minified = json_write_minified(&value, &size);
@@ -5048,7 +5051,7 @@ JSON_TEST(write_minified, array_number) {
 }
 
 JSON_TEST(write_minified, array_object) {
-  struct json_object_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_object_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_array_element_s element = {&sub_value, UTEST_NULL};
   struct json_array_s object = {&element, 1};
@@ -5064,7 +5067,7 @@ JSON_TEST(write_minified, array_object) {
 }
 
 JSON_TEST(write_minified, array_array) {
-  struct json_array_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_array_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_array_element_s element = {&sub_value, UTEST_NULL};
   struct json_array_s object = {&element, 1};
@@ -5158,7 +5161,7 @@ JSON_TEST(write_minified, array_null) {
 }
 
 JSON_TEST(write_pretty, object_empty) {
-  struct json_object_s object = {UTEST_NULL, UTEST_NULL};
+  struct json_object_s object = {UTEST_NULL, 0};
   struct json_value_s value = {&object, json_type_object};
   size_t size = 0;
   void *pretty = json_write_pretty(&value, UTEST_NULL, UTEST_NULL, &size);
@@ -5211,7 +5214,7 @@ JSON_TEST(write_pretty, object_number) {
 }
 
 JSON_TEST(write_pretty, object_object) {
-  struct json_object_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_object_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, UTEST_NULL};
@@ -5231,7 +5234,7 @@ JSON_TEST(write_pretty, object_object) {
 }
 
 JSON_TEST(write_pretty, object_array) {
-  struct json_array_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_array_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_string_s sub_string = {"sub", strlen("sub")};
   struct json_object_element_s element = {&sub_string, &sub_value, UTEST_NULL};
@@ -5308,7 +5311,7 @@ JSON_TEST(write_pretty, object_null) {
 }
 
 JSON_TEST(write_pretty, array_empty) {
-  struct json_array_s array = {UTEST_NULL, UTEST_NULL};
+  struct json_array_s array = {UTEST_NULL, 0};
   struct json_value_s value = {&array, json_type_array};
   size_t size = 0;
   void *pretty = json_write_pretty(&value, UTEST_NULL, UTEST_NULL, &size);
@@ -5359,7 +5362,7 @@ JSON_TEST(write_pretty, array_number) {
 }
 
 JSON_TEST(write_pretty, array_object) {
-  struct json_object_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_object_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_object};
   struct json_array_element_s element = {&sub_value, UTEST_NULL};
   struct json_array_s object = {&element, 1};
@@ -5378,7 +5381,7 @@ JSON_TEST(write_pretty, array_object) {
 }
 
 JSON_TEST(write_pretty, array_array) {
-  struct json_array_s sub = {UTEST_NULL, UTEST_NULL};
+  struct json_array_s sub = {UTEST_NULL, 0};
   struct json_value_s sub_value = {&sub, json_type_array};
   struct json_array_element_s element = {&sub_value, UTEST_NULL};
   struct json_array_s object = {&element, 1};
@@ -35996,4 +35999,6 @@ JSON_TEST(JSONTestSuiteTests, all) {
 
 #if defined(__clang__)
 #pragma clang diagnostic pop
+#elif defined(__GNUC__)
+#pragma GCC diagnostic pop
 #endif
