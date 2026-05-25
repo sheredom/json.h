@@ -47,6 +47,17 @@
 #elif defined(__GNUC__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wsign-compare"
+#elif defined(_MSC_VER)
+#pragma warning(push, 1)
+
+/* default constructor was implicitly defined as deleted */
+#pragma warning(disable : 4623)
+
+/* assignment operator was implicitly defined as deleted */
+#pragma warning(disable : 4626)
+
+/* move assignment operator was implicitly defined as deleted */
+#pragma warning(disable : 5027)
 #endif
 
 #ifndef JSON_SUITE
@@ -1163,8 +1174,8 @@ JSON_TEST(allow_hexadecimal_numbers, bad_hexadecimal_char) {
 JSON_TEST(allow_hexadecimal_numbers, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : 0x0123456789}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(10u, result.error_offset);
@@ -1422,8 +1433,8 @@ JSON_TEST(allow_inf_and_nan, NaNWithLeadingSign) {
 JSON_TEST(allow_inf_and_nan, forgot_to_specify_flag_Infinity) {
   const char payload[] = "{\"foo\" : Infinity}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_value, result.error);
   ASSERT_EQ(9u, result.error_offset);
@@ -1831,8 +1842,8 @@ JSON_TEST(allow_leading_or_trailing_decimal_point,
           forgot_to_specify_flag_leading) {
   const char payload[] = "{\"foo\" : .0}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(9u, result.error_offset);
@@ -1844,8 +1855,8 @@ JSON_TEST(allow_leading_or_trailing_decimal_point,
           forgot_to_specify_flag_trailing) {
   const char payload[] = "{\"foo\" : 0.}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(11u, result.error_offset);
@@ -2009,8 +2020,8 @@ JSON_TEST(allow_leading_plus_sign, lowercase_x_all_possible_digits) {
 JSON_TEST(allow_leading_plus_sign, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : +0}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
   ASSERT_EQ(9u, result.error_offset);
@@ -2301,8 +2312,8 @@ JSON_TEST(allow_multi_line_strings, old_macosx_line_endings) {
 JSON_TEST(allow_multi_line_strings, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : \"Hello, \nWorld!\"}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_string_escape_sequence, result.error);
   ASSERT_EQ(17u, result.error_offset);
@@ -2868,8 +2879,8 @@ JSON_TEST(allow_single_quoted_strings, single_quote_in_string) {
 JSON_TEST(allow_single_quoted_strings, forgot_to_specify_flag) {
   const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
   struct json_parse_result_s result;
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
   ASSERT_FALSE(value);
   ASSERT_EQ(json_parse_error_invalid_string, result.error);
   ASSERT_EQ(1u, result.error_offset);
@@ -4211,8 +4222,8 @@ JSON_TEST(object, missing_closing_bracket) {
 
   struct json_parse_result_s result;
 
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
 
   ASSERT_FALSE(value);
 
@@ -4227,8 +4238,8 @@ JSON_TEST(array, missing_closing_bracket) {
 
   struct json_parse_result_s result;
 
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), 0, UTEST_NULL, UTEST_NULL, &result);
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
 
   ASSERT_FALSE(value);
 
@@ -36004,4 +36015,6 @@ JSON_TEST(JSONTestSuiteTests, all) {
 #pragma clang diagnostic pop
 #elif defined(__GNUC__)
 #pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
 #endif
