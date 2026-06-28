@@ -3533,6 +3533,131 @@ JSON_TEST(extract, all) {
   free(extract);
 }
 
+JSON_TEST(extract, empty_object_write_minified) {
+  const char payload[] = "{}";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_value_s *extract = UTEST_NULL;
+  struct json_object_s *object = UTEST_NULL;
+  size_t size = 0;
+  void *json = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+
+  extract = json_extract_value(value);
+  ASSERT_TRUE(extract);
+
+  object = json_value_as_object(extract);
+  ASSERT_TRUE(object);
+  ASSERT_EQ(0u, object->length);
+  ASSERT_FALSE(object->start);
+
+  json = json_write_minified(extract, &size);
+  ASSERT_TRUE(json);
+  ASSERT_EQ(strlen(payload) + 1, size);
+  ASSERT_STREQ(payload, UTEST_CAST(char *, json));
+
+  free(json);
+  free(extract);
+  free(value);
+}
+
+JSON_TEST(extract, empty_array_write_minified) {
+  const char payload[] = "[]";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_value_s *extract = UTEST_NULL;
+  struct json_array_s *array = UTEST_NULL;
+  size_t size = 0;
+  void *json = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+
+  extract = json_extract_value(value);
+  ASSERT_TRUE(extract);
+
+  array = json_value_as_array(extract);
+  ASSERT_TRUE(array);
+  ASSERT_EQ(0u, array->length);
+  ASSERT_FALSE(array->start);
+
+  json = json_write_minified(extract, &size);
+  ASSERT_TRUE(json);
+  ASSERT_EQ(strlen(payload) + 1, size);
+  ASSERT_STREQ(payload, UTEST_CAST(char *, json));
+
+  free(json);
+  free(extract);
+  free(value);
+}
+
+JSON_TEST(extract, nested_empty_array_write_minified) {
+  const char payload[] = "[[]]";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_value_s *extract = UTEST_NULL;
+  struct json_array_s *array = UTEST_NULL;
+  struct json_array_s *nested_array = UTEST_NULL;
+  size_t size = 0;
+  void *json = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+
+  extract = json_extract_value(value);
+  ASSERT_TRUE(extract);
+
+  array = json_value_as_array(extract);
+  ASSERT_TRUE(array);
+  ASSERT_EQ(1u, array->length);
+  ASSERT_TRUE(array->start);
+
+  nested_array = json_value_as_array(array->start->value);
+  ASSERT_TRUE(nested_array);
+  ASSERT_EQ(0u, nested_array->length);
+  ASSERT_FALSE(nested_array->start);
+
+  json = json_write_minified(extract, &size);
+  ASSERT_TRUE(json);
+  ASSERT_EQ(strlen(payload) + 1, size);
+  ASSERT_STREQ(payload, UTEST_CAST(char *, json));
+
+  free(json);
+  free(extract);
+  free(value);
+}
+
+JSON_TEST(extract, nested_empty_object_write_minified) {
+  const char payload[] = "{\"a\":{}}";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_value_s *extract = UTEST_NULL;
+  struct json_object_s *object = UTEST_NULL;
+  struct json_object_s *nested_object = UTEST_NULL;
+  size_t size = 0;
+  void *json = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+
+  extract = json_extract_value(value);
+  ASSERT_TRUE(extract);
+
+  object = json_value_as_object(extract);
+  ASSERT_TRUE(object);
+  ASSERT_EQ(1u, object->length);
+  ASSERT_TRUE(object->start);
+  ASSERT_STREQ("a", object->start->name->string);
+
+  nested_object = json_value_as_object(object->start->value);
+  ASSERT_TRUE(nested_object);
+  ASSERT_EQ(0u, nested_object->length);
+  ASSERT_FALSE(nested_object->start);
+
+  json = json_write_minified(extract, &size);
+  ASSERT_TRUE(json);
+  ASSERT_EQ(strlen(payload) + 1, size);
+  ASSERT_STREQ(payload, UTEST_CAST(char *, json));
+
+  free(json);
+  free(extract);
+  free(value);
+}
+
 JSON_TEST(object, empty) {
   const char payload[] = "{}";
   struct json_value_s *value = json_parse(payload, strlen(payload));
