@@ -2383,7 +2383,11 @@ void json_extract_copy_value(struct json_extract_state_s *const state,
     state->dom += sizeof(struct json_object_s);
 
     element = object->start;
-    object->start = (struct json_object_element_s *)state->dom;
+    object->start = json_null;
+
+    if (0 < object->length) {
+      object->start = (struct json_object_element_s *)state->dom;
+    }
 
     for (i = 0; i < object->length; i++) {
       struct json_value_s *previous_value;
@@ -2423,7 +2427,11 @@ void json_extract_copy_value(struct json_extract_state_s *const state,
     state->dom += sizeof(struct json_array_s);
 
     element = array->start;
-    array->start = (struct json_array_element_s *)state->dom;
+    array->start = json_null;
+
+    if (0 < array->length) {
+      array->start = (struct json_array_element_s *)state->dom;
+    }
 
     for (i = 0; i < array->length; i++) {
       struct json_value_s *previous_value;
