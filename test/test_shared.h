@@ -42,6 +42,10 @@
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 #pragma clang diagnostic ignored "-Wsign-compare"
 
+#if __has_warning("-Wglobal-constructors")
+#pragma clang diagnostic ignored "-Wglobal-constructors"
+#endif
+
 #if __has_warning("-Wunsafe-buffer-usage-in-libc-call")
 #pragma clang diagnostic ignored "-Wunsafe-buffer-usage-in-libc-call"
 #endif
