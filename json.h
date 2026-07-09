@@ -1921,7 +1921,7 @@ void json_parse_number(struct json_parse_state_s *state,
   number->number = data;
 
   if (json_parse_flags_allow_hexadecimal_numbers & flags_bitset) {
-    if (('0' == src[offset]) &&
+    if ((offset + 1 < size) && ('0' == src[offset]) &&
         (('x' == src[offset + 1]) || ('X' == src[offset + 1]))) {
       /* consume hexadecimal digits. */
       while ((offset < size) &&
