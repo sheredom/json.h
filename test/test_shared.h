@@ -1163,6 +1163,33 @@ JSON_TEST(allow_hexadecimal_numbers, uppercase_x_all_possible_digits) {
   free(value);
 }
 
+JSON_TEST(allow_hexadecimal_numbers, zero_json5) {
+  unsigned char *payload = UTEST_PTR_CAST(unsigned char *, malloc(1));
+  const size_t flags = json_parse_flags_allow_hexadecimal_numbers |
+                       json_parse_flags_allow_json5;
+  struct json_value_s *value = UTEST_NULL;
+  struct json_number_s *number = UTEST_NULL;
+
+  ASSERT_TRUE(payload);
+
+  payload[0] = '0';
+
+  value = json_parse_ex(payload, 1, flags, UTEST_NULL, UTEST_NULL, UTEST_NULL);
+
+  ASSERT_TRUE(value);
+  ASSERT_TRUE(value->payload);
+  ASSERT_EQ(json_type_number, value->type);
+
+  number = UTEST_PTR_CAST(struct json_number_s *, value->payload);
+
+  ASSERT_TRUE(number->number);
+  ASSERT_STREQ("0", number->number);
+  ASSERT_EQ(1u, number->number_size);
+
+  free(value);
+  free(payload);
+}
+
 JSON_TEST(allow_hexadecimal_numbers, bad_hexadecimal_char) {
   const char payload[] = "{\"foo\" : 0xA012aBbDEF8976cCdef453g}";
   struct json_parse_result_s result;
