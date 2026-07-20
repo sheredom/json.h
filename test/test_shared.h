@@ -1462,6 +1462,34 @@ JSON_TEST(allow_inf_and_nan, NaNWithLeadingSign) {
   free(value);
 }
 
+JSON_TEST(allow_inf_and_nan, rejects_NaN_decimal_continuation) {
+  const char payload[] = "{\"key\":NaN.1}";
+  struct json_parse_result_s result;
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), json_parse_flags_allow_json5,
+                    UTEST_NULL, UTEST_NULL, &result);
+
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  ASSERT_EQ(10u, result.error_offset);
+  ASSERT_EQ(1u, result.error_line_no);
+  ASSERT_EQ(10u, result.error_row_no);
+}
+
+JSON_TEST(allow_inf_and_nan, rejects_Infinity_decimal_continuation) {
+  const char payload[] = "{\"key\":Infinity.1}";
+  struct json_parse_result_s result;
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), json_parse_flags_allow_json5,
+                    UTEST_NULL, UTEST_NULL, &result);
+
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  ASSERT_EQ(15u, result.error_offset);
+  ASSERT_EQ(1u, result.error_line_no);
+  ASSERT_EQ(15u, result.error_row_no);
+}
+
 JSON_TEST(allow_inf_and_nan, forgot_to_specify_flag_Infinity) {
   const char payload[] = "{\"foo\" : Infinity}";
   struct json_parse_result_s result;
