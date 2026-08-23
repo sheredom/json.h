@@ -182,6 +182,18 @@ json_extract_value_ex(const struct json_value_s *value,
 json_weak void *json_write_minified(const struct json_value_s *value,
                                     size_t *out_size);
 
+/* Write out a minified JSON utf-8 string using custom allocation callbacks.
+ * json_write_minified_ex performs 1 call to alloc_func_ptr for the entire
+ * encoding. If the encoding fails after allocation, free_func_ptr is called.
+ * If alloc_func_ptr or free_func_ptr is null then malloc or free is used,
+ * respectively. user_data is passed as the first argument to either callback.
+ * The out_size parameter is optional as the utf-8 string is null terminated. */
+json_weak void *
+json_write_minified_ex(const struct json_value_s *value,
+                       void *(*alloc_func_ptr)(void *user_data, size_t size),
+                       void (*free_func_ptr)(void *user_data, void *ptr),
+                       void *user_data, size_t *out_size);
+
 /* Write out a pretty JSON utf-8 string. This string is encoded such that the
  * resultant JSON is pretty in that it is easily human readable. The indent and
  * newline parameters allow a user to specify what kind of indentation and
@@ -194,6 +206,20 @@ json_weak void *json_write_minified(const struct json_value_s *value,
 json_weak void *json_write_pretty(const struct json_value_s *value,
                                   const char *indent, const char *newline,
                                   size_t *out_size);
+
+/* Write out a pretty JSON utf-8 string using custom allocation callbacks.
+ * The indent and newline parameters behave as in json_write_pretty.
+ * json_write_pretty_ex performs 1 call to alloc_func_ptr for the entire
+ * encoding. If the encoding fails after allocation, free_func_ptr is called.
+ * If alloc_func_ptr or free_func_ptr is null then malloc or free is used,
+ * respectively. user_data is passed as the first argument to either callback.
+ * The out_size parameter is optional as the utf-8 string is null terminated. */
+json_weak void *
+json_write_pretty_ex(const struct json_value_s *value, const char *indent,
+                     const char *newline,
+                     void *(*alloc_func_ptr)(void *user_data, size_t size),
+                     void (*free_func_ptr)(void *user_data, void *ptr),
+                     void *user_data, size_t *out_size);
 
 /* Reinterpret a JSON value as a string. Returns null is the value was not a
  * string. */
@@ -3087,6 +3113,15 @@ char *json_write_minified_value(const struct json_value_s *value, char *data) {
 }
 
 void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
+  return json_write_minified_ex(value, json_null, json_null, json_null,
+                                out_size);
+}
+
+void *json_write_minified_ex(const struct json_value_s *value,
+                             void *(*alloc_func_ptr)(void *user_data,
+                                                     size_t size),
+                             void (*free_func_ptr)(void *user_data, void *ptr),
+                             void *user_data, size_t *out_size) {
   size_t size = 0;
   char *data = json_null;
   char *data_end = json_null;
@@ -3102,10 +3137,14 @@ void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
 
   size += 1; /* for the '\0' null terminating character. */
 
-  data = (char *)malloc(size);
+  if (json_null == alloc_func_ptr) {
+    data = (char *)malloc(size);
+  } else {
+    data = (char *)alloc_func_ptr(user_data, size);
+  }
 
   if (json_null == data) {
-    /* malloc failed! */
+    /* allocation failed! */
     return json_null;
   }
 
@@ -3113,7 +3152,11 @@ void *json_write_minified(const struct json_value_s *value, size_t *out_size) {
 
   if (json_null == data_end) {
     /* bad chi occurred! */
-    free(data);
+    if (json_null == free_func_ptr) {
+      free(data);
+    } else {
+      free_func_ptr(user_data, data);
+    }
     return json_null;
   }
 
@@ -3430,6 +3473,16 @@ char *json_write_pretty_value(const struct json_value_s *value, size_t depth,
 
 void *json_write_pretty(const struct json_value_s *value, const char *indent,
                         const char *newline, size_t *out_size) {
+  return json_write_pretty_ex(value, indent, newline, json_null, json_null,
+                              json_null, out_size);
+}
+
+void *json_write_pretty_ex(const struct json_value_s *value, const char *indent,
+                           const char *newline,
+                           void *(*alloc_func_ptr)(void *user_data,
+                                                   size_t size),
+                           void (*free_func_ptr)(void *user_data, void *ptr),
+                           void *user_data, size_t *out_size) {
   size_t size = 0;
   size_t indent_size = 0;
   size_t newline_size = 0;
@@ -3464,10 +3517,14 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
 
   size += 1; /* for the '\0' null terminating character. */
 
-  data = (char *)malloc(size);
+  if (json_null == alloc_func_ptr) {
+    data = (char *)malloc(size);
+  } else {
+    data = (char *)alloc_func_ptr(user_data, size);
+  }
 
   if (json_null == data) {
-    /* malloc failed! */
+    /* allocation failed! */
     return json_null;
   }
 
@@ -3475,7 +3532,11 @@ void *json_write_pretty(const struct json_value_s *value, const char *indent,
 
   if (json_null == data_end) {
     /* bad chi occurred! */
-    free(data);
+    if (json_null == free_func_ptr) {
+      free(data);
+    } else {
+      free_func_ptr(user_data, data);
+    }
     return json_null;
   }
 
