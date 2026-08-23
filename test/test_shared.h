@@ -109,6 +109,34 @@ static void *json_test_allocator_user_data(void *user_data, size_t size) {
   return user_data;
 }
 
+struct json_test_write_allocator_s {
+  struct json_value_s *value;
+  size_t allocations;
+  size_t frees;
+  size_t invalidate_value;
+};
+
+static void *json_test_write_allocator_alloc(void *user_data, size_t size) {
+  struct json_test_write_allocator_s *state =
+      UTEST_PTR_CAST(struct json_test_write_allocator_s *, user_data);
+  void *allocation = malloc(size);
+
+  ++state->allocations;
+  if (state->invalidate_value) {
+    state->value->type = UTEST_CAST(size_t, -1);
+  }
+
+  return allocation;
+}
+
+static void json_test_write_allocator_free(void *user_data, void *ptr) {
+  struct json_test_write_allocator_s *state =
+      UTEST_PTR_CAST(struct json_test_write_allocator_s *, user_data);
+
+  ++state->frees;
+  free(ptr);
+}
+
 JSON_TEST(allocator, malloc) {
 
   const char payload[] = "{}";
@@ -177,6 +205,76 @@ JSON_TEST(allocator, user_data) {
 
   ASSERT_FALSE(object->start);
   ASSERT_EQ(0u, object->length);
+}
+
+JSON_TEST(allocator, write_minified) {
+  struct json_value_s value;
+  struct json_test_write_allocator_s state;
+  void *json;
+  size_t size = 0;
+
+  value.payload = UTEST_NULL;
+  value.type = json_type_null;
+  state.value = &value;
+  state.allocations = 0;
+  state.frees = 0;
+  state.invalidate_value = 0;
+
+  json = json_write_minified_ex(&value, &json_test_write_allocator_alloc,
+                                &json_test_write_allocator_free, &state, &size);
+
+  ASSERT_TRUE(json);
+  ASSERT_STREQ("null", UTEST_CAST(char *, json));
+  ASSERT_EQ(5u, size);
+  ASSERT_EQ(1u, state.allocations);
+  ASSERT_EQ(0u, state.frees);
+
+  json_test_write_allocator_free(&state, json);
+
+  value.type = json_type_null;
+  state.invalidate_value = 1;
+  json = json_write_minified_ex(&value, &json_test_write_allocator_alloc,
+                                &json_test_write_allocator_free, &state, &size);
+
+  ASSERT_FALSE(json);
+  ASSERT_EQ(2u, state.allocations);
+  ASSERT_EQ(2u, state.frees);
+}
+
+JSON_TEST(allocator, write_pretty) {
+  struct json_value_s value;
+  struct json_test_write_allocator_s state;
+  void *json;
+  size_t size = 0;
+
+  value.payload = UTEST_NULL;
+  value.type = json_type_null;
+  state.value = &value;
+  state.allocations = 0;
+  state.frees = 0;
+  state.invalidate_value = 0;
+
+  json = json_write_pretty_ex(&value, UTEST_NULL, UTEST_NULL,
+                              &json_test_write_allocator_alloc,
+                              &json_test_write_allocator_free, &state, &size);
+
+  ASSERT_TRUE(json);
+  ASSERT_STREQ("null", UTEST_CAST(char *, json));
+  ASSERT_EQ(5u, size);
+  ASSERT_EQ(1u, state.allocations);
+  ASSERT_EQ(0u, state.frees);
+
+  json_test_write_allocator_free(&state, json);
+
+  value.type = json_type_null;
+  state.invalidate_value = 1;
+  json = json_write_pretty_ex(&value, UTEST_NULL, UTEST_NULL,
+                              &json_test_write_allocator_alloc,
+                              &json_test_write_allocator_free, &state, &size);
+
+  ASSERT_FALSE(json);
+  ASSERT_EQ(2u, state.allocations);
+  ASSERT_EQ(2u, state.frees);
 }
 
 JSON_TEST(allow_c_style_comments, single_line) {
