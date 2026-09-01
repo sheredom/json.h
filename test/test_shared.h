@@ -3690,6 +3690,28 @@ JSON_TEST(extract, all) {
   free(extract);
 }
 
+JSON_TEST(extract, number_is_null_terminated) {
+  const char payload[] = "123";
+  struct json_value_s *value = json_parse(payload, strlen(payload));
+  struct json_value_s *extract = UTEST_NULL;
+  struct json_number_s *number = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+
+  extract = json_extract_value(value);
+  free(value);
+
+  ASSERT_TRUE(extract);
+
+  number = json_value_as_number(extract);
+  ASSERT_TRUE(number);
+  ASSERT_EQ(strlen("123"), number->number_size);
+  ASSERT_EQ('\0', number->number[number->number_size]);
+  ASSERT_STREQ("123", number->number);
+
+  free(extract);
+}
+
 JSON_TEST(extract, empty_object_write_minified) {
   const char payload[] = "{}";
   struct json_value_s *value = json_parse(payload, strlen(payload));
