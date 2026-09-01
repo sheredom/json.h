@@ -2253,7 +2253,8 @@ struct json_extract_result_s
 json_extract_get_number_size(const struct json_number_s *const number) {
   struct json_extract_result_s result;
   result.dom_size = sizeof(struct json_number_s);
-  result.data_size = number->number_size;
+  /* one more byte for the null terminator the parser guarantees */
+  result.data_size = number->number_size + 1;
   return result;
 }
 
@@ -2380,8 +2381,9 @@ void json_extract_copy_value(struct json_extract_state_s *const state,
     state->dom += sizeof(struct json_number_s);
 
     memcpy(state->data, number->number, number->number_size);
+    state->data[number->number_size] = '\0';
     number->number = state->data;
-    state->data += number->number_size;
+    state->data += number->number_size + 1;
   } else if (json_type_object == value->type) {
     struct json_object_element_s *element;
     size_t i;
