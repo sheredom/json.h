@@ -2685,7 +2685,8 @@ int json_write_get_string_size(const struct json_string_s *string,
       *size += 2;
       break;
     default:
-      *size += 1;
+      /* Other control characters require a six-byte Unicode escape. */
+      *size += ((unsigned char)string->string[i] < 0x20) ? 6 : 1;
       break;
     }
   }
@@ -2971,6 +2972,7 @@ json_weak char *json_write_string(const struct json_string_s *string,
                                   char *data);
 char *json_write_string(const struct json_string_s *string, char *data) {
   size_t i;
+  const char *const hexadecimal = "0123456789abcdef";
 
   *data++ = '"'; /* open the string. */
 
@@ -3005,7 +3007,17 @@ char *json_write_string(const struct json_string_s *string, char *data) {
       *data++ = 't';
       break;
     default:
-      *data++ = string->string[i];
+      if ((unsigned char)string->string[i] < 0x20) {
+        const unsigned char c = (unsigned char)string->string[i];
+        *data++ = '\\';
+        *data++ = 'u';
+        *data++ = '0';
+        *data++ = '0';
+        *data++ = hexadecimal[c >> 4];
+        *data++ = hexadecimal[c & 0xf];
+      } else {
+        *data++ = string->string[i];
+      }
       break;
     }
   }
