@@ -137,6 +137,116 @@ static void json_test_write_allocator_free(void *user_data, void *ptr) {
   free(ptr);
 }
 
+#define JSON_TEST_CONTROL_INPUT                                                \
+  "A\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007"                \
+  "\\u0008\\u0009\\u000a\\u000b\\u000c\\u000d\\u000e\\u000f"                 \
+  "\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017"                 \
+  "\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001fB"
+#define JSON_TEST_CONTROL_OUTPUT                                               \
+  "A\\u0000\\u0001\\u0002\\u0003\\u0004\\u0005\\u0006\\u0007"                \
+  "\\b\\t\\n\\u000b\\f\\r\\u000e\\u000f"                                    \
+  "\\u0010\\u0011\\u0012\\u0013\\u0014\\u0015\\u0016\\u0017"                 \
+  "\\u0018\\u0019\\u001a\\u001b\\u001c\\u001d\\u001e\\u001fB"
+
+JSON_TEST(write, control_characters) {
+  const char payload[] = "\"" JSON_TEST_CONTROL_INPUT "\"";
+  const char expected[] = "\"" JSON_TEST_CONTROL_OUTPUT "\"";
+  struct json_value_s *value = json_parse(payload, sizeof(payload) - 1);
+  struct json_string_s *string;
+  size_t pretty;
+
+  ASSERT_TRUE(value);
+  string = json_value_as_string(value);
+  ASSERT_TRUE(string);
+  ASSERT_EQ(34u, string->string_size);
+
+  for (pretty = 0; pretty < 2; pretty++) {
+    size_t size = 0;
+    char *output = UTEST_CAST(char *, pretty
+        ? json_write_pretty(value, "  ", "\n", &size)
+        : json_write_minified(value, &size));
+    struct json_value_s *roundtrip;
+    struct json_string_s *restored;
+
+    ASSERT_TRUE(output);
+    EXPECT_EQ(sizeof(expected), size);
+    EXPECT_STREQ(expected, output);
+    EXPECT_EQ(size, strlen(output) + 1);
+    roundtrip = json_parse(output, size - 1);
+    ASSERT_TRUE(roundtrip);
+    restored = json_value_as_string(roundtrip);
+    ASSERT_TRUE(restored);
+    ASSERT_EQ(string->string_size, restored->string_size);
+    EXPECT_EQ(0, memcmp(string->string, restored->string, string->string_size));
+    free(roundtrip);
+    free(output);
+  }
+  free(value);
+}
+
+JSON_TEST(write, control_characters_in_object_keys) {
+  const char payload[] = "{\"" JSON_TEST_CONTROL_INPUT "\":\""
+                         JSON_TEST_CONTROL_INPUT "\"}";
+  const char *const expected[] = {
+      "{\"" JSON_TEST_CONTROL_OUTPUT "\":\"" JSON_TEST_CONTROL_OUTPUT "\"}",
+      "{\n  \"" JSON_TEST_CONTROL_OUTPUT "\" : \""
+      JSON_TEST_CONTROL_OUTPUT "\"\n}"};
+  struct json_value_s *value = json_parse(payload, sizeof(payload) - 1);
+  size_t pretty;
+
+  ASSERT_TRUE(value);
+  for (pretty = 0; pretty < 2; pretty++) {
+    size_t size = 0;
+    char *output = UTEST_CAST(char *, pretty
+        ? json_write_pretty(value, "  ", "\n", &size)
+        : json_write_minified(value, &size));
+    struct json_value_s *roundtrip;
+    struct json_object_s *object;
+    struct json_string_s *string;
+
+    ASSERT_TRUE(output);
+    EXPECT_EQ(strlen(expected[pretty]) + 1, size);
+    EXPECT_STREQ(expected[pretty], output);
+    EXPECT_EQ(size, strlen(output) + 1);
+    roundtrip = json_parse(output, size - 1);
+    ASSERT_TRUE(roundtrip);
+    object = json_value_as_object(roundtrip);
+    ASSERT_TRUE(object);
+    ASSERT_EQ(1u, object->length);
+    ASSERT_EQ(34u, object->start->name->string_size);
+    string = json_value_as_string(object->start->value);
+    ASSERT_TRUE(string);
+    ASSERT_EQ(34u, string->string_size);
+    EXPECT_EQ(0, memcmp(object->start->name->string, string->string, 34));
+    free(roundtrip);
+    free(output);
+  }
+  free(value);
+}
+
+JSON_TEST(write, control_characters_preserve_utf8_and_short_escapes) {
+  const char payload[] = "\" \x7f\xc3\xa9\xf0\x9f\x92\xa1"
+                         "\\u0000\\\"\\\\\\b\\f\\n\\r\\t\"";
+  struct json_value_s *value = json_parse(payload, sizeof(payload) - 1);
+  size_t pretty;
+
+  ASSERT_TRUE(value);
+  for (pretty = 0; pretty < 2; pretty++) {
+    size_t size = 0;
+    char *output = UTEST_CAST(char *, pretty
+        ? json_write_pretty(value, "  ", "\n", &size)
+        : json_write_minified(value, &size));
+    ASSERT_TRUE(output);
+    EXPECT_EQ(sizeof(payload), size);
+    EXPECT_STREQ(payload, output);
+    free(output);
+  }
+  free(value);
+}
+
+#undef JSON_TEST_CONTROL_INPUT
+#undef JSON_TEST_CONTROL_OUTPUT
+
 JSON_TEST(allocator, malloc) {
 
   const char payload[] = "{}";
