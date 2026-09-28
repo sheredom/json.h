@@ -1698,6 +1698,51 @@ JSON_TEST(allow_inf_and_nan, rejects_Infinity_decimal_continuation) {
   ASSERT_EQ(15u, result.error_row_no);
 }
 
+JSON_TEST(allow_inf_and_nan, Infinity_at_end_of_buffer) {
+  const char payload[] = "-Infinity";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_inf_and_nan, UTEST_NULL,
+      UTEST_NULL, UTEST_NULL);
+  struct json_number_s *number = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+  ASSERT_EQ(json_type_number, value->type);
+
+  number = UTEST_PTR_CAST(struct json_number_s *, value->payload);
+
+  ASSERT_STREQ("-Infinity", number->number);
+  ASSERT_EQ(strlen("-Infinity"), number->number_size);
+
+  free(value);
+}
+
+JSON_TEST(allow_inf_and_nan, NaN_at_end_of_buffer) {
+  const char payload[] = "foo = NaN";
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_simplified_json |
+                        json_parse_flags_allow_inf_and_nan,
+                    UTEST_NULL, UTEST_NULL, UTEST_NULL);
+  struct json_object_s *object = UTEST_NULL;
+  struct json_number_s *number = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+  ASSERT_EQ(json_type_object, value->type);
+
+  object = UTEST_PTR_CAST(struct json_object_s *, value->payload);
+
+  ASSERT_EQ(1u, object->length);
+  ASSERT_EQ(json_type_number, object->start->value->type);
+
+  number =
+      UTEST_PTR_CAST(struct json_number_s *, object->start->value->payload);
+
+  ASSERT_STREQ("NaN", number->number);
+  ASSERT_EQ(strlen("NaN"), number->number_size);
+
+  free(value);
+}
+
 JSON_TEST(allow_inf_and_nan, forgot_to_specify_flag_Infinity) {
   const char payload[] = "{\"foo\" : Infinity}";
   struct json_parse_result_s result;
@@ -4859,6 +4904,14 @@ JSON_TEST(random, nan_overrun) {
   const char payload[6] = {'[', 'N', 'a', 'N', '0', ']'};
   struct json_value_s *const root =
       json_parse_ex(payload, 11, json_parse_flags_allow_inf_and_nan, UTEST_NULL,
+                    UTEST_NULL, UTEST_NULL);
+  ASSERT_FALSE(root);
+}
+
+JSON_TEST(random, truncated_infinity_at_end_of_buffer) {
+  const char payload[8] = {'-', 'I', 'n', 'f', 'i', 'n', 'i', 't'};
+  struct json_value_s *const root =
+      json_parse_ex(payload, 8, json_parse_flags_allow_inf_and_nan, UTEST_NULL,
                     UTEST_NULL, UTEST_NULL);
   ASSERT_FALSE(root);
 }
