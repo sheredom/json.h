@@ -1242,7 +1242,7 @@ int json_get_number_size(struct json_parse_state_s *state) {
       const char nan[4] = "NaN";
       const size_t nan_strlen = sizeof(nan) - 1;
 
-      if (offset + inf_strlen < size) {
+      if (offset + inf_strlen <= size) {
         int found = 1;
         size_t i;
         for (i = 0; i < inf_strlen; i++) {
@@ -1260,7 +1260,7 @@ int json_get_number_size(struct json_parse_state_s *state) {
         }
       }
 
-      if (offset + nan_strlen < size) {
+      if (offset + nan_strlen <= size) {
         int found = 1;
         size_t i;
         for (i = 0; i < nan_strlen; i++) {
@@ -1977,7 +1977,7 @@ void json_parse_number(struct json_parse_state_s *state,
     const size_t inf_strlen = 8; /* = strlen("Infinity");. */
     const size_t nan_strlen = 3; /* = strlen("NaN");. */
 
-    if (offset + inf_strlen < size) {
+    if (offset + inf_strlen <= size) {
       if ('I' == src[offset]) {
         size_t i;
         /* We found our special 'Infinity' keyword! */
@@ -1987,7 +1987,7 @@ void json_parse_number(struct json_parse_state_s *state,
       }
     }
 
-    if (offset + nan_strlen < size) {
+    if (offset + nan_strlen <= size) {
       if ('N' == src[offset]) {
         size_t i;
         /* We found our special 'NaN' keyword! */
