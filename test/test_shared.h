@@ -1398,6 +1398,36 @@ JSON_TEST(allow_hexadecimal_numbers, zero_json5) {
   free(payload);
 }
 
+JSON_TEST(allow_hexadecimal_numbers, signed_json5) {
+  const char payload[] = "[-0x1F, +0x10]";
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), json_parse_flags_allow_json5,
+                    UTEST_NULL, UTEST_NULL, UTEST_NULL);
+  struct json_array_s *array = UTEST_NULL;
+  struct json_number_s *number = UTEST_NULL;
+  void *minified = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+  ASSERT_EQ(json_type_array, value->type);
+
+  array = UTEST_PTR_CAST(struct json_array_s *, value->payload);
+  ASSERT_EQ(2u, array->length);
+
+  number = UTEST_PTR_CAST(struct json_number_s *, array->start->value->payload);
+  ASSERT_STREQ("-0x1F", number->number);
+
+  number = UTEST_PTR_CAST(struct json_number_s *,
+                          array->start->next->value->payload);
+  ASSERT_STREQ("+0x10", number->number);
+
+  minified = json_write_minified(value, UTEST_NULL);
+  ASSERT_TRUE(minified);
+  ASSERT_STREQ("[-31,16]", UTEST_PTR_CAST(const char *, minified));
+
+  free(minified);
+  free(value);
+}
+
 JSON_TEST(allow_hexadecimal_numbers, bad_hexadecimal_char) {
   const char payload[] = "{\"foo\" : 0xA012aBbDEF8976cCdef453g}";
   struct json_parse_result_s result;
