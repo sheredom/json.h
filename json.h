@@ -1207,14 +1207,22 @@ int json_get_number_size(struct json_parse_state_s *state) {
   const size_t size = state->size;
   int had_leading_digits = 0;
   const char *const src = state->src;
+  size_t hex_offset = offset;
 
   state->dom_size += sizeof(struct json_number_s);
 
+  if ((hex_offset < size) &&
+      (('-' == src[hex_offset]) ||
+       ((json_parse_flags_allow_leading_plus_sign & flags_bitset) &&
+        ('+' == src[hex_offset])))) {
+    hex_offset++;
+  }
+
   if ((json_parse_flags_allow_hexadecimal_numbers & flags_bitset) &&
-      (offset + 1 < size) && ('0' == src[offset]) &&
-      (('x' == src[offset + 1]) || ('X' == src[offset + 1]))) {
-    /* skip the leading 0x that identifies a hexadecimal number. */
-    offset += 2;
+      (hex_offset + 1 < size) && ('0' == src[hex_offset]) &&
+      (('x' == src[hex_offset + 1]) || ('X' == src[hex_offset + 1]))) {
+    /* skip the sign and the 0x that identifies a hexadecimal number. */
+    offset = hex_offset + 2;
 
     /* consume hexadecimal digits. */
     while ((offset < size) && (('0' <= src[offset] && src[offset] <= '9') ||
@@ -1929,8 +1937,20 @@ void json_parse_number(struct json_parse_state_s *state,
   number->number = data;
 
   if (json_parse_flags_allow_hexadecimal_numbers & flags_bitset) {
-    if ((offset + 1 < size) && ('0' == src[offset]) &&
-        (('x' == src[offset + 1]) || ('X' == src[offset + 1]))) {
+    size_t hex_offset = offset;
+
+    if ((hex_offset < size) &&
+        (('-' == src[hex_offset]) || ('+' == src[hex_offset]))) {
+      hex_offset++;
+    }
+
+    if ((hex_offset + 1 < size) && ('0' == src[hex_offset]) &&
+        (('x' == src[hex_offset + 1]) || ('X' == src[hex_offset + 1]))) {
+      if (offset < hex_offset) {
+        /* copy the sign. */
+        data[bytes_written++] = src[offset++];
+      }
+
       /* consume hexadecimal digits. */
       while ((offset < size) &&
              (('0' <= src[offset] && src[offset] <= '9') ||
@@ -2550,9 +2570,15 @@ int json_write_get_number_size(const struct json_number_s *number,
                                size_t *size) {
   json_uintmax_t parsed_number;
   size_t i;
+  size_t sign = 0;
 
-  if (number->number_size >= 2) {
-    switch (number->number[1]) {
+  if ((number->number_size >= 1) &&
+      (('-' == number->number[0]) || ('+' == number->number[0]))) {
+    sign = 1;
+  }
+
+  if (number->number_size >= sign + 2) {
+    switch (number->number[sign + 1]) {
     default:
       break;
     case 'x':
@@ -2560,7 +2586,7 @@ int json_write_get_number_size(const struct json_number_s *number,
       /* the number is a json_parse_flags_allow_hexadecimal_numbers hexadecimal
        * so we have to do extra work to convert it to a non-hexadecimal for JSON
        * output. */
-      parsed_number = json_strtoumax(number->number, json_null, 0);
+      parsed_number = json_strtoumax(number->number + sign, json_null, 0);
 
       i = 0;
 
@@ -2568,6 +2594,11 @@ int json_write_get_number_size(const struct json_number_s *number,
         parsed_number /= 10;
         i++;
       } while (0 != parsed_number);
+
+      /* a leading '-' is kept in the JSON output. */
+      if ('-' == number->number[0]) {
+        i++;
+      }
 
       *size += i;
       return 0;
@@ -2790,9 +2821,15 @@ json_weak char *json_write_number(const struct json_number_s *number,
 char *json_write_number(const struct json_number_s *number, char *data) {
   json_uintmax_t parsed_number, backup;
   size_t i;
+  size_t sign = 0;
 
-  if (number->number_size >= 2) {
-    switch (number->number[1]) {
+  if ((number->number_size >= 1) &&
+      (('-' == number->number[0]) || ('+' == number->number[0]))) {
+    sign = 1;
+  }
+
+  if (number->number_size >= sign + 2) {
+    switch (number->number[sign + 1]) {
     default:
       break;
     case 'x':
@@ -2800,7 +2837,12 @@ char *json_write_number(const struct json_number_s *number, char *data) {
       /* The number is a json_parse_flags_allow_hexadecimal_numbers hexadecimal
        * so we have to do extra work to convert it to a non-hexadecimal for JSON
        * output. */
-      parsed_number = json_strtoumax(number->number, json_null, 0);
+      parsed_number = json_strtoumax(number->number + sign, json_null, 0);
+
+      /* a leading '-' is kept in the JSON output. */
+      if ('-' == number->number[0]) {
+        *data++ = '-';
+      }
 
       /* We need a copy of parsed number twice, so take a backup of it. */
       backup = parsed_number;
