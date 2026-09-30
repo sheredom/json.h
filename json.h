@@ -977,7 +977,8 @@ int json_get_object_size(struct json_parse_state_s *state,
   if (is_global_object) {
     /* if we found an opening '{' of an object, we actually have a normal JSON
      * object at the root of the DOM... */
-    if (!json_skip_all_skippables(state) && '{' == state->src[state->offset]) {
+    if (!json_skip_all_skippables(state) && state->offset < size &&
+        '{' == state->src[state->offset]) {
       /* . and we don't actually have a global object after all! */
       is_global_object = 0;
     }
@@ -1711,7 +1712,7 @@ void json_parse_object(struct json_parse_state_s *state, int is_global_object,
     /* if we skipped some whitespace, and then found an opening '{' of an. */
     /* object, we actually have a normal JSON object at the root of the DOM...
      */
-    if ('{' == src[state->offset]) {
+    if (state->offset < size && '{' == src[state->offset]) {
       /* . and we don't actually have a global object after all! */
       is_global_object = 0;
     }
