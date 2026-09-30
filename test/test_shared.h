@@ -906,11 +906,20 @@ JSON_TEST_F(allow_equals_in_object, read_write_minified_read) {
 }
 
 JSON_TEST(allow_global_object, empty) {
-  const char payload[] = "";
-  struct json_value_s *value = json_parse_ex(
-      payload, strlen(payload), json_parse_flags_allow_global_object,
-      UTEST_NULL, UTEST_NULL, UTEST_NULL);
+  void *payload = malloc(0);
+  struct json_value_s *value;
   struct json_object_s *object = UTEST_NULL;
+
+  /* Some implementations return null from malloc(0).  Preserve that case
+   * when available, but use allocated storage so every platform exercises
+   * a non-null input with a zero length. */
+  if (!payload) {
+    payload = malloc(1);
+  }
+  ASSERT_TRUE(payload);
+
+  value = json_parse_ex(payload, 0, json_parse_flags_allow_global_object,
+                        UTEST_NULL, UTEST_NULL, UTEST_NULL);
 
   ASSERT_TRUE(value);
   ASSERT_TRUE(value->payload);
@@ -922,6 +931,7 @@ JSON_TEST(allow_global_object, empty) {
   ASSERT_EQ(0u, object->length);
 
   free(value);
+  free(payload);
 }
 
 JSON_TEST(allow_global_object, string) {
