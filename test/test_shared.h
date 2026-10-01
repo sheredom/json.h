@@ -1441,6 +1441,28 @@ JSON_TEST(allow_hexadecimal_numbers, bad_hexadecimal_char) {
   ASSERT_EQ(33u, result.error_row_no);
 }
 
+JSON_TEST(allow_hexadecimal_numbers, no_hexadecimal_digits) {
+  const char *const payloads[] = {"[0x]", "[-0X]", "[+0x,1]"};
+  size_t i;
+
+  for (i = 0; i < sizeof(payloads) / sizeof(payloads[0]); i++) {
+    struct json_parse_result_s result;
+    struct json_value_s *value = json_parse_ex(payloads[i], strlen(payloads[i]),
+                                               json_parse_flags_allow_json5,
+                                               UTEST_NULL, UTEST_NULL, &result);
+    ASSERT_FALSE(value);
+    ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+  }
+}
+
+JSON_TEST(allow_hexadecimal_numbers, no_hexadecimal_digits_at_end_of_buffer) {
+  const char payload[2] = {'0', 'x'};
+  struct json_value_s *const root =
+      json_parse_ex(payload, 2, json_parse_flags_allow_json5, UTEST_NULL,
+                    UTEST_NULL, UTEST_NULL);
+  ASSERT_FALSE(root);
+}
+
 JSON_TEST(allow_hexadecimal_numbers, forgot_to_specify_flag) {
   const char payload[] = "{\"foo\" : 0x0123456789}";
   struct json_parse_result_s result;
@@ -4942,6 +4964,20 @@ JSON_TEST(random, truncated_infinity_at_end_of_buffer) {
   const char payload[8] = {'-', 'I', 'n', 'f', 'i', 'n', 'i', 't'};
   struct json_value_s *const root =
       json_parse_ex(payload, 8, json_parse_flags_allow_inf_and_nan, UTEST_NULL,
+                    UTEST_NULL, UTEST_NULL);
+  ASSERT_FALSE(root);
+}
+
+JSON_TEST(random, minus_sign_overrun) {
+  const char payload[1] = {'-'};
+  struct json_value_s *const root = json_parse(payload, 1);
+  ASSERT_FALSE(root);
+}
+
+JSON_TEST(random, plus_sign_overrun) {
+  const char payload[1] = {'+'};
+  struct json_value_s *const root =
+      json_parse_ex(payload, 1, json_parse_flags_allow_json5, UTEST_NULL,
                     UTEST_NULL, UTEST_NULL);
   ASSERT_FALSE(root);
 }

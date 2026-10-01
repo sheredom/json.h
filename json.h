@@ -1224,6 +1224,15 @@ int json_get_number_size(struct json_parse_state_s *state) {
     /* skip the sign and the 0x that identifies a hexadecimal number. */
     offset = hex_offset + 2;
 
+    if ((offset >= size) || !(('0' <= src[offset] && src[offset] <= '9') ||
+                              ('a' <= src[offset] && src[offset] <= 'f') ||
+                              ('A' <= src[offset] && src[offset] <= 'F'))) {
+      /* a hexadecimal number must have at least one digit! */
+      state->error = json_parse_error_invalid_number_format;
+      state->offset = offset;
+      return 1;
+    }
+
     /* consume hexadecimal digits. */
     while ((offset < size) && (('0' <= src[offset] && src[offset] <= '9') ||
                                ('a' <= src[offset] && src[offset] <= 'f') ||
@@ -1293,12 +1302,12 @@ int json_get_number_size(struct json_parse_state_s *state) {
       }
     }
 
-    if (found_sign && !inf_or_nan && (offset < size) &&
-        !('0' <= src[offset] && src[offset] <= '9')) {
+    if (found_sign && !inf_or_nan &&
+        ((offset >= size) || !('0' <= src[offset] && src[offset] <= '9'))) {
       /* check if we are allowing leading '.'. */
       if (!(json_parse_flags_allow_leading_or_trailing_decimal_point &
             flags_bitset) ||
-          ('.' != src[offset])) {
+          (offset >= size) || ('.' != src[offset])) {
         /* a leading '-' must be immediately followed by any digit! */
         state->error = json_parse_error_invalid_number_format;
         state->offset = offset;
