@@ -263,13 +263,11 @@ JSON_TEST(parse, raw_control_characters_in_strings) {
                             UTEST_NULL, UTEST_NULL, &result);
       accepted = value != UTEST_NULL;
       free(value);
-      EXPECT_FALSE(accepted);
-      if (!accepted) {
-        EXPECT_EQ(control == '\r' || control == '\n'
-                      ? json_parse_error_invalid_string_escape_sequence
-                      : json_parse_error_invalid_string, result.error);
-        EXPECT_EQ(1u, result.error_offset);
-      }
+      ASSERT_FALSE(accepted);
+      ASSERT_EQ(control == '\r' || control == '\n'
+                    ? json_parse_error_invalid_string_escape_sequence
+                    : json_parse_error_invalid_string, result.error);
+      ASSERT_EQ(1u, result.error_offset);
     }
   }
 }
@@ -290,11 +288,9 @@ JSON_TEST(parse, raw_control_characters_in_object_keys) {
                             UTEST_NULL, UTEST_NULL, &result);
       accepted = value != UTEST_NULL;
       free(value);
-      EXPECT_FALSE(accepted);
-      if (!accepted) {
-        EXPECT_EQ(json_parse_error_invalid_string, result.error);
-        EXPECT_EQ(2u, result.error_offset);
-      }
+      ASSERT_FALSE(accepted);
+      ASSERT_EQ(json_parse_error_invalid_string, result.error);
+      ASSERT_EQ(2u, result.error_offset);
     }
   }
 }
@@ -312,10 +308,12 @@ JSON_TEST(allow_multi_line_strings, only_newline_controls) {
                           UTEST_NULL, UTEST_NULL, &result);
     accepted = value != UTEST_NULL;
     free(value);
-    EXPECT_EQ(control == '\r' || control == '\n', accepted);
-    if (!accepted) {
-      EXPECT_EQ(json_parse_error_invalid_string, result.error);
-      EXPECT_EQ(1u, result.error_offset);
+    if (control == '\r' || control == '\n') {
+      ASSERT_TRUE(accepted);
+    } else {
+      ASSERT_FALSE(accepted);
+      ASSERT_EQ(json_parse_error_invalid_string, result.error);
+      ASSERT_EQ(1u, result.error_offset);
     }
   }
 }
