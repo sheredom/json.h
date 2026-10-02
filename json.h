@@ -759,11 +759,8 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
     /* add space for the character. */
     data_size++;
 
-    switch (src[offset]) {
-    default:
-      break;
-    case '\0':
-    case '\t':
+    if ((unsigned char)src[offset] < 0x20 && src[offset] != '\r' &&
+        src[offset] != '\n') {
       state->error = json_parse_error_invalid_string;
       state->offset = offset;
       return 1;

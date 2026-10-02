@@ -247,6 +247,79 @@ JSON_TEST(write, control_characters_preserve_utf8_and_short_escapes) {
 #undef JSON_TEST_CONTROL_INPUT
 #undef JSON_TEST_CONTROL_OUTPUT
 
+JSON_TEST(parse, raw_control_characters_in_strings) {
+  size_t quote;
+  for (quote = 0; quote < 2; quote++) {
+    char payload[] = "\"x\"";
+    const size_t flags = quote ? json_parse_flags_allow_single_quoted_strings : 0;
+    size_t control;
+    payload[0] = payload[2] = quote ? '\'' : '"';
+    for (control = 0; control < 0x20; control++) {
+      struct json_parse_result_s result;
+      struct json_value_s *value;
+      int accepted;
+      payload[1] = UTEST_CAST(char, control);
+      value = json_parse_ex(payload, sizeof(payload) - 1, flags,
+                            UTEST_NULL, UTEST_NULL, &result);
+      accepted = value != UTEST_NULL;
+      free(value);
+      EXPECT_FALSE(accepted);
+      if (!accepted) {
+        EXPECT_EQ(control == '\r' || control == '\n'
+                      ? json_parse_error_invalid_string_escape_sequence
+                      : json_parse_error_invalid_string, result.error);
+        EXPECT_EQ(1u, result.error_offset);
+      }
+    }
+  }
+}
+
+JSON_TEST(parse, raw_control_characters_in_object_keys) {
+  size_t quote;
+  for (quote = 0; quote < 2; quote++) {
+    char payload[] = "{\"x\":0}";
+    const size_t flags = quote ? json_parse_flags_allow_single_quoted_strings : 0;
+    size_t control;
+    payload[1] = payload[3] = quote ? '\'' : '"';
+    for (control = 0; control < 0x20; control++) {
+      struct json_parse_result_s result;
+      struct json_value_s *value;
+      int accepted;
+      payload[2] = UTEST_CAST(char, control);
+      value = json_parse_ex(payload, sizeof(payload) - 1, flags,
+                            UTEST_NULL, UTEST_NULL, &result);
+      accepted = value != UTEST_NULL;
+      free(value);
+      EXPECT_FALSE(accepted);
+      if (!accepted) {
+        EXPECT_EQ(json_parse_error_invalid_string, result.error);
+        EXPECT_EQ(2u, result.error_offset);
+      }
+    }
+  }
+}
+
+JSON_TEST(allow_multi_line_strings, only_newline_controls) {
+  char payload[] = "\"x\"";
+  size_t control;
+  for (control = 0; control < 0x20; control++) {
+    struct json_parse_result_s result;
+    struct json_value_s *value;
+    int accepted;
+    payload[1] = UTEST_CAST(char, control);
+    value = json_parse_ex(payload, sizeof(payload) - 1,
+                          json_parse_flags_allow_multi_line_strings,
+                          UTEST_NULL, UTEST_NULL, &result);
+    accepted = value != UTEST_NULL;
+    free(value);
+    EXPECT_EQ(control == '\r' || control == '\n', accepted);
+    if (!accepted) {
+      EXPECT_EQ(json_parse_error_invalid_string, result.error);
+      EXPECT_EQ(1u, result.error_offset);
+    }
+  }
+}
+
 JSON_TEST(allocator, malloc) {
 
   const char payload[] = "{}";
