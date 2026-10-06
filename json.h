@@ -639,6 +639,10 @@ int json_skip_c_style_comments(struct json_parse_state_s *state) {
       /* we reached the end of the JSON file! */
       return 1;
     } else if ('*' == state->src[state->offset + 1]) {
+      const size_t start = state->offset;
+      const size_t line_no = state->line_no;
+      const size_t line_offset = state->line_offset;
+
       /* we had a comment in the C-style long form */
 
       /* skip '/' */
@@ -663,8 +667,12 @@ int json_skip_c_style_comments(struct json_parse_state_s *state) {
         state->offset++;
       }
 
-      /* comment wasn't ended correctly which is a failure */
-      return 1;
+      /* comment wasn't ended correctly, so leave the '/' for the caller to
+       * reject */
+      state->offset = start;
+      state->line_no = line_no;
+      state->line_offset = line_offset;
+      return 0;
     }
   }
 

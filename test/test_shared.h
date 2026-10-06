@@ -603,6 +603,38 @@ JSON_TEST(allow_c_style_comments, after_number_without_flag) {
   ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
 }
 
+JSON_TEST(allow_c_style_comments, unterminated) {
+  const char *const payloads[] = {"[1/* ]", "{\"a\" : 1/*}", "[1] /*"};
+  const size_t errors[] = {
+      json_parse_error_expected_comma_or_closing_bracket,
+      json_parse_error_expected_comma_or_closing_bracket,
+      json_parse_error_unexpected_trailing_characters};
+  struct json_parse_result_s result;
+  size_t i;
+
+  for (i = 0; i < sizeof(payloads) / sizeof(payloads[0]); i++) {
+    struct json_value_s *value = json_parse_ex(
+        payloads[i], strlen(payloads[i]),
+        json_parse_flags_allow_c_style_comments, UTEST_NULL, UTEST_NULL,
+        &result);
+    ASSERT_FALSE(value);
+    ASSERT_EQ(errors[i], result.error);
+  }
+}
+
+JSON_TEST(allow_c_style_comments, unterminated_line_no) {
+  const char payload[] = "[1,\n2/*\n]";
+  struct json_parse_result_s result;
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload),
+                    json_parse_flags_allow_c_style_comments, UTEST_NULL,
+                    UTEST_NULL, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_expected_comma_or_closing_bracket, result.error);
+  ASSERT_EQ(2u, result.error_line_no);
+  ASSERT_EQ(5u, result.error_offset);
+}
+
 struct JSON_FIXTURE(allow_c_style_comments) {
   struct json_value_s *value;
 };
