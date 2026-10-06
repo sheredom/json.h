@@ -1401,6 +1401,14 @@ number_parsed:
       state->error = json_parse_error_invalid_number_format;
       state->offset = offset;
       return 1;
+    case '/':
+      if (json_parse_flags_allow_c_style_comments & flags_bitset) {
+        break;
+      }
+
+      state->error = json_parse_error_invalid_number_format;
+      state->offset = offset;
+      return 1;
     default:
       state->error = json_parse_error_invalid_number_format;
       state->offset = offset;

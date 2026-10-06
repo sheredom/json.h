@@ -565,6 +565,44 @@ JSON_TEST(allow_c_style_comments, multiple) {
   free(value);
 }
 
+JSON_TEST(allow_c_style_comments, after_number) {
+  const char payload[] = "[-1.5e3/* a */,2// b\n]";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_c_style_comments,
+      UTEST_NULL, UTEST_NULL, UTEST_NULL);
+  struct json_array_s *array = UTEST_NULL;
+  struct json_number_s *number = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+  ASSERT_EQ(json_type_array, value->type);
+
+  array = UTEST_PTR_CAST(struct json_array_s *, value->payload);
+
+  ASSERT_EQ(2u, array->length);
+
+  number = json_value_as_number(array->start->value);
+  ASSERT_TRUE(number);
+  ASSERT_STREQ("-1.5e3", number->number);
+  ASSERT_EQ(strlen("-1.5e3"), number->number_size);
+
+  number = json_value_as_number(array->start->next->value);
+  ASSERT_TRUE(number);
+  ASSERT_STREQ("2", number->number);
+  ASSERT_EQ(strlen("2"), number->number_size);
+
+  free(value);
+}
+
+JSON_TEST(allow_c_style_comments, after_number_without_flag) {
+  const char payload[] = "[1/* a */,2]";
+  struct json_parse_result_s result;
+  struct json_value_s *value =
+      json_parse_ex(payload, strlen(payload), json_parse_flags_default,
+                    UTEST_NULL, UTEST_NULL, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_number_format, result.error);
+}
+
 struct JSON_FIXTURE(allow_c_style_comments) {
   struct json_value_s *value;
 };
