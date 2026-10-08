@@ -405,6 +405,9 @@ enum json_parse_error_e {
      overflow, the library only supports recursion up to JSON_MAX_RECURSION */
   json_parse_error_recursion,
 
+  /* a C-style block comment was opened but never closed. */
+  json_parse_error_unterminated_comment,
+
   /* catch-all error for everything else that exploded (real bad chi!). */
   json_parse_error_unknown
 };
@@ -667,8 +670,8 @@ int json_skip_c_style_comments(struct json_parse_state_s *state) {
         state->offset++;
       }
 
-      /* comment wasn't ended correctly, so leave the '/' for the caller to
-       * reject */
+      /* comment wasn't ended correctly, report it at the '/' */
+      state->error = json_parse_error_unterminated_comment;
       state->offset = start;
       state->line_no = line_no;
       state->line_offset = line_offset;
@@ -707,6 +710,10 @@ int json_skip_all_skippables(struct json_parse_state_s *state) {
       }
 
       did_consume |= json_skip_c_style_comments(state);
+
+      if (json_parse_error_unterminated_comment == state->error) {
+        return 1;
+      }
     } while (0 != did_consume);
   } else {
     do {
@@ -1011,7 +1018,6 @@ int json_get_object_size(struct json_parse_state_s *state,
   do {
     if (!is_global_object) {
       if (json_skip_all_skippables(state)) {
-        state->error = json_parse_error_premature_end_of_buffer;
         --state->recursion;
         return 1;
       }
@@ -1053,7 +1059,6 @@ int json_get_object_size(struct json_parse_state_s *state,
         continue;
       } else {
         if (json_skip_all_skippables(state)) {
-          state->error = json_parse_error_premature_end_of_buffer;
           --state->recursion;
           return 1;
         }
@@ -1068,7 +1073,6 @@ int json_get_object_size(struct json_parse_state_s *state,
     }
 
     if (json_skip_all_skippables(state)) {
-      state->error = json_parse_error_premature_end_of_buffer;
       --state->recursion;
       return 1;
     }
@@ -1092,7 +1096,6 @@ int json_get_object_size(struct json_parse_state_s *state,
     state->offset++;
 
     if (json_skip_all_skippables(state)) {
-      state->error = json_parse_error_premature_end_of_buffer;
       --state->recursion;
       return 1;
     }
@@ -1148,7 +1151,6 @@ int json_get_array_size(struct json_parse_state_s *state) {
 
   while (state->offset < size) {
     if (json_skip_all_skippables(state)) {
-      state->error = json_parse_error_premature_end_of_buffer;
       --state->recursion;
       return 1;
     }
@@ -1181,7 +1183,6 @@ int json_get_array_size(struct json_parse_state_s *state) {
         continue;
       } else {
         if (json_skip_all_skippables(state)) {
-          state->error = json_parse_error_premature_end_of_buffer;
           --state->recursion;
           return 1;
         }
@@ -1454,7 +1455,6 @@ int json_get_value_size(struct json_parse_state_s *state,
     return json_get_object_size(state, /* is_global_object = */ 1);
   } else {
     if (json_skip_all_skippables(state)) {
-      state->error = json_parse_error_premature_end_of_buffer;
       return 1;
     }
 
@@ -2191,9 +2191,10 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
       &state, (int)(json_parse_flags_allow_global_object & state.flags_bitset));
 
   if (0 == input_error) {
-    json_skip_all_skippables(&state);
-
-    if (state.offset != state.size) {
+    if (json_skip_all_skippables(&state) &&
+        json_parse_error_unterminated_comment == state.error) {
+      input_error = 1;
+    } else if (state.offset != state.size) {
       /* our parsing didn't have an error, but there are characters remaining in
        * the input that weren't part of the JSON! */
 
