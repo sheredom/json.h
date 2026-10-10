@@ -807,6 +807,15 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
         /* all valid characters! */
         offset++;
         break;
+      case '\'':
+        /* JSON5 allows an escaped single quote */
+        if (!(json_parse_flags_allow_single_quoted_strings & flags_bitset)) {
+          state->error = json_parse_error_invalid_string_escape_sequence;
+          state->offset = offset;
+          return 1;
+        }
+        offset++;
+        break;
       case 'u':
         if (!(offset + 5 < size)) {
           /* invalid escaped unicode sequence! */
@@ -1620,6 +1629,9 @@ void json_parse_string(struct json_parse_state_s *state,
       } break;
       case '"':
         data[bytes_written++] = '"';
+        break;
+      case '\'':
+        data[bytes_written++] = '\'';
         break;
       case '\\':
         data[bytes_written++] = '\\';
