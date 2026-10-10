@@ -3403,6 +3403,43 @@ JSON_TEST(allow_single_quoted_strings, single_quote_in_string) {
   free(value);
 }
 
+JSON_TEST(allow_single_quoted_strings, escaped_single_quote) {
+  const char payload[] = "['a\\'b', \"c\\'d\"]";
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_single_quoted_strings,
+      UTEST_NULL, UTEST_NULL, UTEST_NULL);
+  struct json_array_s *array = UTEST_NULL;
+  struct json_string_s *string = UTEST_NULL;
+
+  ASSERT_TRUE(value);
+  ASSERT_EQ(json_type_array, value->type);
+
+  array = UTEST_PTR_CAST(struct json_array_s *, value->payload);
+
+  ASSERT_EQ(2u, array->length);
+
+  string = json_value_as_string(array->start->value);
+  ASSERT_TRUE(string);
+  ASSERT_STREQ("a'b", string->string);
+  ASSERT_EQ(strlen("a'b"), string->string_size);
+
+  string = json_value_as_string(array->start->next->value);
+  ASSERT_TRUE(string);
+  ASSERT_STREQ("c'd", string->string);
+  ASSERT_EQ(strlen("c'd"), string->string_size);
+
+  free(value);
+}
+
+JSON_TEST(allow_single_quoted_strings, escaped_single_quote_without_flag) {
+  const char payload[] = "[\"c\\'d\"]";
+  struct json_parse_result_s result;
+  struct json_value_s *value = json_parse_ex(payload, strlen(payload), 0,
+                                             UTEST_NULL, UTEST_NULL, &result);
+  ASSERT_FALSE(value);
+  ASSERT_EQ(json_parse_error_invalid_string_escape_sequence, result.error);
+}
+
 JSON_TEST(allow_single_quoted_strings, forgot_to_specify_flag) {
   const char payload[] = "{'foo' : \"Heyo, gaia?\"}";
   struct json_parse_result_s result;
