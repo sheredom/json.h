@@ -1207,6 +1207,23 @@ int json_get_array_size(struct json_parse_state_s *state) {
   return 1;
 }
 
+static int json_number_token_matches(const char *number, size_t number_size,
+                                     const char *token, size_t token_size) {
+  size_t i;
+
+  if (number_size != token_size) {
+    return 0;
+  }
+
+  for (i = 0; i < token_size; i++) {
+    if (number[i] != token[i]) {
+      return 0;
+    }
+  }
+
+  return 1;
+}
+
 json_weak int json_get_number_size(struct json_parse_state_s *state);
 int json_get_number_size(struct json_parse_state_s *state) {
   const size_t flags_bitset = state->flags_bitset;
@@ -1266,40 +1283,20 @@ int json_get_number_size(struct json_parse_state_s *state) {
       const char nan[4] = "NaN";
       const size_t nan_strlen = sizeof(nan) - 1;
 
-      if (offset + inf_strlen <= size) {
-        int found = 1;
-        size_t i;
-        for (i = 0; i < inf_strlen; i++) {
-          if (inf[i] != src[offset + i]) {
-            found = 0;
-            break;
-          }
-        }
+      if ((offset <= size) && (inf_strlen <= size - offset) &&
+          json_number_token_matches(src + offset, inf_strlen, inf,
+                                    inf_strlen)) {
+        /* We found our special 'Infinity' keyword! */
+        offset += inf_strlen;
 
-        if (found) {
-          /* We found our special 'Infinity' keyword! */
-          offset += inf_strlen;
+        inf_or_nan = 1;
+      } else if ((offset <= size) && (nan_strlen <= size - offset) &&
+                 json_number_token_matches(src + offset, nan_strlen, nan,
+                                           nan_strlen)) {
+        /* We found our special 'NaN' keyword! */
+        offset += nan_strlen;
 
-          inf_or_nan = 1;
-        }
-      }
-
-      if (offset + nan_strlen <= size) {
-        int found = 1;
-        size_t i;
-        for (i = 0; i < nan_strlen; i++) {
-          if (nan[i] != src[offset + i]) {
-            found = 0;
-            break;
-          }
-        }
-
-        if (found) {
-          /* We found our special 'NaN' keyword! */
-          offset += nan_strlen;
-
-          inf_or_nan = 1;
-        }
+        inf_or_nan = 1;
       }
 
       if (inf_or_nan) {
@@ -2020,23 +2017,21 @@ void json_parse_number(struct json_parse_state_s *state,
     const size_t inf_strlen = 8; /* = strlen("Infinity");. */
     const size_t nan_strlen = 3; /* = strlen("NaN");. */
 
-    if (offset + inf_strlen <= size) {
-      if ('I' == src[offset]) {
-        size_t i;
-        /* We found our special 'Infinity' keyword! */
-        for (i = 0; i < inf_strlen; i++) {
-          data[bytes_written++] = src[offset++];
-        }
+    if ((offset <= size) && (inf_strlen <= size - offset) &&
+        json_number_token_matches(src + offset, inf_strlen, "Infinity",
+                                  inf_strlen)) {
+      size_t i;
+      /* We found our special 'Infinity' keyword! */
+      for (i = 0; i < inf_strlen; i++) {
+        data[bytes_written++] = src[offset++];
       }
-    }
-
-    if (offset + nan_strlen <= size) {
-      if ('N' == src[offset]) {
-        size_t i;
-        /* We found our special 'NaN' keyword! */
-        for (i = 0; i < nan_strlen; i++) {
-          data[bytes_written++] = src[offset++];
-        }
+    } else if ((offset <= size) && (nan_strlen <= size - offset) &&
+               json_number_token_matches(src + offset, nan_strlen, "NaN",
+                                         nan_strlen)) {
+      size_t i;
+      /* We found our special 'NaN' keyword! */
+      for (i = 0; i < nan_strlen; i++) {
+        data[bytes_written++] = src[offset++];
       }
     }
   }
@@ -2641,20 +2636,9 @@ int json_write_get_number_size(const struct json_number_s *number,
   /* check if we have infinity. */
   if ((i < number->number_size) && ('I' == number->number[i])) {
     const char *inf = "Infinity";
-    size_t k;
 
-    for (k = i; k < number->number_size; k++) {
-      const char c = *inf++;
-
-      /* Check if we found the Infinity string! */
-      if ('\0' == c) {
-        break;
-      } else if (c != number->number[k]) {
-        break;
-      }
-    }
-
-    if ('\0' == *inf) {
+    if (json_number_token_matches(number->number + i,
+                                  number->number_size - i, inf, 8)) {
       /* Inf becomes 1.7976931348623158e308 because JSON can't support it. */
       *size += 22;
 
@@ -2662,28 +2646,17 @@ int json_write_get_number_size(const struct json_number_s *number,
       if ('-' == number->number[0]) {
         *size += 1;
       }
-    }
 
-    return 0;
+      return 0;
+    }
   }
 
   /* check if we have nan. */
   if ((i < number->number_size) && ('N' == number->number[i])) {
     const char *nan = "NaN";
-    size_t k;
 
-    for (k = i; k < number->number_size; k++) {
-      const char c = *nan++;
-
-      /* Check if we found the NaN string! */
-      if ('\0' == c) {
-        break;
-      } else if (c != number->number[k]) {
-        break;
-      }
-    }
-
-    if ('\0' == *nan) {
+    if (json_number_token_matches(number->number + i,
+                                  number->number_size - i, nan, 3)) {
       /* NaN becomes 1 because JSON can't support it. */
       *size += 1;
 
@@ -2908,20 +2881,9 @@ char *json_write_number(const struct json_number_s *number, char *data) {
   /* check if we have infinity. */
   if ((i < number->number_size) && ('I' == number->number[i])) {
     const char *inf = "Infinity";
-    size_t k;
 
-    for (k = i; k < number->number_size; k++) {
-      const char c = *inf++;
-
-      /* Check if we found the Infinity string! */
-      if ('\0' == c) {
-        break;
-      } else if (c != number->number[k]) {
-        break;
-      }
-    }
-
-    if ('\0' == *inf++) {
+    if (json_number_token_matches(number->number + i,
+                                  number->number_size - i, inf, 8)) {
       const char *dbl_max;
 
       /* if we had a leading '-' we need to record it in the JSON output. */
@@ -2941,20 +2903,9 @@ char *json_write_number(const struct json_number_s *number, char *data) {
   /* check if we have nan. */
   if ((i < number->number_size) && ('N' == number->number[i])) {
     const char *nan = "NaN";
-    size_t k;
 
-    for (k = i; k < number->number_size; k++) {
-      const char c = *nan++;
-
-      /* Check if we found the NaN string! */
-      if ('\0' == c) {
-        break;
-      } else if (c != number->number[k]) {
-        break;
-      }
-    }
-
-    if ('\0' == *nan++) {
+    if (json_number_token_matches(number->number + i,
+                                  number->number_size - i, nan, 3)) {
       /* NaN becomes 0 because JSON can't support it. */
       *data++ = '0';
       return data;
