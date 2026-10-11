@@ -1912,6 +1912,21 @@ JSON_TEST(allow_inf_and_nan, rejects_Infinity_decimal_continuation) {
   ASSERT_EQ(15u, result.error_row_no);
 }
 
+JSON_TEST(allow_inf_and_nan, rejects_concatenated_special_tokens) {
+  const char *const payloads[] = {"InfinityNaN", "NaNInfinity",
+                                  "-InfinityNaN", "+InfinityNaN",
+                                  "[InfinityNaN]", "{\"key\":NaNInfinity}"};
+  size_t i;
+  struct json_value_s *value;
+
+  for (i = 0; i < sizeof(payloads) / sizeof(payloads[0]); i++) {
+    value = json_parse_ex(payloads[i], strlen(payloads[i]),
+                          json_parse_flags_allow_json5, UTEST_NULL,
+                          UTEST_NULL, UTEST_NULL);
+    ASSERT_FALSE(value);
+  }
+}
+
 JSON_TEST(allow_inf_and_nan, Infinity_at_end_of_buffer) {
   const char payload[] = "-Infinity";
   struct json_value_s *value = json_parse_ex(
@@ -5958,6 +5973,39 @@ JSON_TEST(write_pretty, object_number) {
                UTEST_CAST(char *, pretty));
 
   free(pretty);
+}
+
+JSON_TEST(write, special_number_prefix_length_agreement) {
+  const char *const numbers[] = {"InfinitySuffix", "NaNSuffix", "Inf", "Na",
+                                 "-InfinitySuffix", "-NaNSuffix"};
+  size_t i;
+  struct json_number_s sub;
+  struct json_value_s value;
+  size_t size;
+  char *written;
+
+  value.payload = &sub;
+  value.type = json_type_number;
+
+  for (i = 0; i < sizeof(numbers) / sizeof(numbers[0]); i++) {
+    sub.number = numbers[i];
+    sub.number_size = strlen(numbers[i]);
+
+    size = 0;
+    written = UTEST_CAST(char *, json_write_minified(&value, &size));
+    ASSERT_TRUE(written);
+    ASSERT_STREQ(numbers[i], written);
+    ASSERT_EQ(strlen(written) + 1, size);
+    free(written);
+
+    size = 0;
+    written = UTEST_CAST(
+        char *, json_write_pretty(&value, UTEST_NULL, UTEST_NULL, &size));
+    ASSERT_TRUE(written);
+    ASSERT_STREQ(numbers[i], written);
+    ASSERT_EQ(strlen(written) + 1, size);
+    free(written);
+  }
 }
 
 JSON_TEST(write_pretty, object_object) {
