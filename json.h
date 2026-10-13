@@ -1216,8 +1216,10 @@ int json_get_array_size(struct json_parse_state_s *state) {
   return 1;
 }
 
-static int json_number_token_matches(const char *number, size_t number_size,
-                                     const char *token, size_t token_size) {
+json_weak int json_number_token_matches(const char *number, size_t number_size,
+                                       const char *token, size_t token_size);
+int json_number_token_matches(const char *number, size_t number_size,
+                              const char *token, size_t token_size) {
   size_t i;
 
   if (number_size != token_size) {
