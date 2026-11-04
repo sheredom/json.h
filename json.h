@@ -2541,6 +2541,10 @@ struct json_value_s *json_extract_value_ex(const struct json_value_s *value,
     allocation = alloc_func_ptr(user_data, total_size);
   }
 
+  if (json_null == allocation) {
+    return json_null;
+  }
+
   state.dom = (char *)allocation;
   state.data = state.dom + result.dom_size;
 
