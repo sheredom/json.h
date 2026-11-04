@@ -370,6 +370,18 @@ JSON_TEST(allocator, null) {
   ASSERT_EQ(0u, result.error_row_no);
 }
 
+JSON_TEST(allocator, extract_null) {
+  struct json_value_s value;
+  struct json_value_s *extracted;
+
+  value.payload = UTEST_NULL;
+  value.type = json_type_null;
+
+  extracted = json_extract_value_ex(&value, &json_test_allocator_null, UTEST_NULL);
+
+  ASSERT_FALSE(extracted);
+}
+
 JSON_TEST(allocator, user_data) {
 
   char data[128];
