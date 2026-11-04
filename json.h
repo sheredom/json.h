@@ -955,6 +955,11 @@ int json_get_key_size(struct json_parse_state_s *state) {
         data_size++;
       }
 
+      /* an unquoted key needs at least one character. */
+      if (offset == state->offset) {
+        return 1;
+      }
+
       /* one more byte for null terminator ending the string! */
       data_size++;
 
