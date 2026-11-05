@@ -3899,6 +3899,19 @@ JSON_TEST(allow_unquoted_keys, value_unquoted_fails) {
   ASSERT_EQ(2u, result.error_line_no);
 }
 
+JSON_TEST(allow_unquoted_keys, empty_key_fails) {
+  const char payload[] = "{a : 1, : 2}";
+  struct json_parse_result_s result;
+  struct json_value_s *value = json_parse_ex(
+      payload, strlen(payload), json_parse_flags_allow_unquoted_keys,
+      UTEST_NULL, UTEST_NULL, &result);
+
+  ASSERT_FALSE(value);
+
+  ASSERT_EQ(json_parse_error_invalid_string, result.error);
+  ASSERT_EQ(8u, result.error_offset);
+}
+
 JSON_TEST(allow_unquoted_keys, dollar_sign_in_key) {
   const char payload[] = "{$foo : \"bar\", foo$bar : 123, $$ : true}";
   struct json_value_s *value = json_parse_ex(
