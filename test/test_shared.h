@@ -109,6 +109,19 @@ static void *json_test_allocator_user_data(void *user_data, size_t size) {
   return user_data;
 }
 
+struct json_test_parse_allocator_s {
+  size_t calls;
+  size_t size;
+};
+
+static void *json_test_parse_allocator(void *user_data, size_t size) {
+  struct json_test_parse_allocator_s *state =
+      UTEST_PTR_CAST(struct json_test_parse_allocator_s *, user_data);
+  state->calls++;
+  state->size = size;
+  return malloc(size);
+}
+
 struct json_test_write_allocator_s {
   struct json_value_s *value;
   size_t allocations;
@@ -398,6 +411,98 @@ JSON_TEST(allocator, user_data) {
 
   ASSERT_FALSE(object->start);
   ASSERT_EQ(0u, object->length);
+}
+
+JSON_TEST(parse_sizing, overflow_is_reported) {
+  const size_t maximum = UTEST_CAST(size_t, -1);
+  const char empty_string[] = "\"\"";
+  const char unquoted_key[] = "a";
+  const char number[] = "0";
+  const char array[] = "[]";
+  const char object[] = "{}";
+  const char object_key[] = "{\"a\":0}";
+  const char boolean[] = "true";
+  struct json_parse_state_s state;
+  size_t total_size;
+  size_t product;
+
+  memset(&state, 0, sizeof(state));
+  state.src = empty_string;
+  state.size = sizeof(empty_string) - 1;
+  state.dom_size = maximum;
+  ASSERT_TRUE(json_get_string_size(&state, 0));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = empty_string;
+  state.size = sizeof(empty_string) - 1;
+  state.data_size = maximum;
+  ASSERT_TRUE(json_get_string_size(&state, 0));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = unquoted_key;
+  state.size = sizeof(unquoted_key) - 1;
+  state.flags_bitset = json_parse_flags_allow_unquoted_keys;
+  state.data_size = maximum;
+  ASSERT_TRUE(json_get_key_size(&state));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = number;
+  state.size = sizeof(number) - 1;
+  state.dom_size = maximum;
+  ASSERT_TRUE(json_get_number_size(&state));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = array;
+  state.size = sizeof(array) - 1;
+  state.dom_size = maximum;
+  ASSERT_TRUE(json_get_array_size(&state));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = object;
+  state.size = sizeof(object) - 1;
+  state.dom_size = maximum;
+  ASSERT_TRUE(json_get_object_size(&state, 0));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = object_key;
+  state.size = sizeof(object_key) - 1;
+  state.dom_size = maximum - sizeof(struct json_object_s);
+  ASSERT_TRUE(json_get_object_size(&state, 0));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  memset(&state, 0, sizeof(state));
+  state.src = boolean;
+  state.size = sizeof(boolean) - 1;
+  state.dom_size = maximum;
+  ASSERT_TRUE(json_get_value_size(&state, 0));
+  ASSERT_EQ(json_parse_error_allocator_failed, state.error);
+
+  ASSERT_TRUE(json_size_mul(sizeof(struct json_array_element_s),
+                            maximum / sizeof(struct json_array_element_s) + 1,
+                            &product));
+  total_size = maximum;
+  ASSERT_TRUE(json_size_add(&total_size, 1));
+}
+
+JSON_TEST(parse_sizing, normal_custom_allocator) {
+  const char payload[] = "{\"a\":[1,true]}";
+  struct json_test_parse_allocator_s allocator;
+  struct json_value_s *value;
+
+  memset(&allocator, 0, sizeof(allocator));
+  value = json_parse_ex(payload, sizeof(payload) - 1, 0,
+                        &json_test_parse_allocator, &allocator, UTEST_NULL);
+  ASSERT_TRUE(value);
+  ASSERT_EQ(1u, allocator.calls);
+  ASSERT_TRUE(allocator.size > 0);
+  ASSERT_EQ(json_type_object, value->type);
+  free(value);
 }
 
 JSON_TEST(allocator, write_minified) {
