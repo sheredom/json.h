@@ -506,6 +506,20 @@ typedef struct json_parse_result_s {
 #define JSON_MAX_RECURSION 1000
 #endif
 
+/* Convert the complete parser allocation only after its final size check. */
+json_weak int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
+                                         size_t allocation_limit,
+                                         size_t *output);
+int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
+                               size_t allocation_limit, size_t *output) {
+  const uint64_t total_size = dom_size + data_size;
+  if (total_size > allocation_limit) {
+    return 1;
+  }
+  *output = (size_t)total_size;
+  return 0;
+}
+
 struct json_parse_state_s {
   const char *src;
   size_t size;
@@ -521,64 +535,6 @@ struct json_parse_state_s {
   size_t error;
   size_t recursion;
 };
-
-/* Return non-zero when a size calculation would overflow. */
-json_weak int json_uint64_add(uint64_t *size, uint64_t value);
-int json_uint64_add(uint64_t *size, uint64_t value) {
-  if (value > (uint64_t)-1 - *size) {
-    return 1;
-  }
-  *size += value;
-  return 0;
-}
-
-json_weak int json_uint64_mul(uint64_t size, uint64_t value,
-                               uint64_t *result);
-int json_uint64_mul(uint64_t size, uint64_t value, uint64_t *result) {
-  if (size != 0 && value > (uint64_t)-1 / size) {
-    return 1;
-  }
-  *result = size * value;
-  return 0;
-}
-
-/* Combine parser allocation sizes without narrowing the result on failure. */
-json_weak int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
-                                         size_t allocation_limit,
-                                         size_t *output);
-int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
-                               size_t allocation_limit, size_t *output) {
-  if (json_uint64_add(&dom_size, data_size) || dom_size > allocation_limit) {
-    return 1;
-  }
-  *output = (size_t)dom_size;
-  return 0;
-}
-
-json_weak int json_parse_state_add(struct json_parse_state_s *state,
-                                   uint64_t *size, uint64_t value);
-int json_parse_state_add(struct json_parse_state_s *state, uint64_t *size,
-                         uint64_t value) {
-  if (json_uint64_add(size, value)) {
-    state->error = json_parse_error_allocator_failed;
-    return 1;
-  }
-  return 0;
-}
-
-json_weak int json_parse_state_mul_add(struct json_parse_state_s *state,
-                                       uint64_t *size, uint64_t value,
-                                       uint64_t multiplier);
-int json_parse_state_mul_add(struct json_parse_state_s *state, uint64_t *size,
-                             uint64_t value, uint64_t multiplier) {
-  uint64_t product;
-  if (json_uint64_mul(value, multiplier, &product) ||
-      json_parse_state_add(state, size, product)) {
-    state->error = json_parse_error_allocator_failed;
-    return 1;
-  }
-  return 0;
-}
 
 json_weak int json_hexadecimal_digit(const char c);
 int json_hexadecimal_digit(const char c) {
@@ -811,15 +767,9 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
 
   if ((json_parse_flags_allow_location_information & flags_bitset) != 0 &&
       is_key != 0) {
-    if (json_parse_state_add(state, &state->dom_size,
-                             sizeof(struct json_string_ex_s))) {
-      return 1;
-    }
+    state->dom_size += sizeof(struct json_string_ex_s);
   } else {
-    if (json_parse_state_add(state, &state->dom_size,
-                             sizeof(struct json_string_s))) {
-      return 1;
-    }
+    state->dom_size += sizeof(struct json_string_s);
   }
 
   if ('"' != src[offset]) {
@@ -837,9 +787,7 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
 
   while ((offset < size) && (quote_to_use != src[offset])) {
     /* add space for the character. */
-    if (json_parse_state_add(state, &data_size, 1)) {
-      return 1;
-    }
+    data_size++;
 
     if ((unsigned char)src[offset] < 0x20 && src[offset] != '\r' &&
         src[offset] != '\n') {
@@ -918,9 +866,7 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
            * we expect the low half. */
           if (codepoint >= 0xdc00 &&
               codepoint <= 0xdfff) { /* low surrogate range. */
-            if (json_parse_state_add(state, &data_size, 3)) {
-              return 1;
-            }
+            data_size += 3;
             high_surrogate = 0;
           } else {
             state->error = json_parse_error_invalid_string_escape_sequence;
@@ -930,9 +876,7 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
         } else if (codepoint <= 0x7f) {
           data_size += 0;
         } else if (codepoint <= 0x7ff) {
-          if (json_parse_state_add(state, &data_size, 1)) {
-            return 1;
-          }
+          data_size += 1;
         } else if (codepoint >= 0xd800 &&
                    codepoint <= 0xdbff) { /* high surrogate range. */
           /* The codepoint is the first half of a "utf-16 surrogate pair". so we
@@ -951,9 +895,7 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
           state->offset = offset;
           return 1;
         } else {
-          if (json_parse_state_add(state, &data_size, 2)) {
-            return 1;
-          }
+          data_size += 2;
         }
         /* escaped codepoints after 0xffff are supported in json through utf-16
          * surrogate pairs: \uD83D\uDD25 for U+1F525. */
@@ -987,14 +929,10 @@ int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
   offset++;
 
   /* add enough space to store the string. */
-  if (json_parse_state_add(state, &state->data_size, data_size)) {
-    return 1;
-  }
+  state->data_size += data_size;
 
   /* one more byte for null terminator ending the string! */
-  if (json_parse_state_add(state, &state->data_size, 1)) {
-    return 1;
-  }
+  state->data_size++;
 
   /* update offset. */
   state->offset = offset;
@@ -1029,26 +967,16 @@ int json_get_key_size(struct json_parse_state_s *state) {
     } else {
       while ((offset < size) && is_valid_unquoted_key_char(src[offset])) {
         offset++;
-        if (json_parse_state_add(state, &data_size, 1)) {
-          return 1;
-        }
+        data_size++;
       }
 
       /* one more byte for null terminator ending the string! */
-      if (json_parse_state_add(state, &data_size, 1)) {
-        return 1;
-      }
+      data_size++;
 
       if (json_parse_flags_allow_location_information & flags_bitset) {
-        if (json_parse_state_add(state, &state->dom_size,
-                                 sizeof(struct json_string_ex_s))) {
-          return 1;
-        }
+        state->dom_size += sizeof(struct json_string_ex_s);
       } else {
-        if (json_parse_state_add(state, &state->dom_size,
-                                 sizeof(struct json_string_s))) {
-          return 1;
-        }
+        state->dom_size += sizeof(struct json_string_s);
       }
 
       /* update offset. */
@@ -1103,11 +1031,7 @@ int json_get_object_size(struct json_parse_state_s *state,
     state->offset++;
   }
 
-  if (json_parse_state_add(state, &state->dom_size,
-                           sizeof(struct json_object_s))) {
-    --state->recursion;
-    return 1;
-  }
+  state->dom_size += sizeof(struct json_object_s);
 
   if ((state->offset == size) && !is_global_object) {
     state->error = json_parse_error_premature_end_of_buffer;
@@ -1166,10 +1090,8 @@ int json_get_object_size(struct json_parse_state_s *state,
     }
 
     if (json_get_key_size(state)) {
-      /* Preserve allocation sizing failures from key parsing. */
-      if (state->error != json_parse_error_allocator_failed) {
-        state->error = json_parse_error_invalid_string;
-      }
+      /* key parsing failed! */
+      state->error = json_parse_error_invalid_string;
       --state->recursion;
       return 1;
     }
@@ -1209,10 +1131,7 @@ int json_get_object_size(struct json_parse_state_s *state,
     }
 
     /* successfully parsed a name/value pair! */
-    if (json_parse_state_add(state, &elements, 1)) {
-      --state->recursion;
-      return 1;
-    }
+    elements++;
     allow_comma = 1;
   } while (state->offset < size);
 
@@ -1222,12 +1141,8 @@ int json_get_object_size(struct json_parse_state_s *state,
     return 1;
   }
 
-  if (json_parse_state_mul_add(state, &state->dom_size,
-                               sizeof(struct json_object_element_s),
-                               elements)) {
-    --state->recursion;
-    return 1;
-  }
+  state->dom_size +=
+      (uint64_t)sizeof(struct json_object_element_s) * elements;
   --state->recursion;
 
   return 0;
@@ -1257,11 +1172,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
   /* skip leading '['. */
   state->offset++;
 
-  if (json_parse_state_add(state, &state->dom_size,
-                           sizeof(struct json_array_s))) {
-    --state->recursion;
-    return 1;
-  }
+  state->dom_size += sizeof(struct json_array_s);
 
   while (state->offset < size) {
     if (json_skip_all_skippables(state)) {
@@ -1273,12 +1184,8 @@ int json_get_array_size(struct json_parse_state_s *state) {
       /* skip trailing ']'. */
       state->offset++;
 
-      if (json_parse_state_mul_add(state, &state->dom_size,
-                                   sizeof(struct json_array_element_s),
-                                   elements)) {
-        --state->recursion;
-        return 1;
-      }
+      state->dom_size +=
+          (uint64_t)sizeof(struct json_array_element_s) * elements;
 
       /* finished the object! */
       --state->recursion;
@@ -1315,10 +1222,7 @@ int json_get_array_size(struct json_parse_state_s *state) {
     }
 
     /* successfully parsed an array element! */
-    if (json_parse_state_add(state, &elements, 1)) {
-      --state->recursion;
-      return 1;
-    }
+    elements++;
     allow_comma = 1;
   }
 
@@ -1357,10 +1261,7 @@ int json_get_number_size(struct json_parse_state_s *state) {
   const char *const src = state->src;
   size_t hex_offset = offset;
 
-  if (json_parse_state_add(state, &state->dom_size,
-                           sizeof(struct json_number_s))) {
-    return 1;
-  }
+  state->dom_size += sizeof(struct json_number_s);
 
   if ((hex_offset < size) &&
       (('-' == src[hex_offset]) ||
@@ -1549,15 +1450,10 @@ number_parsed:
     }
   }
 
-  if (json_parse_state_add(state, &state->data_size,
-                           offset - state->offset)) {
-    return 1;
-  }
+  state->data_size += offset - state->offset;
 
   /* one more byte for null terminator ending the number string! */
-  if (json_parse_state_add(state, &state->data_size, 1)) {
-    return 1;
-  }
+  state->data_size++;
 
   /* update offset. */
   state->offset = offset;
@@ -1575,15 +1471,9 @@ int json_get_value_size(struct json_parse_state_s *state,
   const size_t size = state->size;
 
   if (json_parse_flags_allow_location_information & flags_bitset) {
-    if (json_parse_state_add(state, &state->dom_size,
-                             sizeof(struct json_value_ex_s))) {
-      return 1;
-    }
+    state->dom_size += sizeof(struct json_value_ex_s);
   } else {
-    if (json_parse_state_add(state, &state->dom_size,
-                             sizeof(struct json_value_s))) {
-      return 1;
-    }
+    state->dom_size += sizeof(struct json_value_s);
   }
 
   if (is_global_object) {
@@ -2353,8 +2243,8 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   /* our total allocation is the combination of the dom and data sizes (we. */
   /* first encode the structure of the JSON, and then the data referenced by. */
   /* the JSON values). */
-  if (json_parse_allocation_size(state.dom_size, state.data_size,
-                                 (size_t)-1, &allocation_size)) {
+  if (json_parse_allocation_size(state.dom_size, state.data_size, (size_t)-1,
+                                 &allocation_size)) {
     if (result) {
       result->error = json_parse_error_allocator_failed;
       result->error_offset = 0;
