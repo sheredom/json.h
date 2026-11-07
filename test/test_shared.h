@@ -414,7 +414,7 @@ JSON_TEST(allocator, user_data) {
 }
 
 JSON_TEST(parse_sizing, overflow_is_reported) {
-  const size_t maximum = UTEST_CAST(size_t, -1);
+  const uint64_t maximum = UTEST_CAST(uint64_t, -1);
   const char empty_string[] = "\"\"";
   const char unquoted_key[] = "a";
   const char number[] = "0";
@@ -423,8 +423,9 @@ JSON_TEST(parse_sizing, overflow_is_reported) {
   const char object_key[] = "{\"a\":0}";
   const char boolean[] = "true";
   struct json_parse_state_s state;
-  size_t total_size;
-  size_t product;
+  uint64_t total_size;
+  uint64_t product;
+  size_t allocation_size;
 
   memset(&state, 0, sizeof(state));
   state.src = empty_string;
@@ -483,11 +484,29 @@ JSON_TEST(parse_sizing, overflow_is_reported) {
   ASSERT_TRUE(json_get_value_size(&state, 0));
   ASSERT_EQ(json_parse_error_allocator_failed, state.error);
 
-  ASSERT_TRUE(json_size_mul(sizeof(struct json_array_element_s),
-                            maximum / sizeof(struct json_array_element_s) + 1,
-                            &product));
+  ASSERT_TRUE(json_uint64_mul(sizeof(struct json_array_element_s),
+                              maximum / sizeof(struct json_array_element_s) + 1,
+                              &product));
   total_size = maximum;
-  ASSERT_TRUE(json_size_add(&total_size, 1));
+  ASSERT_TRUE(json_uint64_add(&total_size, 1));
+
+  allocation_size = 123;
+  ASSERT_TRUE(json_parse_allocation_size(maximum, 1,
+                                         UTEST_CAST(size_t, -1),
+                                         &allocation_size));
+  ASSERT_EQ(123u, allocation_size);
+
+  /* Simulate a 32-bit allocator limit without allocating large memory. */
+  ASSERT_TRUE(json_parse_allocation_size(UTEST_CAST(uint64_t, 0x80000000UL),
+                                         UTEST_CAST(uint64_t, 0x80000000UL),
+                                         UTEST_CAST(size_t, 0xffffffffUL),
+                                         &allocation_size));
+  ASSERT_EQ(123u, allocation_size);
+  ASSERT_FALSE(json_parse_allocation_size(UTEST_CAST(uint64_t, 0xfffffffeUL),
+                                          1,
+                                          UTEST_CAST(size_t, 0xffffffffUL),
+                                          &allocation_size));
+  ASSERT_EQ(UTEST_CAST(size_t, 0xffffffffUL), allocation_size);
 }
 
 JSON_TEST(parse_sizing, normal_custom_allocator) {
