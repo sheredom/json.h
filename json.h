@@ -48,6 +48,7 @@
 #endif
 
 #include <stddef.h>
+#include <stdint.h>
 #include <string.h>
 
 #if defined(__TINYC__)
@@ -512,8 +513,8 @@ struct json_parse_state_s {
   size_t flags_bitset;
   char *data;
   char *dom;
-  size_t dom_size;
-  size_t data_size;
+  uint64_t dom_size;
+  uint64_t data_size;
   size_t line_no;     /* line counter for error reporting. */
   size_t line_offset; /* (offset-line_offset) is the character number (in
                          bytes). */
@@ -522,29 +523,43 @@ struct json_parse_state_s {
 };
 
 /* Return non-zero when a size calculation would overflow. */
-json_weak int json_size_add(size_t *size, size_t value);
-int json_size_add(size_t *size, size_t value) {
-  if (value > (size_t)-1 - *size) {
+json_weak int json_uint64_add(uint64_t *size, uint64_t value);
+int json_uint64_add(uint64_t *size, uint64_t value) {
+  if (value > (uint64_t)-1 - *size) {
     return 1;
   }
   *size += value;
   return 0;
 }
 
-json_weak int json_size_mul(size_t size, size_t value, size_t *result);
-int json_size_mul(size_t size, size_t value, size_t *result) {
-  if (size != 0 && value > (size_t)-1 / size) {
+json_weak int json_uint64_mul(uint64_t size, uint64_t value,
+                               uint64_t *result);
+int json_uint64_mul(uint64_t size, uint64_t value, uint64_t *result) {
+  if (size != 0 && value > (uint64_t)-1 / size) {
     return 1;
   }
   *result = size * value;
   return 0;
 }
 
+/* Combine parser allocation sizes without narrowing the result on failure. */
+json_weak int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
+                                         size_t allocation_limit,
+                                         size_t *output);
+int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
+                               size_t allocation_limit, size_t *output) {
+  if (json_uint64_add(&dom_size, data_size) || dom_size > allocation_limit) {
+    return 1;
+  }
+  *output = (size_t)dom_size;
+  return 0;
+}
+
 json_weak int json_parse_state_add(struct json_parse_state_s *state,
-                                   size_t *size, size_t value);
-int json_parse_state_add(struct json_parse_state_s *state, size_t *size,
-                         size_t value) {
-  if (json_size_add(size, value)) {
+                                   uint64_t *size, uint64_t value);
+int json_parse_state_add(struct json_parse_state_s *state, uint64_t *size,
+                         uint64_t value) {
+  if (json_uint64_add(size, value)) {
     state->error = json_parse_error_allocator_failed;
     return 1;
   }
@@ -552,12 +567,12 @@ int json_parse_state_add(struct json_parse_state_s *state, size_t *size,
 }
 
 json_weak int json_parse_state_mul_add(struct json_parse_state_s *state,
-                                       size_t *size, size_t value,
-                                       size_t multiplier);
-int json_parse_state_mul_add(struct json_parse_state_s *state, size_t *size,
-                             size_t value, size_t multiplier) {
-  size_t product;
-  if (json_size_mul(value, multiplier, &product) ||
+                                       uint64_t *size, uint64_t value,
+                                       uint64_t multiplier);
+int json_parse_state_mul_add(struct json_parse_state_s *state, uint64_t *size,
+                             uint64_t value, uint64_t multiplier) {
+  uint64_t product;
+  if (json_uint64_mul(value, multiplier, &product) ||
       json_parse_state_add(state, size, product)) {
     state->error = json_parse_error_allocator_failed;
     return 1;
@@ -786,7 +801,7 @@ json_weak int json_get_string_size(struct json_parse_state_s *state,
 int json_get_string_size(struct json_parse_state_s *state, size_t is_key) {
   size_t offset = state->offset;
   const size_t size = state->size;
-  size_t data_size = 0;
+  uint64_t data_size = 0;
   const char *const src = state->src;
   const int is_single_quote = '\'' == src[offset];
   const char quote_to_use = is_single_quote ? '\'' : '"';
@@ -1001,7 +1016,7 @@ int json_get_key_size(struct json_parse_state_s *state) {
     size_t offset = state->offset;
     const size_t size = state->size;
     const char *const src = state->src;
-    size_t data_size = state->data_size;
+    uint64_t data_size = state->data_size;
 
     /* if we are allowing unquoted keys, first grok for a quote... */
     if ('"' == src[offset]) {
@@ -1057,7 +1072,7 @@ int json_get_object_size(struct json_parse_state_s *state,
   const size_t flags_bitset = state->flags_bitset;
   const char *const src = state->src;
   const size_t size = state->size;
-  size_t elements = 0;
+  uint64_t elements = 0;
   int allow_comma = 0;
   int found_closing_brace = 0;
 
@@ -1221,7 +1236,7 @@ int json_get_object_size(struct json_parse_state_s *state,
 json_weak int json_get_array_size(struct json_parse_state_s *state);
 int json_get_array_size(struct json_parse_state_s *state) {
   const size_t flags_bitset = state->flags_bitset;
-  size_t elements = 0;
+  uint64_t elements = 0;
   int allow_comma = 0;
   const char *const src = state->src;
   const size_t size = state->size;
@@ -2282,7 +2297,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   struct json_parse_state_s state;
   void *allocation;
   struct json_value_s *value;
-  size_t total_size;
+  size_t allocation_size;
   int input_error;
 
   if (result) {
@@ -2338,8 +2353,8 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   /* our total allocation is the combination of the dom and data sizes (we. */
   /* first encode the structure of the JSON, and then the data referenced by. */
   /* the JSON values). */
-  total_size = state.dom_size;
-  if (json_size_add(&total_size, state.data_size)) {
+  if (json_parse_allocation_size(state.dom_size, state.data_size,
+                                 (size_t)-1, &allocation_size)) {
     if (result) {
       result->error = json_parse_error_allocator_failed;
       result->error_offset = 0;
@@ -2350,9 +2365,9 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   }
 
   if (json_null == alloc_func_ptr) {
-    allocation = malloc(total_size);
+    allocation = malloc(allocation_size);
   } else {
-    allocation = alloc_func_ptr(user_data, total_size);
+    allocation = alloc_func_ptr(user_data, allocation_size);
   }
 
   if (json_null == allocation) {
@@ -2375,7 +2390,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   state.line_offset = 0;
 
   state.dom = (char *)allocation;
-  state.data = state.dom + state.dom_size;
+  state.data = state.dom + (size_t)state.dom_size;
 
   if (json_parse_flags_allow_location_information & state.flags_bitset) {
     struct json_value_ex_s *value_ex = (struct json_value_ex_s *)state.dom;
