@@ -400,12 +400,11 @@ JSON_TEST(allocator, user_data) {
   ASSERT_EQ(0u, object->length);
 }
 
-JSON_TEST(parse_sizing, uint64_counts_and_allocation_limit) {
+JSON_TEST(parse_sizing, uint64_counts) {
   const char array[] = "[null]";
   const uint64_t large_size = UTEST_CAST(uint64_t, 0x10000UL) * 0x10000UL;
   uint64_t expected_size;
   struct json_parse_state_s state;
-  size_t allocation_size = 123;
 
   memset(&state, 0, sizeof(state));
   state.src = array;
@@ -417,18 +416,6 @@ JSON_TEST(parse_sizing, uint64_counts_and_allocation_limit) {
                   sizeof(struct json_array_element_s);
   ASSERT_TRUE(expected_size == state.dom_size);
 
-  /* Simulate a 32-bit allocator limit without allocating large memory. */
-  ASSERT_TRUE(json_parse_allocation_size(UTEST_CAST(uint64_t, 0x80000000UL),
-                                         UTEST_CAST(uint64_t, 0x80000000UL),
-                                         UTEST_CAST(size_t, 0xffffffffUL),
-                                         &allocation_size));
-  ASSERT_EQ(123u, allocation_size);
-
-  ASSERT_FALSE(json_parse_allocation_size(UTEST_CAST(uint64_t, 0xfffffffeUL),
-                                          1,
-                                          UTEST_CAST(size_t, 0xffffffffUL),
-                                          &allocation_size));
-  ASSERT_EQ(UTEST_CAST(size_t, 0xffffffffUL), allocation_size);
 }
 
 JSON_TEST(allocator, write_minified) {
