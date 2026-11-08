@@ -506,20 +506,6 @@ typedef struct json_parse_result_s {
 #define JSON_MAX_RECURSION 1000
 #endif
 
-/* Convert the complete parser allocation only after its final size check. */
-json_weak int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
-                                         size_t allocation_limit,
-                                         size_t *output);
-int json_parse_allocation_size(uint64_t dom_size, uint64_t data_size,
-                               size_t allocation_limit, size_t *output) {
-  const uint64_t total_size = dom_size + data_size;
-  if (total_size > allocation_limit) {
-    return 1;
-  }
-  *output = (size_t)total_size;
-  return 0;
-}
-
 struct json_parse_state_s {
   const char *src;
   size_t size;
@@ -2187,6 +2173,8 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   struct json_parse_state_s state;
   void *allocation;
   struct json_value_s *value;
+  uint64_t total_size;
+  size_t max_allocation_size = (size_t)-1;
   size_t allocation_size;
   int input_error;
 
@@ -2243,8 +2231,8 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   /* our total allocation is the combination of the dom and data sizes (we. */
   /* first encode the structure of the JSON, and then the data referenced by. */
   /* the JSON values). */
-  if (json_parse_allocation_size(state.dom_size, state.data_size, (size_t)-1,
-                                 &allocation_size)) {
+  total_size = state.dom_size + state.data_size;
+  if (total_size > max_allocation_size) {
     if (result) {
       result->error = json_parse_error_allocator_failed;
       result->error_offset = 0;
@@ -2254,6 +2242,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
     return json_null;
   }
 
+  allocation_size = (size_t)total_size;
   if (json_null == alloc_func_ptr) {
     allocation = malloc(allocation_size);
   } else {
