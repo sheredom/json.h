@@ -2174,8 +2174,6 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   void *allocation;
   struct json_value_s *value;
   uint64_t total_size;
-  size_t max_allocation_size = (size_t)-1;
-  size_t allocation_size;
   int input_error;
 
   if (result) {
@@ -2232,7 +2230,7 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
   /* first encode the structure of the JSON, and then the data referenced by. */
   /* the JSON values). */
   total_size = state.dom_size + state.data_size;
-  if (total_size > max_allocation_size) {
+  if (total_size > SIZE_MAX) {
     if (result) {
       result->error = json_parse_error_allocator_failed;
       result->error_offset = 0;
@@ -2242,11 +2240,10 @@ json_parse_ex(const void *src, size_t src_size, size_t flags_bitset,
     return json_null;
   }
 
-  allocation_size = (size_t)total_size;
   if (json_null == alloc_func_ptr) {
-    allocation = malloc(allocation_size);
+    allocation = malloc((size_t)total_size);
   } else {
-    allocation = alloc_func_ptr(user_data, allocation_size);
+    allocation = alloc_func_ptr(user_data, (size_t)total_size);
   }
 
   if (json_null == allocation) {
